@@ -1406,7 +1406,7 @@ class EnhanceImageView(APIView):
             return response
 
         except requests.exceptions.RequestException as e:
-            return Response({"error": f"Unable to download image. Please try again later."}, status=400)
+            return Response({"error": f"Unable to download image: {str(e)}"}, status=400)
         except OSError as e:
             return Response({"error": f"Invalid image format. Please try again with a different image."}, status=400)
         except Exception as e:
