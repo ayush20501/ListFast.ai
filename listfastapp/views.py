@@ -1285,16 +1285,13 @@ class EnhanceImageView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get_font(self, size):
+        font_dir = os.path.join(settings.BASE_DIR, 'fonts')  
+        font_path = os.path.join(font_dir, "arialbd.ttf")
         try:
-            return ImageFont.truetype("arialbd.ttf", size)
-        except IOError:
-            try:
-                return ImageFont.truetype("arial.ttf", size)
-            except IOError:
-                try:
-                    return ImageFont.truetype("Roboto-Bold.ttf", size)
-                except IOError:
-                    return ImageFont.load_default()
+            return ImageFont.truetype(font_path, size)
+        except IOError as e:
+            print(f"Failed to load Arial Bold font: {e}")
+            return ImageFont.load_default()
 
     def post(self, request):
         image_url = request.data.get("image_url", "").strip()
