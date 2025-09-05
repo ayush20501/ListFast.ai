@@ -496,23 +496,24 @@
                 const response = await fetch('/auth-status/');
                 const data = await response.json();
                 if (!data.is_logged_in) {
-                    window.location.href = '/api/auth/login/';
+                    window.location.href = '/login/';
                     return;
                 }
                 document.getElementById('user-email').textContent = data.email;
                 document.getElementById('mobile-user-email').textContent = data.email;
                 try {
-                    const profileResponse = await fetch('/profile/');
+                    const profileResponse = await fetch('/fetch-address-imageprofile/');
                     const profileData = await profileResponse.json();
-                    if (profileResponse.ok && profileData.profile && profileData.profile.profile_pic_url) {
-                        document.getElementById('user-profile-pic').src = profileData.profile.profile_pic_url;
-                        document.getElementById('mobile-user-profile-pic').src = profileData.profile.profile_pic_url;
+                    console.log(profileData);
+                    if (profileResponse.ok && profileData.profile_pic_url) {
+                        document.getElementById('user-profile-pic').src = profileData.profile_pic_url;
+                        document.getElementById('mobile-user-profile-pic').src = profileData.profile_pic_url;
                     }
                 } catch (error) {
                     console.error('Error loading profile image:', error);
                 }
             } catch (error) {
-                window.location.href = '/api/auth/login/';
+                window.location.href = '/login/';
             }
         });
         const hamburgerBtn = document.getElementById('hamburger-btn');

@@ -879,7 +879,7 @@ class MyListingsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        page = request.query_params.get('page', 1, type=int)
+        page = int(request.query_params.get('page', 1))
         limit = 20
         offset = (page - 1) * limit
         listings = UserListing.objects.filter(user=request.user).order_by('-created_at')[offset:offset + limit]
@@ -901,6 +901,26 @@ class MyListingsView(APIView):
             "page": page,
             "has_more": len(listings) == limit
         })
+
+class FetchAddressImageProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            profile = UserProfile.objects.get(user=request.user)
+            profile_data = {
+                'address_line1': profile.address_line1,
+                'city': profile.city,
+                'postal_code': profile.postal_code,
+                'country': profile.country,
+                'profile_pic_url': profile.profile_pic_url
+            }
+            return Response(profile_data, status=status.HTTP_200_OK)
+        except UserProfile.DoesNotExist:
+            return Response(
+                {'error': 'User profile not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
 class UploadProfileImageView(APIView):
     permission_classes = [IsAuthenticated]
@@ -1154,6 +1174,7 @@ class RevokeeBayAuthView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        print("Revoking eBay authentication")
         eBayToken.objects.filter(user=request.user).delete()
         request.session['force_ebay_login'] = True
         return Response({"status": "success", "message": "eBay authentication revoked"})

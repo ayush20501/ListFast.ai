@@ -28,4 +28,5 @@ urlpatterns = [
     path('revoke-ebay-auth/', views.RevokeeBayAuthView.as_view(), name='revoke-ebay-auth'),
     path('format-description/', views.FormatDescriptionView.as_view(), name='format-description'),
     path('enhance-image/', views.EnhanceImageView.as_view(), name='enhance-image'),
+    path('fetch-address-imageprofile/', views.FetchAddressImageProfileView.as_view(), name='fetch-address-imageprofile'),
 ]

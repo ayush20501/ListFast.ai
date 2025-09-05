@@ -68,7 +68,7 @@
                     <div class="ml-8 text-sm text-gray-500">Profile</div>
                 </div>
                 <div class="flex items-center space-x-6">
-                    <a href="services.html" class="text-blue-600 hover:text-blue-800 font-medium hover-lift">
+                    <a href="/services/" class="text-blue-600 hover:text-blue-800 font-medium hover-lift">
                         ← Back to Dashboard
                     </a>
                     <span id="user-email" class="text-gray-600 text-sm"></span>
@@ -433,11 +433,11 @@
 
         async function loadUserProfile() {
             try {
-                const response = await fetch('/profile/');
+                const response = await fetch('/fetch-address-imageprofile/');
                 const data = await response.json();
-                if (response.ok && data.profile) {
-                    currentUserProfile = data.profile;
-                    displayAddress(data.profile);
+                if (response.ok && data) {
+                    currentUserProfile = data;
+                    displayAddress(data);
                 } else {
                     displayAddress(null);
                 }
@@ -509,7 +509,6 @@
             document.getElementById('verify-otp-step').classList.remove('hidden');
         }
 
-        // Send OTP
         document.getElementById('send-otp-btn').addEventListener('click', async () => {
             const sendButton = document.getElementById('send-otp-btn');
             const originalText = sendButton.textContent;
@@ -517,9 +516,24 @@
             sendButton.textContent = 'Sending...';
 
             try {
-                const response = await fetch('/send-password-change-otp/', {
+                const getCookie = (name) => {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                };
+                const csrftoken = getCookie('csrftoken');
+                const response = await fetch('/send-password-otp/', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken }
                 });
 
                 const data = await response.json();
@@ -568,9 +582,24 @@
             submitBtn.textContent = 'Updating...';
 
             try {
+                const getCookie = (name) => {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                };
+                const csrftoken = getCookie('csrftoken');
                 const response = await fetch('/change-password/', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
                     body: JSON.stringify({
                         otp: otp,
                         new_password: newPassword
@@ -639,9 +668,24 @@
                 showAddressMessage('Please fill in all required fields.', 'error'); return;
             }
             try {
+                const getCookie = (name) => {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                };
+                const csrftoken = getCookie('csrftoken');
                 const response = await fetch('/profile/', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', },
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
                     body: JSON.stringify(formData),
                 });
                 const data = await response.json();
@@ -723,14 +767,35 @@
             submitBtn.disabled = true;
             submitBtn.textContent = 'Uploading...';
             try {
+                const getCookie = (name) => {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                };
+                const csrftoken = getCookie('csrftoken');
                 const formData = new FormData();
                 formData.append('image', file);
-                const response = await fetch('/upload-profile-image/', { method: 'POST', body: formData });
+                const response = await fetch('/upload-profile-image/', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': csrftoken
+                    }
+                });
                 const data = await response.json();
                 if (response.ok && data.status === 'success') {
                     const profileResponse = await fetch('/profile/', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', },
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
                         body: JSON.stringify({
                             ...currentUserProfile,
                             profile_pic_url: data.image_url
@@ -807,7 +872,7 @@
 
         async function loadAllListings(page = 1) {
             try {
-                const response = await fetch(`/my-listings?page=${page}`);
+                const response = await fetch(`/my-listings/?page=${page}`);
                 const data = await response.json();
                 const container = document.getElementById('all-listings');
                 if (response.ok) {
@@ -872,10 +937,30 @@
             button.disabled = true;
 
             try {
-                const response = await fetch('/revoke-ebay-auth/', { method: 'POST' });
+                const getCookie = (name) => {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                };
+                const csrftoken = getCookie('csrftoken');
+                const response = await fetch('/revoke-ebay-auth/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken // Include CSRF token
+                    }
+                });
                 const data = await response.json();
                 if (response.ok) {
-                    // Show success message briefly
                     button.innerHTML = `
                 <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>

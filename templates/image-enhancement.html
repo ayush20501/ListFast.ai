@@ -140,14 +140,14 @@
         <div class="max-w-7xl mx-auto px-6 lg:px-12">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center">
-                    <a href="index.html" class="flex items-center space-x-2">
+                    <a href="/" class="flex items-center space-x-2">
                         <span class="text-2xl font-bold text-gray-900">ListFast.ai</span>
                     </a>
                 </div>
                 <div class="hidden lg:flex items-center space-x-8">
-                    <a href="services.html" class="text-gray-600 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Services</a>
-                    <a href="dashboard.html" class="text-gray-600 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Dashboard</a>
-                    <a href="display-profile.html" id="profile-btn" class="flex items-center space-x-2 text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg transition-colors">
+                    <a href="/services/" class="text-gray-600 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Services</a>
+                    <a href="/dashboard/" class="text-gray-600 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Dashboard</a>
+                    <a href="/display-profile/" id="profile-btn" class="flex items-center space-x-2 text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg transition-colors">
                         <img id="user-profile-pic" src="https://via.placeholder.com/32" alt="Profile" class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
                         <span class="font-medium">Profile</span>
                     </a>
@@ -166,9 +166,9 @@
             </div>
             <div id="mobile-menu" class="lg:hidden mobile-menu absolute top-16 left-0 w-full bg-white shadow-lg border-b border-gray-200 hidden">
                 <div class="flex flex-col space-y-4 px-6 py-4">
-                    <a href="services.html" class="text-gray-600 hover:text-gray-900 font-medium py-2 transition-colors">Services</a>
-                    <a href="dashboard.html" class="text-gray-600 hover:text-gray-900 font-medium py-2 transition-colors">Dashboard</a>
-                    <a href="display-profile.html" class="flex items-center space-x-2 text-gray-600 hover:text-gray-900 font-medium py-2 transition-colors">
+                    <a href="services/" class="text-gray-600 hover:text-gray-900 font-medium py-2 transition-colors">Services</a>
+                    <a href="dashboard/" class="text-gray-600 hover:text-gray-900 font-medium py-2 transition-colors">Dashboard</a>
+                    <a href="/display-profile/" class="flex items-center space-x-2 text-gray-600 hover:text-gray-900 font-medium py-2 transition-colors">
                         <img id="mobile-user-profile-pic" src="https://via.placeholder.com/32" alt="Profile" class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
                         <span>Profile</span>
                     </a>
@@ -314,10 +314,10 @@
                 <div>
                     <h4 class="text-lg font-semibold mb-4">Quick Links</h4>
                     <ul class="space-y-2 text-gray-400 text-sm">
-                        <li><a href="index.html" class="hover:text-white transition-colors">Home</a></li>
-                        <li><a href="services.html" class="hover:text-white transition-colors">Services</a></li>
-                        <li><a href="dashboard.html" class="hover:text-white transition-colors">Dashboard</a></li>
-                        <li><a href="display-profile.html" class="hover:text-white transition-colors">Profile</a></li>
+                        <li><a href="/" class="hover:text-white transition-colors">Home</a></li>
+                        <li><a href="/services/" class="hover:text-white transition-colors">Services</a></li>
+                        <li><a href="/dashboard/" class="hover:text-white transition-colors">Dashboard</a></li>
+                        <li><a href="/display-profile/" class="hover:text-white transition-colors">Profile</a></li>
                     </ul>
                 </div>
                 <div>
@@ -384,17 +384,17 @@
                 const response = await fetch('/auth-status');
                 const data = await response.json();
                 if (!data.is_logged_in) {
-                    window.location.href = 'login.html';
+                    window.location.href = 'login/';
                     return;
                 }
                 document.getElementById('user-email').textContent = data.email;
                 document.getElementById('mobile-user-email').textContent = data.email;
                 try {
-                    const profileResponse = await fetch('/profile');
+                    const profileResponse = await fetch('/fetch-address-imageprofile/');
                     const profileData = await profileResponse.json();
-                    if (profileResponse.ok && profileData.profile && profileData.profile.profile_pic_url) {
-                        document.getElementById('user-profile-pic').src = profileData.profile.profile_pic_url;
-                        document.getElementById('mobile-user-profile-pic').src = profileData.profile.profile_pic_url;
+                    if (profileResponse.ok && profileData.profile_pic_url) {
+                        document.getElementById('user-profile-pic').src = profileData.profile_pic_url;
+                        document.getElementById('mobile-user-profile-pic').src = profileData.profile_pic_url;
                     }
                 } catch (error) {
                     console.error('Error loading profile image:', error);
@@ -405,7 +405,7 @@
                 if (imageUrl) document.getElementById('image_url').value = imageUrl;
                 if (logoUrl) document.getElementById('logo_url').value = logoUrl;
             } catch (error) {
-                window.location.href = 'login.html';
+                window.location.href = 'login/';
             }
         });
         const hamburgerBtn = document.getElementById('hamburger-btn');
@@ -417,16 +417,16 @@
         });
         document.getElementById('logout-btn').addEventListener('click', async () => {
             try {
-                await fetch('/logout', { method: 'POST' });
-                window.location.href = 'index.html';
+                await fetch('/logout/', { method: 'POST' });
+                window.location.href = '/';
             } catch (error) {
                 console.error('Logout failed:', error);
             }
         });
         document.getElementById('mobile-logout-btn').addEventListener('click', async () => {
             try {
-                await fetch('/logout', { method: 'POST' });
-                window.location.href = 'index.html';
+                await fetch('/logout/', { method: 'POST' });
+                window.location.href = '/';
             } catch (error) {
                 console.error('Logout failed:', error);
             }
@@ -477,8 +477,24 @@
             uploadBtn.disabled = true;
             uploadBtn.textContent = `Uploading ${type}...`;
             try {
-                const response = await fetch('/upload-profile-image', {
+                const getCookie = (name) => {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                };
+                const csrftoken = getCookie('csrftoken');
+                const response = await fetch('/upload-profile-image/', {
                     method: 'POST',
+                    headers: { 'X-CSRFToken': csrftoken },
                     body: formData
                 });
                 const data = await response.json();
@@ -533,11 +549,26 @@
             setTimeout(() => updateAIProgress('🖼️ Applying banner and logo...', 50), 1500);
             setTimeout(() => updateAIProgress('🎨 Finalizing image...', 75), 2500);
             try {
+                const getCookie = (name) => {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                };
+                const csrftoken = getCookie('csrftoken');
                 const payload = { image_url, title, remove_bg };
                 if (logo_url) payload.logo_url = logo_url;
-                const res = await fetch('/enhance-image', {
+                const res = await fetch('/enhance-image/', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
                     body: JSON.stringify(payload)
                 });
                 if (!res.ok) {
