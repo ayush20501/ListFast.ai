@@ -236,7 +236,7 @@ def get_first_policy_id(kind: str, access: str, marketplace: str) -> str:
         "Content-Language": LANG,
         "X-EBAY-C-MARKETPLACE-ID": marketplace,
     }
-    r = requests.get(url, headers=headers, params={"marketplace_id": marketplace}, timeout=30)
+    r = requests.get(url, headers=headers, params={"marketplace_id": marketplace})
     r.raise_for_status()
     list_key = f"{kind}Policies"
     items = r.json().get(list_key, [])
@@ -252,7 +252,7 @@ def get_or_create_location(access: str, marketplace: str, profile: UserProfile) 
         "Content-Language": LANG,
         "X-EBAY-C-MARKETPLACE-ID": marketplace,
     }
-    r = requests.get(url, headers=headers, timeout=30)
+    r = requests.get(url, headers=headers)
     r.raise_for_status()
     locs = r.json().get("locations", [])
     if locs:
@@ -272,7 +272,7 @@ def get_or_create_location(access: str, marketplace: str, profile: UserProfile) 
         "locationType": "WAREHOUSE",
         "merchantLocationStatus": "ENABLED",
     }
-    r = requests.post(create_url, headers=headers | {"Content-Type": "application/json"}, json=payload, timeout=30)
+    r = requests.post(create_url, headers=headers | {"Content-Type": "application/json"}, json=payload)
     r.raise_for_status()
     return merchant_location_key
 
@@ -281,7 +281,6 @@ def get_category_tree_id(access_token):
         f"{API}/commerce/taxonomy/v1/get_default_category_tree_id",
         params={"marketplace_id": MARKETPLACE_ID},
         headers={"Authorization": f"Bearer {access_token}"},
-        timeout=30,
     )
     r.raise_for_status()
     return r.json()["categoryTreeId"]
@@ -291,7 +290,6 @@ def suggest_leaf_category(tree_id: str, query: str, access_token):
         f"{API}/commerce/taxonomy/v1/category_tree/{tree_id}/get_category_suggestions",
         params={"q": query},
         headers={"Authorization": f"Bearer {access_token}"},
-        timeout=30,
     )
     r.raise_for_status()
     data = r.json() or {}
@@ -314,7 +312,6 @@ def browse_majority_category(query: str, access_token):
             "Authorization": f"Bearer {access_token}",
             "X-EBAY-C-MARKETPLACE-ID": MARKETPLACE_ID,
         },
-        timeout=30,
     )
     r.raise_for_status()
     items = (r.json() or {}).get("itemSummaries", []) or []
@@ -334,7 +331,6 @@ def get_required_and_recommended_aspects(tree_id: str, category_id: str, access_
             "Accept-Language": LANG,
             "X-EBAY-C-MARKETPLACE-ID": MARKETPLACE_ID,
         },
-        timeout=30,
     )
     r.raise_for_status()
     aspects = r.json().get("aspects", [])
@@ -368,7 +364,6 @@ def ensure_access_token(user: User):
                 "refresh_token": token.refresh_token,
                 "scope": SCOPES,
             },
-            timeout=30,
         )
         r.raise_for_status()
         data = r.json()
@@ -581,7 +576,6 @@ class eBayCallbackView(LoginRequiredMixin, View):
                     "code": code,
                     "redirect_uri": RU_NAME
                 },
-                timeout=30,
             )
             r.raise_for_status()
             data = r.json()
@@ -759,7 +753,7 @@ OUTPUT RULES:
                 "condition": condition,
                 "availability": {"shipToLocationAvailability": {"quantity": quantity}}
             }
-            r = requests.put(inv_url, headers=headers, json=inv_payload, timeout=30)
+            r = requests.put(inv_url, headers=headers, json=inv_payload)
             if r.status_code not in (200, 201, 204):
                 return Response({"error": parse_ebay_error(r.text), "step": "inventory_item"}, status=400)
             try:
@@ -785,12 +779,12 @@ OUTPUT RULES:
                 "merchantLocationKey": merchant_location_key
             }
             offer_url = f"{BASE}/sell/inventory/v1/offer"
-            r = requests.post(offer_url, headers=headers, json=offer_payload, timeout=30)
+            r = requests.post(offer_url, headers=headers, json=offer_payload)
             if r.status_code not in (200, 201):
                 return Response({"error": parse_ebay_error(r.text), "step": "create_offer"}, status=400)
             offer_id = r.json().get("offerId")
             pub_url = f"{BASE}/sell/inventory/v1/offer/{offer_id}/publish"
-            r = requests.post(pub_url, headers=headers, timeout=30)
+            r = requests.post(pub_url, headers=headers)
             if r.status_code not in (200, 201):
                 return Response({"error": parse_ebay_error(r.text), "step": "publish"}, status=400)
             pub = r.json()
@@ -938,7 +932,7 @@ class UploadProfileImageView(APIView):
                 "image": encoded_image,
                 "name": secure_filename(file.name)
             }
-            response = requests.post(IMGBB_UPLOAD_URL, data=payload, timeout=30)
+            response = requests.post(IMGBB_UPLOAD_URL, data=payload)
             result = response.json()
             if result.get("success"):
                 return Response({"status": "success", "image_url": result["data"]["url"]})
@@ -1305,7 +1299,7 @@ class EnhanceImageView(APIView):
         output_file = f"enhanced_{random.randint(1000, 9999)}.png"
 
         try:
-            response = requests.get(image_url, timeout=10)
+            response = requests.get(image_url)
             response.raise_for_status()
             image = Image.open(BytesIO(response.content)).convert("RGBA")
 
@@ -1317,7 +1311,6 @@ class EnhanceImageView(APIView):
                         "https://api.remove.bg/v1.0/removebg",
                         files={"image_file": img_byte_arr.getvalue()},
                         headers={"X-Api-Key": REMOVE_BG_API_KEY},
-                        timeout=20,
                     )
                     response.raise_for_status()
                     image_no_bg = Image.open(BytesIO(response.content)).convert("RGBA")
@@ -1384,7 +1377,7 @@ class EnhanceImageView(APIView):
 
             if logo_url:
                 try:
-                    logo_response = requests.get(logo_url, timeout=10)
+                    logo_response = requests.get(logo_url)
                     logo_response.raise_for_status()
                     logo = Image.open(BytesIO(logo_response.content)).convert("RGBA")
                     logo_width = canvas_size // 10
@@ -1409,3 +1402,292 @@ class EnhanceImageView(APIView):
         except Exception as e:
             return Response({"error": f"Unexpected server error. Please try again later."}, status=500)
 
+
+class PreviewItemView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        print("PreviewItemView")
+        try:
+            profile = UserProfile.objects.get(user=request.user)
+        except UserProfile.DoesNotExist:
+            return Response({"error": "Please create your profile first"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            token = eBayToken.objects.get(user=request.user)
+            if not token.refresh_token:
+                return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
+        except eBayToken.DoesNotExist:
+            return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = ListingSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({"error": "Invalid input", "details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        raw_text_in = _clean_text(serializer.validated_data.get("raw_text"), limit=8000)
+        images = _https_only(serializer.validated_data.get("images", []))
+        marketplace_id = MARKETPLACE_ID
+        price = serializer.validated_data["price"]
+        quantity = serializer.validated_data["quantity"]
+        condition = serializer.validated_data.get("condition", "NEW").upper()
+
+        if not raw_text_in and not images:
+            return Response({"error": "Raw text or images required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            if not OPENAI_API_KEY:
+                normalized_title = smart_titlecase(raw_text_in[:80]) or _fallback_title(raw_text_in)
+                category_keywords = []
+                brand = None
+            else:
+                system_prompt = (
+                    "Extract concise keywords for eBay category selection and search. "
+                    "Return STRICT JSON per the schema. Use ONLY facts from input. "
+                    "Do NOT invent identifiers; omit if absent. "
+                    "Lowercase all keywords, no punctuation, no duplicates. "
+                    "search_keywords must be ≤ 30 characters."
+                )
+                user_prompt = f"""MARKETPLACE: {marketplace_id}
+RAW_TEXT:
+{raw_text_in}
+IMAGE_URLS (context only, do not copy text):
+{chr(10).join(images) if images else "(none)"}
+OUTPUT RULES:
+- category_keywords: 1–5 short phrases (2–3 words) for product category.
+- search_keywords: 3–12 search terms buyers would type (mix of unigrams/bigrams/trigrams), lowercase.
+- normalized_title: <=80 chars, clean and factual (no emojis/promo).
+- brand: only if explicitly in RAW_TEXT.
+- identifiers: only if explicitly present (isbn/ean/gtin/mpn)."""
+                try:
+                    s1 = call_llm_json(system_prompt, user_prompt)
+                    # Assuming serializer validates similar to KEYWORDS_SCHEMA
+                    s1["search_keywords"] = clean_keywords(s1.get("search_keywords", []))
+                    normalized_title = s1.get("normalized_title") or _fallback_title(raw_text_in)
+                    category_keywords = s1.get("category_keywords", [])
+                    brand = s1.get("brand")
+                except Exception as e:
+                    print(f"[AI Keywords Error] {e}")
+                    normalized_title = smart_titlecase(raw_text_in[:80]) or _fallback_title(raw_text_in)
+                    category_keywords = []
+                    brand = None
+
+            access = ensure_access_token(request.user)
+            tree_id = get_category_tree_id(access)
+            query = (" ".join(category_keywords)).strip() or normalized_title
+            try:
+                cat_id, cat_name = suggest_leaf_category(tree_id, query, access)
+            except Exception:
+                cat_id, cat_name = browse_majority_category(query, access)
+                if not cat_id:
+                    return Response({"error": "No category found", "query": query}, status=status.HTTP_404_NOT_FOUND)
+
+            aspects_info = get_required_and_recommended_aspects(tree_id, cat_id, access)
+            req_names = [_aspect_name(x) for x in aspects_info.get("required", []) if _aspect_name(x)]
+            rec_names = [_aspect_name(x) for x in aspects_info.get("recommended", []) if _aspect_name(x)]
+
+            filled_aspects = {name: ["Unknown"] for name in req_names}
+            if OPENAI_API_KEY and (req_names or rec_names):
+                system_prompt2 = (
+                    "Fill eBay item aspects from provided text/images. NEVER leave required aspects empty; "
+                    "extract when explicit, infer when reasonable, otherwise use 'Does not apply'/'Unknown'."
+                )
+                user_prompt2 = f"""
+INPUT TEXT:
+{normalized_title}
+RAW TEXT:
+{raw_text_in}
+ASPECTS:
+- REQUIRED: {req_names}
+- RECOMMENDED: {rec_names}
+OUTPUT RULES:
+{{
+  "filled": {{"AspectName": ["value1","value2"]}},
+  "missing_required": ["AspectName"],
+  "notes": "optional"
+}}
+"""
+                try:
+                    s3 = call_llm_json(system_prompt2, user_prompt2)
+                    # Assuming serializer validates similar to ASPECTS_FILL_SCHEMA
+                    allowed = set(req_names + rec_names)
+                    for k, vals in (s3.get("filled") or {}).items():
+                        if k in allowed and isinstance(vals, list):
+                            clean_vals = list(dict.fromkeys([str(v).strip() for v in vals if str(v).strip()]))
+                            if clean_vals:
+                                filled_aspects[k] = clean_vals
+                    filled_aspects = apply_aspect_constraints(filled_aspects, aspects_info.get("raw"))
+                    if "Book Title" in filled_aspects:
+                        filled_aspects["Book Title"] = [v[:65] for v in filled_aspects["Book Title"]]
+                except Exception as e:
+                    print(f"[AI Aspects Error] {e}")
+
+            try:
+                desc_bundle = build_description_simple_from_raw(raw_text_in, html_mode=True)
+                description_text = desc_bundle["text"]
+                description_html = desc_bundle["html"]
+            except Exception as e:
+                print(f"[AI Description Error] {e}")
+                description_text = raw_text_in[:2000]
+                description_html = f"<p>{description_text}</p>"
+
+            title = smart_titlecase(normalized_title)[:80]
+            return Response({
+                "title": title,
+                "description": {"text": description_text, "html": description_html, "used_html": True},
+                "aspects": filled_aspects,
+                "sku": _gen_sku("RAW"),
+                "price": price,
+                "quantity": quantity,
+                "condition": condition,
+                "category_id": cat_id,
+                "category_name": cat_name,
+                "marketplace_id": marketplace_id,
+                "images": images
+            })
+
+        except requests.exceptions.RequestException as e:
+            return Response({"error": f"Network error with eBay: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except RuntimeError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": f"Unexpected error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class PublishItemFromPreviewView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            profile = UserProfile.objects.get(user=request.user)
+        except UserProfile.DoesNotExist:
+            return Response({"error": "Please create your profile first"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            token = eBayToken.objects.get(user=request.user)
+            if not token.refresh_token:
+                return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
+        except eBayToken.DoesNotExist:
+            return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
+
+        required_fields = ["title", "description", "aspects", "sku", "price", "quantity", "condition", "category_id", "marketplace_id", "images"]
+        for field in required_fields:
+            if field not in request.data:
+                return Response({"error": f"Missing required field: {field}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        title = _clean_text(request.data.get("title"), limit=80)
+        description = request.data.get("description", {})
+        description_text = _clean_text(description.get("text"), limit=2000)
+        description_html = description.get("html") if description.get("used_html") else f"<p>{description_text}</p>"
+        aspects = request.data.get("aspects", {})
+        sku = request.data.get("sku")
+        price = request.data.get("price")
+        quantity = int(request.data.get("quantity", 1))
+        condition = request.data.get("condition").upper()
+        category_id = request.data.get("category_id")
+        marketplace_id = request.data.get("marketplace_id")
+        images = _https_only(request.data.get("images"))
+
+        if not title or not description_text or not images:
+            return Response({"error": "Title, description, and at least one image URL are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            access = ensure_access_token(request.user)
+            lang = "en-GB" if marketplace_id == "EBAY_GB" else "en-US"
+            headers = {
+                "Authorization": f"Bearer {access}",
+                "Content-Type": "application/json",
+                "Content-Language": lang,
+                "Accept-Language": lang,
+                "X-EBAY-C-MARKETPLACE-ID": marketplace_id,
+            }
+            inv_url = f"{BASE}/sell/inventory/v1/inventory_item/{sku}"
+            inv_payload = {
+                "product": {
+                    "title": title,
+                    "description": description_text,
+                    "aspects": aspects,
+                    "imageUrls": images
+                },
+                "condition": condition,
+                "availability": {"shipToLocationAvailability": {"quantity": quantity}}
+            }
+            r = requests.put(inv_url, headers=headers, json=inv_payload, timeout=30)
+            if r.status_code not in (200, 201, 204):
+                return Response({"error": parse_ebay_error(r.text), "step": "inventory_item"}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                fulfillment_policy_id = get_first_policy_id("fulfillment", access, marketplace_id)
+                payment_policy_id = get_first_policy_id("payment", access, marketplace_id)
+                return_policy_id = get_first_policy_id("return", access, marketplace_id)
+            except RuntimeError as e:
+                return Response({"error": f"Missing eBay policies: {str(e)}. Please set up your selling policies."}, status=status.HTTP_400_BAD_REQUEST)
+
+            merchant_location_key = get_or_create_location(access, marketplace_id, profile)
+            offer_payload = {
+                "sku": sku,
+                "marketplaceId": marketplace_id,
+                "format": "FIXED_PRICE",
+                "availableQuantity": quantity,
+                "categoryId": category_id,
+                "listingDescription": description_html,
+                "pricingSummary": {"price": price},
+                "listingPolicies": {
+                    "fulfillmentPolicyId": fulfillment_policy_id,
+                    "paymentPolicyId": payment_policy_id,
+                    "returnPolicyId": return_policy_id
+                },
+                "merchantLocationKey": merchant_location_key
+            }
+            offer_url = f"{BASE}/sell/inventory/v1/offer"
+            r = requests.post(offer_url, headers=headers, json=offer_payload, timeout=30)
+            if r.status_code not in (200, 201):
+                return Response({"error": parse_ebay_error(r.text), "step": "create_offer"}, status=status.HTTP_400_BAD_REQUEST)
+
+            offer_id = r.json().get("offerId")
+            pub_url = f"{BASE}/sell/inventory/v1/offer/{offer_id}/publish"
+            r = requests.post(pub_url, headers=headers, timeout=30)
+            if r.status_code not in (200, 201):
+                return Response({"error": parse_ebay_error(r.text), "step": "publish"}, status=status.HTTP_400_BAD_REQUEST)
+
+            pub = r.json()
+            listing_id = pub.get("listingId") or (pub.get("listingIds") or [None])[0]
+            view_url = f"https://www.ebay.co.uk/itm/{listing_id}" if marketplace_id == "EBAY_GB" else None
+
+            listing_count, _ = ListingCount.objects.get_or_create(id=1, defaults={"total_count": 0})
+            listing_count.total_count += 1
+            listing_count.save()
+
+            UserListing.objects.create(
+                user=request.user,
+                listing_id=listing_id,
+                offer_id=offer_id,
+                sku=sku,
+                title=title,
+                price_value=price["value"],
+                price_currency=price["currency"],
+                quantity=quantity,
+                condition=condition,
+                category_id=category_id,
+                category_name=request.data.get("category_name"),
+                marketplace_id=marketplace_id,
+                view_url=view_url
+            )
+
+            return Response({
+                "status": "published",
+                "offerId": offer_id,
+                "listingId": listing_id,
+                "viewItemUrl": view_url,
+                "sku": sku,
+                "marketplaceId": marketplace_id,
+                "categoryId": category_id,
+                "categoryName": request.data.get("category_name"),
+                "title": title,
+                "aspects": aspects
+            })
+
+        except requests.exceptions.RequestException as e:
+            return Response({"error": f"Network error with eBay: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except RuntimeError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": f"Unexpected error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
