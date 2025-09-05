@@ -17,7 +17,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.mail import EmailMultiAlternatives
-from django.http import JsonResponse, HttpResponse
+from django.http import HttpResponseRedirect, JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -561,22 +561,31 @@ class eBayLoginView(LoginRequiredMixin, View):
             url += "&prompt=login"
 
         return redirect(url)
+        
+class eBayCallbackView(LoginRequiredMixin, View):
 
-class eBayCallbackView(View):
-    @login_required
     def get(self, request):
         code = request.GET.get("code")
         if not code:
             return HttpResponse("Missing authorization code", status=400)
+
         try:
             r = requests.post(
                 TOKEN,
-                headers={"Authorization": _b64_basic(), "Content-Type": "application/x-www-form-urlencoded"},
-                data={"grant_type": "authorization_code", "code": code, "redirect_uri": RU_NAME},
+                headers={
+                    "Authorization": _b64_basic(),
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                data={
+                    "grant_type": "authorization_code",
+                    "code": code,
+                    "redirect_uri": RU_NAME
+                },
                 timeout=30,
             )
             r.raise_for_status()
             data = r.json()
+
             eBayToken.objects.update_or_create(
                 user=request.user,
                 defaults={
@@ -586,9 +595,11 @@ class eBayCallbackView(View):
                     "updated_at": timezone.now()
                 }
             )
-            return redirect("/ebay-auth.html?ebay_auth=success")
-        except Exception:
-            return redirect("/ebay-auth.html?error=auth_failed")
+            return HttpResponseRedirect("/ebay-auth.html?ebay_auth=success")
+
+        except Exception as e:
+            print(f"eBay auth error: {e}") 
+            return HttpResponseRedirect("/ebay-auth.html?error=auth_failed")
 
 class AuthStatusView(APIView):
     def get(self, request):
