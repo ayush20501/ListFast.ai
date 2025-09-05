@@ -9,3 +9,4 @@ gunicorn
 pillow
 python-decouple
 django-rest-framework
+gunicorn
