@@ -452,6 +452,9 @@ class ServicesView(View):
         return render(request, 'services.html')
 
 class LoginView(APIView):
+    def get(self, request):
+        return render(request, 'index.html')
+
     def post(self, request):
         email = request.data.get("email", "").strip().lower()
         password = request.data.get("password", "")
