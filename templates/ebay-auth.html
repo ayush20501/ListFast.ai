@@ -52,27 +52,25 @@
     </div>
 
     <script>
-        // Check authentication status on page load
         window.addEventListener('load', () => {
             fetch('/auth-status')
                 .then(response => response.json())
                 .then(data => {
                     if (!data.is_logged_in) {
-                        window.location.href = 'login.html';
+                        window.location.href = '/login/';
                     } else if (!data.has_profile) {
-                        window.location.href = 'profile.html';
+                        window.location.href = '/profile/';
                     } else if (data.has_ebay_auth) {
-                        window.location.href = 'services.html';
+                        window.location.href = '/services/';
                     }
                 });
 
-            // Check for eBay auth success in URL params
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('ebay_auth') === 'success') {
                 document.getElementById('success-message').textContent = 'eBay authentication successful!';
                 document.getElementById('success-message').classList.remove('hidden');
                 setTimeout(() => {
-                    window.location.href = 'services.html';
+                    window.location.href = '/services/';
                 }, 2000);
             }
         });
@@ -86,8 +84,7 @@
             `;
             
             try {
-                // Redirect to eBay OAuth
-                window.location.href = '/ebay-login';
+                window.location.href = '/ebay-login/';
             } catch (error) {
                 document.getElementById('error-message').textContent = 'Failed to connect to eBay. Please try again.';
                 document.getElementById('error-message').classList.remove('hidden');

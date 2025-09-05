@@ -595,11 +595,11 @@ class eBayCallbackView(LoginRequiredMixin, View):
                     "updated_at": timezone.now()
                 }
             )
-            return HttpResponseRedirect("/ebay-auth.html?ebay_auth=success")
+            return HttpResponseRedirect("/ebay-auth/?ebay_auth=success")
 
         except Exception as e:
             print(f"eBay auth error: {e}") 
-            return HttpResponseRedirect("/ebay-auth.html?error=auth_failed")
+            return HttpResponseRedirect("/ebay-auth/?error=auth_failed")
 
 class AuthStatusView(APIView):
     def get(self, request):
