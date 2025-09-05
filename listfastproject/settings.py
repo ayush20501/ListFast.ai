@@ -123,8 +123,3 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-EMAIL_HOST_USER = "rahul@listfast.ai"
-EMAIL_HOST_PASSWORD = "mt%v5!tN=5u8b,N"
-EMAIL_PORT = 587
-EMAIL_HOST = "smtp.office365.com"
