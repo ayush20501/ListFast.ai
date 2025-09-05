@@ -47,8 +47,27 @@
         }
 
         .service-card:hover {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        }
+
+        .service-card.image-enhance:hover {
+            border: 2px solid #a855f7;
+            background: linear-gradient(135deg, #ffffff 0%, #faf5ff 100%);
+        }
+
+        .service-card.single-listing:hover {
             border: 2px solid #3b82f6;
             background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+        }
+
+        .service-card.multipack:hover {
+            border: 2px solid #10b981;
+            background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+        }
+
+        .service-card.bundle:hover {
+            border: 2px solid #f59e0b;
+            background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
         }
 
         .image-enhance-gradient {
@@ -130,7 +149,6 @@
             }
         }
 
-        /* Navbar-specific styles */
         .nav-gradient {
             background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
         }
@@ -163,28 +181,24 @@
 </head>
 
 <body class="min-h-screen bg-gray-50">
-    <!-- Improved Navigation -->
     <nav class="nav-gradient border-b border-gray-200 fixed w-full top-0 z-50">
         <div class="max-w-7xl mx-auto px-6 lg:px-12">
             <div class="flex justify-between items-center h-16">
-                <!-- Logo and Brand -->
                 <div class="flex items-center">
-                    <a href="index.html" class="flex items-center space-x-2">
+                    <a href="/" class="flex items-center space-x-2">
                         <span class="text-2xl font-bold text-gray-900 hover-lift">ListFast.ai</span>
                     </a>
                 </div>
-
-                <!-- Desktop Menu -->
                 <div class="hidden lg:flex items-center space-x-8">
-                    <a href="services.html"
+                    <a href="/services/"
                         class="text-gray-600 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors hover-lift">
                         Services
                     </a>
-                    <a href="dashboard.html"
+                    <a href="/my-listings/"
                         class="text-gray-600 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors hover-lift">
                         Dashboard
                     </a>
-                    <a href="display-profile.html" id="profile-btn"
+                    <a href="/display-profile/" id="profile-btn"
                         class="flex items-center space-x-2 text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg transition-colors hover-lift">
                         <img id="user-profile-pic" src="https://via.placeholder.com/32" alt="Profile"
                             class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
@@ -196,8 +210,6 @@
                         Logout
                     </button>
                 </div>
-
-                <!-- Hamburger Menu for Mobile -->
                 <div class="lg:hidden flex items-center">
                     <button id="hamburger-btn" class="p-2 focus:outline-none">
                         <div class="hamburger space-y-1.5">
@@ -208,20 +220,18 @@
                     </button>
                 </div>
             </div>
-
-            <!-- Mobile Menu -->
             <div id="mobile-menu"
                 class="lg:hidden mobile-menu absolute top-16 left-0 w-full bg-white shadow-lg border-b border-gray-200 hidden">
                 <div class="flex flex-col space-y-4 px-6 py-4">
-                    <a href="services.html"
+                    <a href="/services/"
                         class="text-gray-600 hover:text-gray-900 font-medium py-2 transition-colors hover-lift">
                         Services
                     </a>
-                    <a href="dashboard.html"
+                    <a href="/my-listings/"
                         class="text-gray-600 hover:text-gray-900 font-medium py-2 transition-colors hover-lift">
                         Dashboard
                     </a>
-                    <a href="display-profile.html"
+                    <a href="/display-profile/"
                         class="flex items-center space-x-2 text-gray-600 hover:text-gray-900 font-medium py-2 transition-colors hover-lift">
                         <img id="mobile-user-profile-pic" src="https://via.placeholder.com/32" alt="Profile"
                             class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
@@ -236,8 +246,6 @@
             </div>
         </div>
     </nav>
-
-    <!-- Hero Section -->
     <div class="max-w-7xl mx-auto px-6 lg:px-12 py-16 pt-24">
         <div class="text-center mb-16">
             <div class="max-w-4xl mx-auto">
@@ -253,11 +261,8 @@
                 </p>
             </div>
         </div>
-
-        <!-- Services Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 mb-16">
-            <!-- Image Enhancement Service -->
-            <div class="service-card rounded-2xl shadow-lg p-8 hover-lift floating-animation">
+            <div class="service-card image-enhance rounded-2xl shadow-lg p-8">
                 <div class="image-enhance-gradient text-white p-6 rounded-xl mb-6">
                     <div class="flex items-center justify-between mb-4">
                         <div class="feature-icon">
@@ -270,7 +275,6 @@
                     <h3 class="text-2xl font-bold mb-2">Image Enhancement</h3>
                     <p class="text-purple-100 text-sm">Professional image editing for your products</p>
                 </div>
-
                 <div class="space-y-4 mb-8">
                     <div class="flex items-start space-x-3">
                         <div class="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
@@ -289,7 +293,6 @@
                         <span class="text-gray-700">High-quality image optimization</span>
                     </div>
                 </div>
-
                 <div class="flex items-center justify-between">
                     <button id="image-enhancement-btn"
                         class="image-enhance-gradient text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity hover-lift">
@@ -297,9 +300,7 @@
                     </button>
                 </div>
             </div>
-
-            <!-- Single Item Listing -->
-            <div class="service-card rounded-2xl shadow-lg p-8 hover-lift">
+            <div class="service-card single-listing rounded-2xl shadow-lg p-8">
                 <div class="single-listing-gradient text-white p-6 rounded-xl mb-6">
                     <div class="flex items-center justify-between mb-4">
                         <div class="feature-icon">
@@ -312,7 +313,6 @@
                     <h3 class="text-2xl font-bold mb-2">Single Item Listing</h3>
                     <p class="text-blue-100 text-sm">Perfect for individual product listings</p>
                 </div>
-
                 <div class="space-y-4 mb-8">
                     <div class="flex items-start space-x-3">
                         <div class="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
@@ -331,7 +331,6 @@
                         <span class="text-gray-700">SEO keyword integration</span>
                     </div>
                 </div>
-
                 <div class="flex items-center justify-between">
                     <button id="single-item-listing-btn"
                         class="single-listing-gradient text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity hover-lift pulse-animation">
@@ -339,9 +338,7 @@
                     </button>
                 </div>
             </div>
-
-            <!-- Multipack Listing -->
-            <div class="service-card rounded-2xl shadow-lg p-8 hover-lift">
+            <div class="service-card multipack rounded-2xl shadow-lg p-8">
                 <div class="multipack-gradient text-white p-6 rounded-xl mb-6">
                     <div class="flex items-center justify-between mb-4">
                         <div class="feature-icon">
@@ -354,7 +351,6 @@
                     <h3 class="text-2xl font-bold mb-2">Multipack Listing</h3>
                     <p class="text-green-100 text-sm">List multiple quantities of a single item</p>
                 </div>
-
                 <div class="space-y-4 mb-8">
                     <div class="flex items-start space-x-3">
                         <div class="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
@@ -373,7 +369,6 @@
                         <span class="text-gray-700">SEO keyword integration for bulk sales</span>
                     </div>
                 </div>
-
                 <div class="flex items-center justify-between">
                     <button
                         class="multipack-gradient text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity hover-lift">
@@ -381,10 +376,7 @@
                     </button>
                 </div>
             </div>
-
-            <!-- Bundle Listing -->
-            <div class="service-card rounded-2xl shadow-lg p-8 hover-lift floating-animation"
-                style="animation-delay: 1s;">
+            <div class="service-card bundle rounded-2xl shadow-lg p-8">
                 <div class="bundle-gradient text-white p-6 rounded-xl mb-6">
                     <div class="flex items-center justify-between mb-4">
                         <div class="feature-icon">
@@ -397,7 +389,6 @@
                     <h3 class="text-2xl font-bold mb-2">Bundle Listing</h3>
                     <p class="text-orange-100 text-sm">List multiple different items as one package</p>
                 </div>
-
                 <div class="space-y-4 mb-8">
                     <div class="flex items-start space-x-3">
                         <div class="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
@@ -416,7 +407,6 @@
                         <span class="text-gray-700">SEO keyword integration for package deals</span>
                     </div>
                 </div>
-
                 <div class="flex items-center justify-between">
                     <button
                         class="bundle-gradient text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity hover-lift">
@@ -426,12 +416,9 @@
             </div>
         </div>
     </div>
-
-    <!-- Footer -->
     <footer class="bg-gray-900 text-white">
         <div class="max-w-7xl mx-auto px-6 lg:px-12 py-12">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <!-- Brand and Description -->
                 <div class="space-y-4">
                     <h3 class="text-2xl font-bold">ListFast.ai</h3>
                     <p class="text-gray-400 text-sm leading-relaxed">
@@ -439,21 +426,18 @@
                         multipacks, and bundles.
                     </p>
                 </div>
-
-                <!-- Quick Links -->
                 <div>
                     <h4 class="text-lg font-semibold mb-4">Quick Links</h4>
                     <ul class="space-y-2 text-gray-400 text-sm">
-                        <li><a href="index.html" class="hover:text-white transition-colors hover-lift">Home</a></li>
-                        <li><a href="services.html" class="hover:text-white transition-colors hover-lift">Services</a>
+                        <li><a href="/" class="hover:text-white transition-colors hover-lift">Home</a></li>
+                        <li><a href="/services/" class="hover:text-white transition-colors hover-lift">Services</a>
                         </li>
-                        <li><a href="dashboard.html" class="hover:text-white transition-colors hover前期
-                        <li><a href=" display-profile.html"
+                        <li><a href="/my-listings/" class="hover:text-white transition-colors hover-lift">Dashboard</a>
+                        </li>
+                        <li><a href="/display-profile/"
                                 class="hover:text-white transition-colors hover-lift">Profile</a></li>
                     </ul>
                 </div>
-
-                <!-- Support -->
                 <div>
                     <h4 class="text-lg font-semibold mb-4">Support</h4>
                     <ul class="space-y-2 text-gray-400 text-sm">
@@ -464,8 +448,6 @@
                         </li>
                     </ul>
                 </div>
-
-                <!-- Newsletter Signup -->
                 <div>
                     <h4 class="text-lg font-semibold mb-4">Stay Updated</h4>
                     <p class="text-gray-400 text-sm mb-4">Subscribe to our newsletter for the latest updates and offers.
@@ -480,13 +462,10 @@
                     </form>
                 </div>
             </div>
-
-            <!-- Social Media and Copyright -->
             <div class="mt-12 pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">
                 <div class="flex space-x-4">
                     <a href="#" class="text-gray-400 hover:text-white transition-colors hover-lift">
                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                            <!-- Twitter/X Icon -->
                             <path
                                 d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.15z">
                             </path>
@@ -494,7 +473,6 @@
                     </a>
                     <a href="#" class="text-gray-400 hover:text-white transition-colors hover-lift">
                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                            <!-- Facebook Icon -->
                             <path
                                 d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-2.596 0-4.194 1.722-4.194 4.6v3.4z">
                             </path>
@@ -512,25 +490,19 @@
             </div>
         </div>
     </footer>
-
     <script>
-        // Authentication check and user info display
         window.addEventListener('load', async () => {
             try {
-                const response = await fetch('/auth-status');
+                const response = await fetch('/auth-status/');
                 const data = await response.json();
-
                 if (!data.is_logged_in) {
-                    window.location.href = 'login.html';
+                    window.location.href = '/api/auth/login/';
                     return;
                 }
-
                 document.getElementById('user-email').textContent = data.email;
                 document.getElementById('mobile-user-email').textContent = data.email;
-
-                // Load profile image
                 try {
-                    const profileResponse = await fetch('/profile');
+                    const profileResponse = await fetch('/profile/');
                     const profileData = await profileResponse.json();
                     if (profileResponse.ok && profileData.profile && profileData.profile.profile_pic_url) {
                         document.getElementById('user-profile-pic').src = profileData.profile.profile_pic_url;
@@ -540,11 +512,9 @@
                     console.error('Error loading profile image:', error);
                 }
             } catch (error) {
-                window.location.href = 'login.html';
+                window.location.href = '/api/auth/login/';
             }
         });
-
-        // Hamburger menu toggle
         const hamburgerBtn = document.getElementById('hamburger-btn');
         const mobileMenu = document.getElementById('mobile-menu');
         hamburgerBtn.addEventListener('click', () => {
@@ -552,39 +522,31 @@
             hamburgerBtn.classList.toggle('active');
             mobileMenu.classList.toggle('hidden');
         });
-
-        // Logout functionality
         document.getElementById('logout-btn').addEventListener('click', async () => {
             try {
-                await fetch('/logout', { method: 'POST' });
-                window.location.href = 'index.html';
+                await fetch('/logout/', { method: 'POST' });
+                window.location.href = '/';
             } catch (error) {
                 console.error('Logout failed:', error);
             }
         });
-
         document.getElementById('mobile-logout-btn').addEventListener('click', async () => {
             try {
-                await fetch('/logout', { method: 'POST' });
-                window.location.href = 'index.html';
+                await fetch('/logout/', { method: 'POST' });
+                window.location.href = '/';
             } catch (error) {
                 console.error('Logout failed:', error);
             }
         });
-
         document.querySelectorAll('button').forEach(button => {
             if (button.id === 'single-item-listing-btn') {
-
                 button.addEventListener('click', () => {
-                    window.location.href = 'single-item-listing.html';
+                    window.location.href = '/single-item-listing/';
                 });
-
             } else if (button.id === 'image-enhancement-btn') {
-
                 button.addEventListener('click', () => {
-                    window.location.href = 'image-enhancement.html';
+                    window.location.href = '/image-enhancement/';
                 });
-
             } else if (
                 button.textContent.includes('Get Started') ||
                 button.textContent.includes('List Multipack') ||
@@ -596,7 +558,6 @@
                 });
             }
         });
-
     </script>
 </body>
 

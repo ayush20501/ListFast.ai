@@ -392,23 +392,23 @@
                 const response = await fetch('/auth-status');
                 const data = await response.json();
                 if (!data.is_logged_in) {
-                    window.location.href = 'login.html'; return;
+                    window.location.href = '/login/'; return;
                 } else if (!data.has_profile) {
-                    window.location.href = 'profile.html'; return;
+                    window.location.href = '/profile/'; return;
                 } else if (!data.has_ebay_auth) {
-                    window.location.href = 'ebay-auth.html'; return;
+                    window.location.href = '/ebay-auth/'; return;
                 }
                 document.getElementById('user-email').textContent = data.email;
                 await loadProfileData();
             } catch (error) {
-                window.location.href = 'login.html';
+                window.location.href = '/login/';
             }
         });
 
         document.getElementById('logout-btn').addEventListener('click', async () => {
             try {
                 await fetch('/logout', { method: 'POST' });
-                window.location.href = 'index.html';
+                window.location.href = '/';
             } catch (error) {
                 console.error('Logout failed:', error);
             }
@@ -416,7 +416,7 @@
 
         async function loadProfileData() {
             try {
-                const statsResponse = await fetch('/user-stats');
+                const statsResponse = await fetch('/user-stats/');
                 const statsData = await statsResponse.json();
                 if (statsResponse.ok) {
                     document.getElementById('total-listings-stat').textContent = statsData.total_listings;
@@ -433,7 +433,7 @@
 
         async function loadUserProfile() {
             try {
-                const response = await fetch('/profile');
+                const response = await fetch('/profile/');
                 const data = await response.json();
                 if (response.ok && data.profile) {
                     currentUserProfile = data.profile;
@@ -464,7 +464,6 @@
             }
         }
 
-        // Password Change Functions
         document.getElementById('change-password-btn').addEventListener('click', () => {
             showPasswordChangeForm();
         });
@@ -489,12 +488,10 @@
             document.getElementById('password-display').classList.remove('hidden');
             document.getElementById('change-password-btn').classList.remove('hidden');
 
-            // Clear form fields
             document.getElementById('otp-input').value = '';
             document.getElementById('new-password').value = '';
             document.getElementById('confirm-password').value = '';
 
-            // Hide message
             const messageEl = document.getElementById('password-change-message');
             messageEl.classList.add('hidden');
             messageEl.textContent = '';
@@ -520,7 +517,7 @@
             sendButton.textContent = 'Sending...';
 
             try {
-                const response = await fetch('/send-password-change-otp', {
+                const response = await fetch('/send-password-change-otp/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
                 });
@@ -571,7 +568,7 @@
             submitBtn.textContent = 'Updating...';
 
             try {
-                const response = await fetch('/change-password', {
+                const response = await fetch('/change-password/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -642,7 +639,7 @@
                 showAddressMessage('Please fill in all required fields.', 'error'); return;
             }
             try {
-                const response = await fetch('/profile', {
+                const response = await fetch('/profile/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', },
                     body: JSON.stringify(formData),

@@ -17,7 +17,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.mail import EmailMultiAlternatives
-from django.http import JsonResponse, HttpResponse, HttpResponseRedirect
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -32,6 +32,7 @@ from .models import UserProfile, eBayToken, OTP, ListingCount, UserListing
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from werkzeug.utils import secure_filename
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 # Configuration
 DB_URL = config("DB_URL")
@@ -407,9 +408,29 @@ class IndexView(View):
     def get(self, request):
         return render(request, 'index.html')
 
-class ProfileView(View):
+class ProfileView(APIView):
     def get(self, request):
         return render(request, 'profile.html')
+
+    def post(self, request):
+        try:
+            serializer = ProfileSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response({"error": "Invalid profile data", "details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            
+            UserProfile.objects.update_or_create(
+                user=request.user,
+                defaults={
+                    "address_line1": serializer.validated_data["address_line1"],
+                    "city": serializer.validated_data["city"],
+                    "postal_code": serializer.validated_data["postal_code"].upper(),
+                    "country": serializer.validated_data["country"],
+                    "profile_pic_url": serializer.validated_data.get("profile_pic_url", "")
+                }
+            )
+            return Response({"status": "success", "message": "Profile saved successfully"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": f"Failed to save profile: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class ImageEnhancementView(View):
     def get(self, request):
@@ -439,7 +460,6 @@ class LoginView(APIView):
     def post(self, request):
         email = request.data.get("email", "").strip().lower()
         password = request.data.get("password", "")
-        print(email, password)
         if not email or not password:
             return Response({"error": "Email and password are required"}, status=400)
         user = authenticate(request, username=email, password=password)
@@ -448,6 +468,31 @@ class LoginView(APIView):
         if not user.is_active:
             return Response({"error": "Account is inactive"}, status=403)
         login(request, user)
+        
+        try:
+            UserProfile.objects.get(user=user)
+            has_profile = True
+        except UserProfile.DoesNotExist:
+            has_profile = False
+        
+        try:
+            token = eBayToken.objects.get(user=user)
+            has_ebay_auth = bool(token.refresh_token)
+        except eBayToken.DoesNotExist:
+            has_ebay_auth = False
+        if not has_profile:
+            return Response({
+                "status": "success",
+                "message": "Logged in successfully, please create your profile",
+                "redirect": reverse('profile')
+            })
+        if not has_ebay_auth:
+            return Response({
+                "status": "success",
+                "message": "Logged in successfully, please authenticate with eBay",
+                "redirect": reverse('ebay-auth')
+            })
+        
         return Response({
             "status": "success",
             "message": "Logged in successfully",
@@ -499,18 +544,22 @@ class ProfileAPIView(APIView):
         except Exception as e:
             return Response({"error": "Failed to save profile"}, status=500)
 
-class eBayLoginView(View):
-    @login_required
+class eBayLoginView(LoginRequiredMixin, View):
+    login_url = '/login/' 
+
     def get(self, request):
         try:
-            profile = UserProfile.objects.get(user=request.user)
+            profile = request.user.userprofile
         except UserProfile.DoesNotExist:
             return JsonResponse({"error": "Please create your profile first"}, status=400)
+
         scope_enc = quote(SCOPES, safe="")
         ru_enc = quote(RU_NAME, safe="")
         url = f"{AUTH}/oauth2/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={ru_enc}&scope={scope_enc}&state=xyz123"
+
         if request.session.get("force_ebay_login"):
             url += "&prompt=login"
+
         return redirect(url)
 
 class eBayCallbackView(View):
@@ -784,6 +833,27 @@ class UserStatsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        try:
+            UserProfile.objects.get(user=request.user)
+        except UserProfile.DoesNotExist:
+            return Response(
+                {"error": "Please create your profile first", "redirect": "/profile.html"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            token = eBayToken.objects.get(user=request.user)
+            if not token.refresh_token:
+                return Response(
+                    {"error": "Please authenticate with eBay first", "redirect": "/ebay-auth.html"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except eBayToken.DoesNotExist:
+            return Response(
+                {"error": "Please authenticate with eBay first", "redirect": "/ebay-auth.html"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         listings = UserListing.objects.filter(user=request.user)
         total_value = sum((l.price_value or 0) * (l.quantity or 0) for l in listings)
         active_count = listings.filter(status='ACTIVE').count()
@@ -830,8 +900,6 @@ class UploadProfileImageView(APIView):
             return Response({"error": "No image file provided"}, status=400)
         if file.size > MAX_FILE_SIZE:
             return Response({"error": "File too large"}, status=400)
-        if not allowed_file(file.name):
-            return Response({"error": "Invalid file type"}, status=400)
         try:
             encoded_image = base64.b64encode(file.read()).decode("utf-8")
             payload = {
@@ -843,9 +911,9 @@ class UploadProfileImageView(APIView):
             result = response.json()
             if result.get("success"):
                 return Response({"status": "success", "image_url": result["data"]["url"]})
-            return Response({"error": "Upload failed"}, status=500)
+            return Response({"error": "Upload failed. Please try again later."}, status=500)
         except Exception as e:
-            return Response({"error": str(e)}, status=500)
+            return Response({"error": "Upload failed. Please try again later."}, status=500)
 
 class SendPasswordChangeOTPView(APIView):
     permission_classes = [IsAuthenticated]
