@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Services - ListFast.ai</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .hero-gradient {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 8s ease-in-out infinite;
+        }
+
+        @keyframes gradientShift {
+
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        .hover-lift {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .hover-lift:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15);
+        }
+
+        .service-card {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 2px solid transparent;
+        }
+
+        .service-card:hover {
+            border: 2px solid #3b82f6;
+            background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+        }
+
+        .image-enhance-gradient {
+            background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+        }
+
+        .single-listing-gradient {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        }
+
+        .multipack-gradient {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .bundle-gradient {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .feature-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .pulse-animation {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: .8;
+            }
+        }
+
+        .floating-animation {
+            animation: floating 3s ease-in-out infinite;
+        }
+
+        @keyframes floating {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .full-width-section {
+            width: 100%;
+            background: #f8fafc;
+        }
+
+        .full-width-section .content {
+            max-width: 84rem;
+            margin-left: auto;
+            margin-right: auto;
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+        }
+
+        @media (min-width: 1024px) {
+            .full-width-section .content {
+                padding-left: 3rem;
+                padding-right: 3rem;
+            }
+        }
+
+        /* Navbar-specific styles */
+        .nav-gradient {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        }
+
+        .hamburger div {
+            transition: all 0.3s ease;
+        }
+
+        .hamburger.active .top {
+            transform: translateY(8px) rotate(45deg);
+        }
+
+        .hamburger.active .middle {
+            opacity: 0;
+        }
+
+        .hamburger.active .bottom {
+            transform: translateY(-8px) rotate(-45deg);
+        }
+
+        .mobile-menu {
+            transition: all 0.3s ease-in-out;
+            transform: translateY(-100%);
+        }
+
+        .mobile-menu.active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+
+<body class="min-h-screen bg-gray-50">
+    <!-- Improved Navigation -->
+    <nav class="nav-gradient border-b border-gray-200 fixed w-full top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 lg:px-12">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo and Brand -->
+                <div class="flex items-center">
+                    <a href="index.html" class="flex items-center space-x-2">
+                        <span class="text-2xl font-bold text-gray-900 hover-lift">ListFast.ai</span>
+                    </a>
+                </div>
+
+                <!-- Desktop Menu -->
+                <div class="hidden lg:flex items-center space-x-8">
+                    <a href="services.html"
+                        class="text-gray-600 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors hover-lift">
+                        Services
+                    </a>
+                    <a href="dashboard.html"
+                        class="text-gray-600 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors hover-lift">
+                        Dashboard
+                    </a>
+                    <a href="display-profile.html" id="profile-btn"
+                        class="flex items-center space-x-2 text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg transition-colors hover-lift">
+                        <img id="user-profile-pic" src="https://via.placeholder.com/32" alt="Profile"
+                            class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
+                        <span class="font-medium">Profile</span>
+                    </a>
+                    <span id="user-email" class="text-gray-600 text-sm"></span>
+                    <button id="logout-btn"
+                        class="hero-gradient text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity hover-lift">
+                        Logout
+                    </button>
+                </div>
+
+                <!-- Hamburger Menu for Mobile -->
+                <div class="lg:hidden flex items-center">
+                    <button id="hamburger-btn" class="p-2 focus:outline-none">
+                        <div class="hamburger space-y-1.5">
+                            <div class="top w-6 h-0.5 bg-gray-900"></div>
+                            <div class="middle w-6 h-0.5 bg-gray-900"></div>
+                            <div class="bottom w-6 h-0.5 bg-gray-900"></div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mobile Menu -->
+            <div id="mobile-menu"
+                class="lg:hidden mobile-menu absolute top-16 left-0 w-full bg-white shadow-lg border-b border-gray-200 hidden">
+                <div class="flex flex-col space-y-4 px-6 py-4">
+                    <a href="services.html"
+                        class="text-gray-600 hover:text-gray-900 font-medium py-2 transition-colors hover-lift">
+                        Services
+                    </a>
+                    <a href="dashboard.html"
+                        class="text-gray-600 hover:text-gray-900 font-medium py-2 transition-colors hover-lift">
+                        Dashboard
+                    </a>
+                    <a href="display-profile.html"
+                        class="flex items-center space-x-2 text-gray-600 hover:text-gray-900 font-medium py-2 transition-colors hover-lift">
+                        <img id="mobile-user-profile-pic" src="https://via.placeholder.com/32" alt="Profile"
+                            class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
+                        <span>Profile</span>
+                    </a>
+                    <span id="mobile-user-email" class="text-gray-600 text-sm py-2"></span>
+                    <button id="mobile-logout-btn"
+                        class="hero-gradient text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity hover-lift text-left">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="max-w-7xl mx-auto px-6 lg:px-12 py-16 pt-24">
+        <div class="text-center mb-16">
+            <div class="max-w-4xl mx-auto">
+                <h2 class="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+                    Choose Your
+                    <span class="hero-gradient bg-clip-text text-transparent">
+                        Service
+                    </span>
+                </h2>
+                <p class="text-xl text-gray-600 leading-relaxed">
+                    From image enhancement to complex bundles, we have the perfect solution for your eBay listing needs.
+                    Select the service that matches your requirements.
+                </p>
+            </div>
+        </div>
+
+        <!-- Services Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 mb-16">
+            <!-- Image Enhancement Service -->
+            <div class="service-card rounded-2xl shadow-lg p-8 hover-lift floating-animation">
+                <div class="image-enhance-gradient text-white p-6 rounded-xl mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="feature-icon">
+                            🎨
+                        </div>
+                        <div class="text-right">
+                            <div class="text-3xl font-bold">01</div>
+                        </div>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-2">Image Enhancement</h3>
+                    <p class="text-purple-100 text-sm">Professional image editing for your products</p>
+                </div>
+
+                <div class="space-y-4 mb-8">
+                    <div class="flex items-start space-x-3">
+                        <div class="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
+                        <span class="text-gray-700">Remove backgrounds automatically</span>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <div class="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
+                        <span class="text-gray-700">Add professional titles and watermarks</span>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <div class="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
+                        <span class="text-gray-700">Brand logo integration</span>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <div class="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
+                        <span class="text-gray-700">High-quality image optimization</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <button id="image-enhancement-btn"
+                        class="image-enhance-gradient text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity hover-lift">
+                        Get Started
+                    </button>
+                </div>
+            </div>
+
+            <!-- Single Item Listing -->
+            <div class="service-card rounded-2xl shadow-lg p-8 hover-lift">
+                <div class="single-listing-gradient text-white p-6 rounded-xl mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="feature-icon">
+                            📦
+                        </div>
+                        <div class="text-right">
+                            <div class="text-3xl font-bold">02</div>
+                        </div>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-2">Single Item Listing</h3>
+                    <p class="text-blue-100 text-sm">Perfect for individual product listings</p>
+                </div>
+
+                <div class="space-y-4 mb-8">
+                    <div class="flex items-start space-x-3">
+                        <div class="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                        <span class="text-gray-700">AI-powered title optimization</span>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <div class="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                        <span class="text-gray-700">Professional product descriptions</span>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <div class="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                        <span class="text-gray-700">Automatic category detection</span>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <div class="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                        <span class="text-gray-700">SEO keyword integration</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <button id="single-item-listing-btn"
+                        class="single-listing-gradient text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity hover-lift pulse-animation">
+                        Create Listing
+                    </button>
+                </div>
+            </div>
+
+            <!-- Multipack Listing -->
+            <div class="service-card rounded-2xl shadow-lg p-8 hover-lift">
+                <div class="multipack-gradient text-white p-6 rounded-xl mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="feature-icon">
+                            📋
+                        </div>
+                        <div class="text-right">
+                            <div class="text-3xl font-bold">03</div>
+                        </div>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-2">Multipack Listing</h3>
+                    <p class="text-green-100 text-sm">List multiple quantities of a single item</p>
+                </div>
+
+                <div class="space-y-4 mb-8">
+                    <div class="flex items-start space-x-3">
+                        <div class="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                        <span class="text-gray-700">AI-powered title optimization for bulk listings</span>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <div class="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                        <span class="text-gray-700">Professional descriptions for quantity-based offers</span>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <div class="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                        <span class="text-gray-700">Automatic category detection for multipacks</span>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <div class="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                        <span class="text-gray-700">SEO keyword integration for bulk sales</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <button
+                        class="multipack-gradient text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity hover-lift">
+                        List Multipack
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bundle Listing -->
+            <div class="service-card rounded-2xl shadow-lg p-8 hover-lift floating-animation"
+                style="animation-delay: 1s;">
+                <div class="bundle-gradient text-white p-6 rounded-xl mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="feature-icon">
+                            🎁
+                        </div>
+                        <div class="text-right">
+                            <div class="text-3xl font-bold">04</div>
+                        </div>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-2">Bundle Listing</h3>
+                    <p class="text-orange-100 text-sm">List multiple different items as one package</p>
+                </div>
+
+                <div class="space-y-4 mb-8">
+                    <div class="flex items-start space-x-3">
+                        <div class="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
+                        <span class="text-gray-700">AI-powered title optimization for bundled items</span>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <div class="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
+                        <span class="text-gray-700">Professional descriptions for bundled products</span>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <div class="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
+                        <span class="text-gray-700">Automatic category detection for bundles</span>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <div class="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
+                        <span class="text-gray-700">SEO keyword integration for package deals</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <button
+                        class="bundle-gradient text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity hover-lift">
+                        Create Bundle
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white">
+        <div class="max-w-7xl mx-auto px-6 lg:px-12 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <!-- Brand and Description -->
+                <div class="space-y-4">
+                    <h3 class="text-2xl font-bold">ListFast.ai</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        Streamline your eBay listings with AI-powered tools for image enhancement, single items,
+                        multipacks, and bundles.
+                    </p>
+                </div>
+
+                <!-- Quick Links -->
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Quick Links</h4>
+                    <ul class="space-y-2 text-gray-400 text-sm">
+                        <li><a href="index.html" class="hover:text-white transition-colors hover-lift">Home</a></li>
+                        <li><a href="services.html" class="hover:text-white transition-colors hover-lift">Services</a>
+                        </li>
+                        <li><a href="dashboard.html" class="hover:text-white transition-colors hover前期
+                        <li><a href=" display-profile.html"
+                                class="hover:text-white transition-colors hover-lift">Profile</a></li>
+                    </ul>
+                </div>
+
+                <!-- Support -->
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Support</h4>
+                    <ul class="space-y-2 text-gray-400 text-sm">
+                        <li><a href="#" class="hover:text-white transition-colors hover-lift">Help Center</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors hover-lift">Contact Us</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors hover-lift">FAQ</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors hover-lift">Terms & Conditions</a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Newsletter Signup -->
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Stay Updated</h4>
+                    <p class="text-gray-400 text-sm mb-4">Subscribe to our newsletter for the latest updates and offers.
+                    </p>
+                    <form class="flex">
+                        <input type="email" placeholder="Enter your email"
+                            class="w-full px-4 py-2 rounded-l-lg bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button type="submit"
+                            class="hero-gradient px-4 py-2 rounded-r-lg font-semibold hover:opacity-90 transition-opacity">
+                            Subscribe
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Social Media and Copyright -->
+            <div class="mt-12 pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">
+                <div class="flex space-x-4">
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors hover-lift">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <!-- Twitter/X Icon -->
+                            <path
+                                d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.15z">
+                            </path>
+                        </svg>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors hover-lift">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <!-- Facebook Icon -->
+                            <path
+                                d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-2.596 0-4.194 1.722-4.194 4.6v3.4z">
+                            </path>
+                        </svg>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors hover-lift">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.9 3.9 0 0 0-1.417.923A3.9 3.9 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444.048 3.297.04.852.174 1.433.372 1.942.205.526.478.972.923 1.417.444.445.89.719 1.416.923.51.198 1.09.333 1.942.372C5.555 15.99 5.827 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.9 3.9 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.197-.509.332-1.09.372-1.942C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.851-.175-1.433-.372-1.941a3.9 3.9 0 0 0-.923-1.417A3.9 3.9 0 0 0 13.24.42c-.51-.198-1.092-.333-1.943-.372C10.443.01 10.172 0 7.998 0zm-.717 1.442h.718c2.136 0 2.389.007 3.232.046.78.035 1.204.166 1.486.275.373.145.64.319.92.599s.453.546.598.92c.11.281.24.705.275 1.485.039.843.047 1.096.047 3.231s-.008 2.389-.047 3.232c-.035.78-.166 1.203-.275 1.485a2.5 2.5 0 0 1-.599.919c-.28.28-.546.453-.92.598-.28.11-.704.24-1.485.276-.843.038-1.096.047-3.232.047s-2.39-.009-3.233-.047c-.78-.036-1.203-.166-1.485-.276a2.5 2.5 0 0 1-.92-.598 2.5 2.5 0 0 1-.6-.92c-.109-.281-.24-.705-.275-1.485-.038-.843-.046-1.096-.046-3.233s.008-2.388.046-3.231c.036-.78.166-1.204.276-1.486.145-.373.319-.64.599-.92s.546-.453.92-.598c.282-.11.705-.24 1.485-.276.738-.034 1.024-.044 2.515-.045zm4.988 1.328a.96.96 0 1 0 0 1.92.96.96 0 0 0 0-1.92m-4.27 1.122a4.109 4.109 0 1 0 0 8.217 4.109 4.109 0 0 0 0-8.217m0 1.441a2.667 2.667 0 1 1 0 5.334 2.667 2.667 0 0 1 0-5.334"/>
+                        </svg>
+                    </a>
+                </div>
+                <p class="text-gray-400 text-sm mt-4 md:mt-0">
+                    &copy; 2025 ListFast.ai. All rights reserved.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Authentication check and user info display
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch('/auth-status');
+                const data = await response.json();
+
+                if (!data.is_logged_in) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                document.getElementById('user-email').textContent = data.email;
+                document.getElementById('mobile-user-email').textContent = data.email;
+
+                // Load profile image
+                try {
+                    const profileResponse = await fetch('/profile');
+                    const profileData = await profileResponse.json();
+                    if (profileResponse.ok && profileData.profile && profileData.profile.profile_pic_url) {
+                        document.getElementById('user-profile-pic').src = profileData.profile.profile_pic_url;
+                        document.getElementById('mobile-user-profile-pic').src = profileData.profile.profile_pic_url;
+                    }
+                } catch (error) {
+                    console.error('Error loading profile image:', error);
+                }
+            } catch (error) {
+                window.location.href = 'login.html';
+            }
+        });
+
+        // Hamburger menu toggle
+        const hamburgerBtn = document.getElementById('hamburger-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        hamburgerBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('active');
+            hamburgerBtn.classList.toggle('active');
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // Logout functionality
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            try {
+                await fetch('/logout', { method: 'POST' });
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('Logout failed:', error);
+            }
+        });
+
+        document.getElementById('mobile-logout-btn').addEventListener('click', async () => {
+            try {
+                await fetch('/logout', { method: 'POST' });
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('Logout failed:', error);
+            }
+        });
+
+        document.querySelectorAll('button').forEach(button => {
+            if (button.id === 'single-item-listing-btn') {
+
+                button.addEventListener('click', () => {
+                    window.location.href = 'single-item-listing.html';
+                });
+
+            } else if (button.id === 'image-enhancement-btn') {
+
+                button.addEventListener('click', () => {
+                    window.location.href = 'image-enhancement.html';
+                });
+
+            } else if (
+                button.textContent.includes('Get Started') ||
+                button.textContent.includes('List Multipack') ||
+                button.textContent.includes('Create Bundle')
+            ) {
+                button.addEventListener('click', () => {
+                    const serviceName = button.textContent;
+                    alert(`${serviceName} service will be available soon! We're working hard to bring you this feature.`);
+                });
+            }
+        });
+
+    </script>
+</body>
+
+</html>

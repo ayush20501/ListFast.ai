@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Single Item Listing - ListFast.ai</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .hero-gradient {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 8s ease-in-out infinite;
+        }
+        @keyframes gradientShift {
+            0%, 100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+        .hover-lift {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .hover-lift:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15);
+        }
+        .image-enhance-gradient {
+            background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+        }
+        .single-listing-gradient {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        }
+        .nav-gradient {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        }
+        .hamburger div {
+            transition: all 0.3s ease;
+        }
+        .hamburger.active .top {
+            transform: translateY(8px) rotate(45deg);
+        }
+        .hamburger.active .middle {
+            opacity: 0;
+        }
+        .hamburger.active .bottom {
+            transform: translateY(-8px) rotate(-45deg);
+        }
+        .mobile-menu {
+            transition: all 0.3s ease-in-out;
+            transform: translateY(-100%);
+        }
+        .mobile-menu.active {
+            transform: translateY(0);
+        }
+        .service-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 2px solid transparent;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .service-card:hover {
+            border: 2px solid #3b82f6;
+            background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+        }
+        .input-field {
+            transition: all 0.3s ease;
+            border: 2px solid #e5e7eb;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+        .pulse-animation {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .8;
+            }
+        }
+        .prose {
+            line-height: 1.6;
+        }
+        .prose p {
+            margin-bottom: 1em;
+        }
+        .prose p:last-child {
+            margin-bottom: 0;
+        }
+        .prose strong {
+            font-weight: 600;
+        }
+        .prose em {
+            font-style: italic;
+        }
+        .prose ul, .prose ol {
+            margin: 1em 0;
+            padding-left: 1.5em;
+        }
+        .prose li {
+            margin-bottom: 0.5em;
+        }
+        .image-input {
+            border-radius: 8px;
+        }
+        .upload-btn {
+            background: #ffffff;
+            border: 2px solid #3b82f6;
+            color: #3b82f6;
+            transition: all 0.3s ease;
+        }
+        .upload-btn:hover {
+            background: #3b82f6;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50">
+    <!-- Navigation -->
+    <nav class="nav-gradient border-b border-gray-200 fixed w-full top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 lg:px-12">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="index.html" class="flex items-center space-x-2">
+                        <span class="text-2xl font-bold text-gray-900 hover-lift">ListFast.ai</span>
+                    </a>
+                </div>
+                <div class="hidden lg:flex items-center space-x-8">
+                    <a href="services.html" class="text-gray-600 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors hover-lift">
+                        Services
+                    </a>
+                    <a href="dashboard.html" class="text-gray-600 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors hover-lift">
+                        Dashboard
+                    </a>
+                    <a href="display-profile.html" id="profile-btn" class="flex items-center space-x-2 text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg transition-colors hover-lift">
+                        <img id="user-profile-pic" src="https://via.placeholder.com/32" alt="Profile" class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
+                        <span class="font-medium">Profile</span>
+                    </a>
+                    <span id="user-email" class="text-gray-600 text-sm"></span>
+                    <button id="logout-btn" class="hero-gradient text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity hover-lift">
+                        Logout
+                    </button>
+                </div>
+                <div class="lg:hidden flex items-center">
+                    <button id="hamburger-btn" class="p-2 focus:outline-none">
+                        <div class="hamburger space-y-1.5">
+                            <div class="top w-6 h-0.5 bg-gray-900"></div>
+                            <div class="middle w-6 h-0.5 bg-gray-900"></div>
+                            <div class="bottom w-6 h-0.5 bg-gray-900"></div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+            <div id="mobile-menu" class="lg:hidden mobile-menu absolute top-16 left-0 w-full bg-white shadow-lg border-b border-gray-200 hidden">
+                <div class="flex flex-col space-y-4 px-6 py-4">
+                    <a href="services.html" class="text-gray-600 hover:text-gray-900 font-medium py-2 transition-colors hover-lift">
+                        Services
+                    </a>
+                    <a href="dashboard.html" class="text-gray-600 hover:text-gray-900 font-medium py-2 transition-colors hover-lift">
+                        Dashboard
+                    </a>
+                    <a href="display-profile.html" class="flex items-center space-x-2 text-gray-600 hover:text-gray-900 font-medium py-2 transition-colors hover-lift">
+                        <img id="mobile-user-profile-pic" src="https://via.placeholder.com/32" alt="Profile" class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
+                        <span>Profile</span>
+                    </a>
+                    <span id="mobile-user-email" class="text-gray-600 text-sm py-2"></span>
+                    <button id="mobile-logout-btn" class="hero-gradient text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity hover-lift text-left">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-6 lg:px-12 py-16 pt-24">
+        <div id="preview-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 modal-backdrop overflow-y-auto h-full w-full z-50">
+            <div class="relative top-8 mx-auto p-6 border w-11/12 md:w-4/5 lg:w-3/4 xl:w-2/3 shadow-2xl rounded-2xl bg-white max-w-4xl">
+                <div class="mt-3">
+                    <div class="flex items-center justify-between mb-8">
+                        <div>
+                            <h3 class="text-2xl font-bold text-gray-900">Preview Listing</h3>
+                            <p class="text-gray-600 mt-1">Review and edit your listing before publishing to eBay</p>
+                        </div>
+                        <button id="close-preview" class="text-gray-400 hover:text-gray-600 hover-lift">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <form id="preview-form" class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Title</label>
+                            <input type="text" id="preview-title" maxlength="80" class="input-field w-full px-4 py-4 rounded-xl text-base">
+                            <p class="text-sm text-gray-500 mt-2">Max 80 characters</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                            <textarea id="preview-description" rows="6" class="input-field w-full px-4 py-4 rounded-xl text-base resize-none" placeholder="Enter description text here..."></textarea>
+                            <p class="text-sm text-gray-500 mt-2">Edit the generated description if needed. HTML tags will be preserved in the final listing.</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Item Aspects</label>
+                            <div id="preview-aspects" class="space-y-3">
+                            </div>
+                            <p class="text-sm text-gray-500 mt-2">Edit or add aspect values as needed (comma-separated)</p>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Price</label>
+                                <p id="preview-price-currency" class="text-base text-gray-900"></p>
+                                <p class="text-sm text-gray-500 mt-2">Price and currency (non-editable)</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Quantity</label>
+                                <p id="preview-quantity" class="text-base text-gray-900"></p>
+                                <p class="text-sm text-gray-500 mt-2">Number of items available (non-editable)</p>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Condition</label>
+                            <p id="preview-condition" class="text-base text-gray-900"></p>
+                            <p class="text-sm text-gray-500 mt-2">Item condition (non-editable)</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Images</label>
+                            <div id="preview-images" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
+                            </div>
+                        </div>
+                        <div id="preview-error" class="hidden bg-red-50 border border-red-200 text-red-800 px-6 py-4 rounded-xl font-medium">
+                        </div>
+                        <div id="preview-success" class="hidden bg-green-50 border border-green-200 text-green-800 px-6 py-4 rounded-xl font-medium">
+                        </div>
+                        <div class="flex space-x-3 pt-2">
+                            <button type="submit" class="single-listing-gradient text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:bg-gray-400 hover-lift">
+                                Publish to eBay
+                            </button>
+                            <button type="button" id="cancel-preview" class="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-300 hover-lift">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div id="image-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+            <div class="relative max-w-4xl max-h-full">
+                <img id="modal-image" src="" alt="Full size preview" class="max-w-full max-h-full object-contain rounded-lg">
+                <button onclick="closeImageModal()" class="absolute top-4 right-4 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="mb-16">
+            <div class="max-w-4xl mx-auto text-center">
+                <h2 class="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+                    Create New
+                    <span class="hero-gradient bg-clip-text text-transparent">
+                        Single
+                    </span>
+                    Listing
+                </h2>
+                <p class="text-xl text-gray-600 leading-relaxed max-w-2xl mx-auto">
+                    Describe your product and let our AI create the perfect eBay listing with optimized titles,
+                    descriptions, and categories.
+                </p>
+            </div>
+        </div>
+        <div id="error-message" class="hidden bg-red-50 border border-red-200 text-red-800 px-6 py-4 rounded-xl mb-8 font-medium">
+        </div>
+        <div id="success-message" class="hidden bg-green-50 border border-green-200 text-green-800 px-6 py-4 rounded-xl mb-8 font-medium">
+        </div>
+        <div class="grid lg:grid-cols-3 gap-12">
+            <div class="lg:col-span-2">
+                <form id="listing-form" class="service-card rounded-2xl shadow-lg p-8 hover-lift">
+                    <div class="mb-8 flex justify-between items-center p-4 bg-green-50 border border-green-200 rounded-xl">
+                        <button type="button" id="autofill-btn" class="single-listing-gradient text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity font-medium flex items-center hover-lift">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                            Fill Sample Data
+                        </button>
+                        <span class="text-sm text-green-700 font-medium">Click to see how it works with example data</span>
+                    </div>
+                    <div class="space-y-8">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Product Description *</label>
+                            <textarea id="raw_text" required rows="5" placeholder="Describe your product in detail - include brand, model, features, condition details, etc." class="input-field w-full px-4 py-4 rounded-xl text-base resize-none"></textarea>
+                            <p class="text-sm text-gray-500 mt-3">💡 The more detail you provide, the better our AI can optimize your listing for search and sales</p>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Price (£) *</label>
+                                <input type="number" id="price_value" step="0.01" min="0.01" required placeholder="0.00" class="input-field w-full px-4 py-4 rounded-xl text-base">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Quantity *</label>
+                                <input type="number" id="quantity" min="1" value="1" required class="input-field w-full px-4 py-4 rounded-xl text-base">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Condition *</label>
+                                <select id="condition" required class="input-field w-full px-4 py-4 rounded-xl text-base">
+                                    <option value="">Select condition...</option>
+                                    <option value="NEW">New</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Currency *</label>
+                                <select id="currency" required class="input-field w-full px-4 py-4 rounded-xl text-base">
+                                    <option value="GBP" selected>GBP (£)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Product Images *</label>
+                            <div class="space-y-4">
+                                <div class="flex gap-2">
+                                    <label class="upload-btn px-6 py-3 rounded-lg font-semibold cursor-pointer hover-lift">
+                                        Upload Image
+                                        <input type="file" id="upload-image-input" accept="image/*" class="hidden">
+                                    </label>
+                                </div>
+                                <div id="images-container" class="space-y-2">
+                                    <div class="flex items-center gap-2">
+                                        <input type="text" name="image_url" placeholder="Paste an image URL or upload above" class="image-input input-field flex-1 px-4 py-3 rounded-lg text-base">
+                                        <button type="button" id="add-image-btn" class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold text-lg hover-lift">
+                                            +
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-500 mt-3">📸 You can upload images or paste HTTPS URLs. High-quality images improve sales significantly!</p>
+                        </div>
+                        <div class="pt-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <button type="button" id="preview-btn" class="bg-blue-600 text-white py-4 px-6 rounded-xl text-lg font-semibold hover:bg-blue-700 transition-all disabled:bg-gray-400 disabled:cursor-not-allowed hover-lift order-2 md:order-1">
+                                    Preview, Edit & Publish
+                                </button>
+                                <button type="submit" id="publish-btn" class="single-listing-gradient text-white py-4 px-6 rounded-xl text-lg font-semibold hover:opacity-90 transition-opacity disabled:bg-gray-400 disabled:cursor-not-allowed hover-lift pulse-animation order-1 md:order-2">
+                                    Publish to eBay
+                                </button>
+                            </div>
+                            <p class="text-sm text-gray-500 text-center mt-3">
+                                💡 Use "Preview" to review and edit your listing before publishing, or "Publish" to go live immediately
+                            </p>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="space-y-6">
+                <div class="service-card p-6 rounded-2xl shadow-lg hover-lift">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">✨ AI-Powered Listing</h3>
+                    <ul class="space-y-3 text-sm text-gray-600">
+                        <li class="flex items-start">
+                            <div class="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-2"></div>
+                            Automatic keyword extraction
+                        </li>
+                        <li class="flex items-start">
+                            <div class="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-2"></div>
+                            SEO-optimized titles
+                        </li>
+                        <li class="flex items-start">
+                            <div class="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-2"></div>
+                            Perfect category detection
+                        </li>
+                        <li class="flex items-start">
+                            <div class="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-2"></div>
+                            Professional descriptions
+                        </li>
+                        <li class="flex items-start">
+                            <div class="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-2"></div>
+                            eBay best practices
+                        </li>
+                    </ul>
+                </div>
+                <div class="service-card p-6 rounded-2xl shadow-lg hover-lift">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">📈 Tips for Better Sales</h3>
+                    <ul class="space-y-3 text-sm text-gray-600">
+                        <li class="flex items-start">
+                            <div class="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-2"></div>
+                            Use high-quality, well-lit photos
+                        </li>
+                        <li class="flex items-start">
+                            <div class="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-2"></div>
+                            Include brand names and model numbers
+                        </li>
+                        <li class="flex items-start">
+                            <div class="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-2"></div>
+                            Mention any defects or wear honestly
+                        </li>
+                        <li class="flex items-start">
+                            <div class="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-2"></div>
+                            Research competitive pricing
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div id="ai-status" class="hidden bg-blue-50 border-2 border-blue-200 rounded-2xl p-6 mt-8">
+            <div class="flex items-center">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-4"></div>
+                <div>
+                    <h3 class="text-lg font-semibold text-blue-900">AI Processing Your Listing</h3>
+                    <p id="ai-status-text" class="text-blue-700 mt-1">Analyzing your product description...</p>
+                </div>
+            </div>
+            <div class="mt-6">
+                <div class="bg-white rounded-full h-3">
+                    <div id="ai-progress" class="image-enhance-gradient h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white">
+        <div class="max-w-7xl mx-auto px-6 lg:px-12 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div class="space-y-4">
+                    <h3 class="text-2xl font-bold">ListFast.ai</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        Streamline your eBay listings with AI-powered tools for image enhancement, single items, multipacks, and bundles.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Quick Links</h4>
+                    <ul class="space-y-2 text-gray-400 text-sm">
+                        <li><a href="index.html" class="hover:text-white transition-colors hover-lift">Home</a></li>
+                        <li><a href="services.html" class="hover:text-white transition-colors hover-lift">Services</a></li>
+                        <li><a href="dashboard.html" class="hover:text-white transition-colors hover-lift">Dashboard</a></li>
+                        <li><a href="display-profile.html" class="hover:text-white transition-colors hover-lift">Profile</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Support</h4>
+                    <ul class="space-y-2 text-gray-400 text-sm">
+                        <li><a href="#" class="hover:text-white transition-colors hover-lift">Help Center</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors hover-lift">Contact Us</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors hover-lift">FAQ</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors hover-lift">Terms & Conditions</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Stay Updated</h4>
+                    <p class="text-gray-400 text-sm mb-4">Subscribe to our newsletter for the latest updates and offers.</p>
+                    <form class="flex">
+                        <input type="email" placeholder="Enter your email" class="w-full px-4 py-2 rounded-l-lg bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button type="submit" class="hero-gradient px-4 py-2 rounded-r-lg font-semibold hover:opacity-90 transition-opacity">
+                            Subscribe
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="mt-12 pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">
+                <div class="flex space-x-4">
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors hover-lift">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.15z"></path>
+                        </svg>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors hover-lift">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-2.596 0-4.194 1.722-4.194 4.6v3.4z"></path>
+                        </svg>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors hover-lift">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.9 3.9 0 0 0-1.417.923A3.9 3.9 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444.048 3.297.04.852.174 1.433.372 1.942.205.526.478.972.923 1.417.444.445.89.719 1.416.923.51.198 1.09.333 1.942.372C5.555 15.99 5.827 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.9 3.9 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.197-.509.332-1.09.372-1.942C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.851-.175-1.433-.372-1.941a3.9 3.9 0 0 0-.923-1.417A3.9 3.9 0 0 0 13.24.42c-.51-.198-1.092-.333-1.943-.372C10.443.01 10.172 0 7.998 0zm-.717 1.442h.718c2.136 0 2.389.007 3.232.046.78.035 1.204.166 1.486.275.373.145.64.319.92.599s.453.546.598.92c.11.281.24.705.275 1.485.039.843.047 1.096.047 3.231s-.008 2.389-.047 3.232c-.035.78-.166 1.203-.275 1.485a2.5 2.5 0 0 1-.599.919c-.28.28-.546.453-.92.598-.28.11-.704.24-1.485.276-.843.038-1.096.047-3.232.047s-2.39-.009-3.233-.047c-.78-.036-1.203-.166-1.485-.276a2.5 2.5 0 0 1-.92-.598 2.5 2.5 0 0 1-.6-.92c-.109-.281-.24-.705-.275-1.485-.038-.843-.046-1.096-.046-3.233s.008-2.388.046-3.231c.036-.78.166-1.204.276-1.486.145-.373.319-.64.599-.92s.546-.453.92-.598c.282-.11.705-.24 1.485-.276.738-.034 1.024-.044 2.515-.045zm4.988 1.328a.96.96 0 1 0 0 1.92.96.96 0 0 0 0-1.92m-4.27 1.122a4.109 4.109 0 1 0 0 8.217 4.109 4.109 0 0 0 0-8.217m0 1.441a2.667 2.667 0 1 1 0 5.334 2.667 2.667 0 0 1 0-5.334"/>
+                        </svg>
+                    </a>
+                </div>
+                <p class="text-gray-400 text-sm mt-4 md:mt-0">
+                    &copy; 2025 ListFast.ai. All rights reserved.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const aiStatusEl = document.getElementById('ai-status');
+        const aiStatusTextEl = document.getElementById('ai-status-text');
+        const aiProgressEl = document.getElementById('ai-progress');
+        function showAIStatus(message, progress = 0) {
+            aiStatusEl.classList.remove('hidden');
+            aiStatusTextEl.textContent = message;
+            aiProgressEl.style.width = `${progress}%`;
+        }
+        function hideAIStatus() {
+            aiStatusEl.classList.add('hidden');
+            aiProgressEl.style.width = '0%';
+        }
+        function updateAIProgress(message, progress) {
+            aiStatusTextEl.textContent = message;
+            aiProgressEl.style.width = `${progress}%`;
+        }
+        function openImageModal(imageUrl) {
+            document.getElementById('modal-image').src = imageUrl;
+            document.getElementById('image-modal').classList.remove('hidden');
+        }
+        function closeImageModal() {
+            document.getElementById('image-modal').classList.add('hidden');
+        }
+        document.getElementById('image-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'image-modal') {
+                closeImageModal();
+            }
+        });
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch('/auth-status');
+                const data = await response.json();
+                if (!data.is_logged_in) {
+                    window.location.href = 'login.html';
+                    return;
+                } else if (!data.has_profile) {
+                    window.location.href = 'display-profile.html';
+                    return;
+                } else if (!data.has_ebay_auth) {
+                    window.location.href = 'ebay-auth.html';
+                    return;
+                }
+                document.getElementById('user-email').textContent = data.email;
+                document.getElementById('mobile-user-email').textContent = data.email;
+                try {
+                    const profileResponse = await fetch('/profile');
+                    const profileData = await profileResponse.json();
+                    if (profileResponse.ok && profileData.profile && profileData.profile.profile_pic_url) {
+                        document.getElementById('user-profile-pic').src = profileData.profile.profile_pic_url;
+                        document.getElementById('mobile-user-profile-pic').src = profileData.profile.profile_pic_url;
+                    }
+                } catch (error) {
+                    console.error('Error loading profile image:', error);
+                }
+            } catch (error) {
+                window.location.href = 'login.html';
+            }
+        });
+        const hamburgerBtn = document.getElementById('hamburger-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        hamburgerBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('active');
+            hamburgerBtn.classList.toggle('active');
+            mobileMenu.classList.toggle('hidden');
+        });
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            try {
+                await fetch('/logout', { method: 'POST' });
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('Logout failed:', error);
+            }
+        });
+        document.getElementById('mobile-logout-btn').addEventListener('click', async () => {
+            try {
+                await fetch('/logout', { method: 'POST' });
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('Logout failed:', error);
+            }
+        });
+        const addImageBtn = document.getElementById('add-image-btn');
+        const imagesContainer = document.getElementById('images-container');
+        addImageBtn.addEventListener('click', () => {
+            const newRow = document.createElement('div');
+            newRow.className = 'flex items-center gap-2';
+            const newInput = document.createElement('input');
+            newInput.type = 'text';
+            newInput.name = 'image_url';
+            newInput.placeholder = 'Paste an image URL or upload above';
+            newInput.className = 'image-input input-field flex-1 px-4 py-3 rounded-lg text-base';
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-bold text-lg hover-lift';
+            removeBtn.textContent = '−';
+            removeBtn.addEventListener('click', () => {
+                newRow.remove();
+            });
+            newRow.appendChild(newInput);
+            newRow.appendChild(removeBtn);
+            imagesContainer.appendChild(newRow);
+        });
+        const uploadImageInput = document.getElementById('upload-image-input');
+        async function uploadFile(fileInput) {
+            if (!fileInput.files || fileInput.files.length === 0) {
+                document.getElementById('error-message').textContent = 'No image file selected';
+                document.getElementById('error-message').classList.remove('hidden');
+                return;
+            }
+            const file = fileInput.files[0];
+            if (!file.type.startsWith('image/')) {
+                document.getElementById('error-message').textContent = 'Please select an image file';
+                document.getElementById('error-message').classList.remove('hidden');
+                return;
+            }
+            if (file.size > 10 * 1024 * 1024) {
+                document.getElementById('error-message').textContent = 'Image file size must be less than 10MB';
+                document.getElementById('error-message').classList.remove('hidden');
+                return;
+            }
+            const uploadBtn = uploadImageInput.previousElementSibling;
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Uploading Image...';
+            const formData = new FormData();
+            formData.append('image', file);
+            try {
+                const response = await fetch('/upload-profile-image', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (response.ok && data.status === 'success') {
+                    const inputs = imagesContainer.querySelectorAll('input[name="image_url"]');
+                    let emptyInput = null;
+                    for (let input of inputs) {
+                        if (!input.value.trim()) {
+                            emptyInput = input;
+                            break;
+                        }
+                    }
+                    if (emptyInput) {
+                        emptyInput.value = data.image_url;
+                    } else {
+                        addImageBtn.click();
+                        const newInputs = imagesContainer.querySelectorAll('input[name="image_url"]');
+                        newInputs[newInputs.length - 1].value = data.image_url;
+                    }
+                    document.getElementById('success-message').textContent = 'Image uploaded successfully!';
+                    document.getElementById('success-message').classList.remove('hidden');
+                    document.getElementById('error-message').classList.add('hidden');
+                } else {
+                    document.getElementById('error-message').textContent = `Image upload failed: ${data.error || 'Unknown error'}`;
+                    document.getElementById('error-message').classList.remove('hidden');
+                }
+            } catch (err) {
+                document.getElementById('error-message').textContent = `Error uploading image: ${err.message}`;
+                document.getElementById('error-message').classList.remove('hidden');
+            }
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = 'Upload Image';
+            fileInput.value = '';
+        }
+        uploadImageInput.addEventListener('change', () => uploadFile(uploadImageInput));
+        document.getElementById('autofill-btn').addEventListener('click', () => {
+            document.getElementById('raw_text').value = "Sainsbury's Mackerel Fillets in Olive Oil 125g - Premium quality mackerel fillets preserved in olive oil. Perfect for sandwiches, salads, or as a healthy snack. Rich in omega-3 fatty acids and protein. Best before date clearly marked on tin.";
+            document.getElementById('price_value').value = "19.99";
+            document.getElementById('quantity').value = "3";
+            document.getElementById('condition').value = "NEW";
+            const firstImageInput = imagesContainer.querySelector('input[name="image_url"]');
+            if (firstImageInput) {
+                firstImageInput.value = "https://assets.sainsburys-groceries.co.uk/gol/1261448/1/640x640.jpg";
+            }
+            document.getElementById('error-message').classList.add('hidden');
+            document.getElementById('success-message').classList.add('hidden');
+            const form = document.getElementById('listing-form');
+            form.style.transform = 'scale(1.01)';
+            form.style.transition = 'transform 0.2s ease';
+            setTimeout(() => {
+                form.style.transform = 'scale(1)';
+            }, 200);
+        });
+        function collectImages() {
+            const inputs = imagesContainer.querySelectorAll('input[name="image_url"]');
+            const images = [];
+            inputs.forEach(input => {
+                const val = input.value.trim();
+                if (val && val.startsWith('https://')) {
+                    images.push(val);
+                }
+            });
+            return images;
+        }
+        async function submitToPublish(formData, button) {
+            button.disabled = true;
+            button.textContent = 'Publishing...';
+            document.getElementById('error-message').classList.add('hidden');
+            document.getElementById('success-message').classList.add('hidden');
+            showAIStatus('🤖 Analyzing your product description...', 10);
+            setTimeout(() => updateAIProgress('🔍 Extracting keywords and metadata...', 25), 500);
+            setTimeout(() => updateAIProgress('📂 Finding optimal eBay category...', 50), 1500);
+            setTimeout(() => updateAIProgress('📋 Filling product specifications...', 75), 2500);
+            setTimeout(() => updateAIProgress('✍️ Generating marketing description...', 90), 3500);
+            try {
+                const response = await fetch('/publish-item', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData),
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    updateAIProgress('✅ Published to eBay!', 100);
+                    setTimeout(() => {
+                        hideAIStatus();
+                        localStorage.setItem('listing-success', JSON.stringify(data));
+                        window.location.href = 'success.html';
+                    }, 1000);
+                } else {
+                    hideAIStatus();
+                    document.getElementById('error-message').textContent = data.error || 'Failed to publish listing';
+                    document.getElementById('error-message').classList.remove('hidden');
+                }
+            } catch (error) {
+                hideAIStatus();
+                document.getElementById('error-message').textContent = 'Network error. Please try again.';
+                document.getElementById('error-message').classList.remove('hidden');
+            }
+            button.disabled = false;
+            button.textContent = 'Publish to eBay';
+        }
+        async function generatePreview(formData, button) {
+            button.disabled = true;
+            button.textContent = 'Generating Preview...';
+            document.getElementById('error-message').classList.add('hidden');
+            document.getElementById('success-message').classList.add('hidden');
+            document.getElementById('preview-error').classList.add('hidden');
+            document.getElementById('preview-success').classList.add('hidden');
+            showAIStatus('🤖 Analyzing your product description...', 10);
+            setTimeout(() => updateAIProgress('🔍 Extracting keywords and metadata...', 25), 500);
+            setTimeout(() => updateAIProgress('📂 Finding optimal eBay category...', 50), 1500);
+            setTimeout(() => updateAIProgress('📋 Filling product specifications...', 75), 2500);
+            setTimeout(() => updateAIProgress('✍️ Generating marketing description...', 90), 3500);
+            try {
+                const response = await fetch('/preview-item', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData),
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    updateAIProgress('✅ Preview Generated!', 100);
+                    displayPreview(data);
+                    setTimeout(() => {
+                        hideAIStatus();
+                        document.getElementById('preview-modal').classList.remove('hidden');
+                    }, 1000);
+                } else {
+                    hideAIStatus();
+                    document.getElementById('error-message').textContent = data.error || 'Failed to generate preview';
+                    document.getElementById('error-message').classList.remove('hidden');
+                }
+            } catch (error) {
+                hideAIStatus();
+                document.getElementById('error-message').textContent = 'Network error. Please try again.';
+                document.getElementById('error-message').classList.remove('hidden');
+            }
+            button.disabled = false;
+            button.textContent = 'Preview, Edit & Publish';
+        }
+        function displayPreview(data) {
+            document.getElementById('preview-title').value = data.title || '';
+            document.getElementById('preview-description').value = data.description.text || '';
+            const aspectsContainer = document.getElementById('preview-aspects');
+            aspectsContainer.innerHTML = '';
+            Object.entries(data.aspects || {}).forEach(([key, values]) => {
+                const aspectDiv = document.createElement('div');
+                aspectDiv.innerHTML = `
+                    <label class="block text-sm font-medium text-gray-700 mb-2">${key}</label>
+                    <input type="text" value="${values.join(', ')}" data-aspect="${key}" class="input-field w-full px-4 py-3 rounded-lg mb-2">
+                `;
+                aspectsContainer.appendChild(aspectDiv);
+            });
+            const currencySymbols = { GBP: '£', USD: '$', EUR: '€' };
+            document.getElementById('preview-price-currency').textContent =
+                `${currencySymbols[data.price?.currency] || data.price?.currency || 'GBP'} ${data.price?.value || '0.00'} ${data.price?.currency || 'GBP'}`;
+            document.getElementById('preview-quantity').textContent = data.quantity || 1;
+            document.getElementById('preview-condition').textContent = data.condition || 'NEW';
+            const imagesContainer = document.getElementById('preview-images');
+            imagesContainer.innerHTML = '';
+            (data.images || []).forEach((url, index) => {
+                const imgDiv = document.createElement('div');
+                imgDiv.className = 'relative group';
+                imgDiv.innerHTML = `
+                    <img src="${url}" alt="Listing Image ${index + 1}"
+                         class="w-full h-32 object-cover rounded-lg border-2 border-gray-200 hover:border-blue-400 transition-colors cursor-pointer"
+                         onclick="openImageModal('${url}')"
+                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMiA5VjEzTTEyIDE3SDE2TTggMTdIMTJNOCAxM0gxMk04IDlIMTZNNCAxN1Y3QTIgMiAwIDAgMSA2IDVIMThBMiAyIDAgMCExIDIwIDdWMTdBMiAyIDAgMCExIDE4IDE5SDZBMiAyIDAgMCExIDQgMTdaIiBzdHJva2U9IiM2QjczODAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+Cjwvc3ZnPgo='; this.className += ' opacity-50'">
+                    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                        ${index + 1}
+                    </div>
+                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded-lg flex items-center justify-center">
+                        <svg class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                `;
+                imagesContainer.appendChild(imgDiv);
+            });
+            document.getElementById('preview-form').dataset.preview = JSON.stringify(data);
+        }
+        document.getElementById('listing-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const images = collectImages();
+            if (images.length === 0) {
+                document.getElementById('error-message').textContent = 'At least one valid HTTPS image URL is required.';
+                document.getElementById('error-message').classList.remove('hidden');
+                document.getElementById('success-message').classList.add('hidden');
+                return;
+            }
+            const formData = {
+                raw_text: document.getElementById('raw_text').value.trim(),
+                price: {
+                    value: parseFloat(document.getElementById('price_value').value),
+                    currency: document.getElementById('currency').value
+                },
+                quantity: parseInt(document.getElementById('quantity').value),
+                condition: document.getElementById('condition').value,
+                images: images
+            };
+            const button = document.getElementById('publish-btn');
+            await submitToPublish(formData, button);
+        });
+        document.getElementById('preview-btn').addEventListener('click', async () => {
+            const images = collectImages();
+            if (images.length === 0) {
+                document.getElementById('error-message').textContent = 'At least one valid HTTPS image URL is required.';
+                document.getElementById('error-message').classList.remove('hidden');
+                document.getElementById('success-message').classList.add('hidden');
+                return;
+            }
+            const formData = {
+                raw_text: document.getElementById('raw_text').value.trim(),
+                price: {
+                    value: parseFloat(document.getElementById('price_value').value),
+                    currency: document.getElementById('currency').value
+                },
+                quantity: parseInt(document.getElementById('quantity').value),
+                condition: document.getElementById('condition').value,
+                images: images
+            };
+            const button = document.getElementById('preview-btn');
+            await generatePreview(formData, button);
+        });
+        document.getElementById('preview-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const previewData = JSON.parse(document.getElementById('preview-form').dataset.preview || '{}');
+            const button = document.getElementById('preview-form').querySelector('button[type="submit"]');
+            button.disabled = true;
+            button.textContent = 'Publishing...';
+            previewData.title = document.getElementById('preview-title').value.trim();
+            previewData.description.text = document.getElementById('preview-description').value.trim();
+            try {
+                const formattedDescription = await formatDescriptionWithLLM(previewData.description.text);
+                previewData.description.html = formattedDescription.html;
+                previewData.description.used_html = true;
+            } catch (error) {
+                console.error("Failed to format description:", error);
+                const editedText = previewData.description.text;
+                previewData.description.html = editedText
+                    .split('\n\n')
+                    .filter(p => p.trim())
+                    .map(p => `<p>${p.trim().replace(/\n/g, '<br>')}</p>`)
+                    .join('');
+                previewData.description.used_html = true;
+            }
+            const aspectInputs = document.getElementById('preview-aspects').querySelectorAll('input[data-aspect]');
+            const editedAspects = {};
+            aspectInputs.forEach(input => {
+                const aspect = input.dataset.aspect;
+                const values = input.value.split(',').map(v => v.trim()).filter(v => v);
+                if (values.length) {
+                    editedAspects[aspect] = values;
+                }
+            });
+            previewData.aspects = editedAspects;
+            if (!previewData.title) {
+                document.getElementById('preview-error').textContent = 'Title is required.';
+                document.getElementById('preview-error').classList.remove('hidden');
+                document.getElementById('preview-success').classList.add('hidden');
+                button.disabled = false;
+                button.textContent = 'Publish to eBay';
+                return;
+            }
+            try {
+                const response = await fetch('/publish-item-from-preview', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(previewData),
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    document.getElementById('preview-success').textContent = 'Published to eBay!';
+                    document.getElementById('preview-success').classList.remove('hidden');
+                    document.getElementById('preview-error').classList.add('hidden');
+                    setTimeout(() => {
+                        localStorage.setItem('listing-success', JSON.stringify(data));
+                        window.location.href = 'success.html';
+                    }, 1500);
+                } else {
+                    document.getElementById('preview-error').textContent = data.error || 'Failed to publish listing';
+                    document.getElementById('preview-error').classList.remove('hidden');
+                    document.getElementById('preview-success').classList.add('hidden');
+                }
+            } catch (error) {
+                document.getElementById('preview-error').textContent = 'Network error. Please try again.';
+                document.getElementById('preview-error').classList.remove('hidden');
+                document.getElementById('preview-success').classList.add('hidden');
+            }
+            button.disabled = false;
+            button.textContent = 'Publish to eBay';
+        });
+        async function formatDescriptionWithLLM(plainText) {
+            const response = await fetch('/format-description', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ text: plainText }),
+            });
+            if (!response.ok) {
+                throw new Error('Failed to format description');
+            }
+            return await response.json();
+        }
+        document.getElementById('close-preview').addEventListener('click', () => {
+            document.getElementById('preview-modal').classList.add('hidden');
+        });
+        document.getElementById('cancel-preview').addEventListener('click', () => {
+            document.getElementById('preview-modal').classList.add('hidden');
+        });
+        document.getElementById('preview-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'preview-modal') {
+                document.getElementById('preview-modal').classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
