@@ -889,7 +889,7 @@ class SendPasswordChangeOTPView(APIView):
         msg = EmailMultiAlternatives(
             subject="ListFast.ai Password Reset OTP",
             body="Your OTP is: " + otp,
-            from_email=settings.EMAIL_HOST_USER,
+            from_email=os.getenv("EMAIL_USER"),
             to=[request.user.email]
         )
         msg.attach_alternative(body, "text/html")
@@ -966,7 +966,7 @@ class SignupView(APIView):
         msg = EmailMultiAlternatives(
             subject="ListFast.ai Verification Code",
             body="Your OTP is: " + otp,
-            from_email=os.getenv("EMAIL_HOST"),
+            from_email=os.getenv("EMAIL_USER"),
             to=[email]
         )
         msg.attach_alternative(body, "text/html")
@@ -1061,7 +1061,7 @@ class ResendOTPView(APIView):
         msg = EmailMultiAlternatives(
             subject="ListFast.ai Verification Code",
             body="Your OTP is: " + new_otp,
-            from_email=settings.EMAIL_HOST_USER,
+            from_email=os.getenv("EMAIL_USER"),
             to=[email]
         )
         msg.attach_alternative(body, "text/html")
