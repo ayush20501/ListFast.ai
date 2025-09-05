@@ -10,3 +10,4 @@ pillow
 python-decouple
 django-rest-framework
 gunicorn
+whitenoise
