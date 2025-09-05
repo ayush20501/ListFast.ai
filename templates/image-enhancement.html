@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,56 +8,73 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
         body {
             font-family: 'Inter', sans-serif;
         }
+
         .hero-gradient {
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%);
             background-size: 200% 200%;
             animation: gradientShift 8s ease-in-out infinite;
         }
+
         @keyframes gradientShift {
-            0%, 100% {
+
+            0%,
+            100% {
                 background-position: 0% 50%;
             }
+
             50% {
                 background-position: 100% 50%;
             }
         }
+
         .image-enhance-gradient {
             background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
         }
+
         .nav-gradient {
             background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
         }
+
         .hamburger div {
             transition: all 0.3s ease;
         }
+
         .hamburger.active .top {
             transform: translateY(8px) rotate(45deg);
         }
+
         .hamburger.active .middle {
             opacity: 0;
         }
+
         .hamburger.active .bottom {
             transform: translateY(-8px) rotate(-45deg);
         }
+
         .mobile-menu {
             transition: all 0.3s ease-in-out;
             transform: translateY(-100%);
         }
+
         .mobile-menu.active {
             transform: translateY(0);
         }
+
         .card {
             background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
             border: 2px solid transparent;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
         .card:hover {
             border: 2px solid #a855f7;
             background: linear-gradient(135deg, #ffffff 0%, #f3e8ff 100%);
         }
+
         .preview img {
             max-width: 100%;
             height: auto;
@@ -64,16 +82,19 @@
             border: 2px solid #e5e7eb;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
+
         .upload-btn {
             background: #ffffff;
             border: 2px solid #a855f7;
             color: #a855f7;
             transition: all 0.3s ease;
         }
+
         .upload-btn:hover {
             background: #a855f7;
             color: #ffffff;
         }
+
         .popup {
             display: none;
             position: fixed;
@@ -86,6 +107,7 @@
             justify-content: center;
             align-items: center;
         }
+
         .popup-content {
             background: white;
             padding: 20px;
@@ -95,6 +117,7 @@
             overflow: auto;
             position: relative;
         }
+
         .popup-close {
             position: absolute;
             top: 10px;
@@ -103,6 +126,7 @@
             font-size: 24px;
             color: #666;
         }
+
         .error-message {
             display: none;
             background-color: #fee2e2;
@@ -112,6 +136,7 @@
             margin-bottom: 16px;
             border: 1px solid #fecaca;
         }
+
         .success-message {
             display: none;
             background-color: #dcfce7;
@@ -121,20 +146,24 @@
             margin-bottom: 16px;
             border: 1px solid #bbf7d0;
         }
+
         .ai-status {
             background-color: #e0f2fe;
             border: 2px solid #bae6fd;
             border-radius: 16px;
             padding: 24px;
         }
+
         .ai-progress {
             background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
         }
+
         .text-red-500 {
             color: #dc2626;
         }
     </style>
 </head>
+
 <body class="min-h-screen bg-gray-50">
     <nav class="nav-gradient border-b border-gray-200 fixed w-full top-0 z-50">
         <div class="max-w-7xl mx-auto px-6 lg:px-12">
@@ -145,14 +174,19 @@
                     </a>
                 </div>
                 <div class="hidden lg:flex items-center space-x-8">
-                    <a href="/services/" class="text-gray-600 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Services</a>
-                    <a href="/dashboard/" class="text-gray-600 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Dashboard</a>
-                    <a href="/display-profile/" id="profile-btn" class="flex items-center space-x-2 text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg transition-colors">
-                        <img id="user-profile-pic" src="https://via.placeholder.com/32" alt="Profile" class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
+                    <a href="/services/"
+                        class="text-gray-600 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Services</a>
+                    <a href="/dashboard/"
+                        class="text-gray-600 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Dashboard</a>
+                    <a href="/display-profile/" id="profile-btn"
+                        class="flex items-center space-x-2 text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg transition-colors">
+                        <img id="user-profile-pic" src="" alt="Profile"
+                            class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
                         <span class="font-medium">Profile</span>
                     </a>
                     <span id="user-email" class="text-gray-600 text-sm"></span>
-                    <button id="logout-btn" class="hero-gradient text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity">Logout</button>
+                    <button id="logout-btn"
+                        class="hero-gradient text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity">Logout</button>
                 </div>
                 <div class="lg:hidden flex items-center">
                     <button id="hamburger-btn" class="p-2 focus:outline-none">
@@ -164,16 +198,22 @@
                     </button>
                 </div>
             </div>
-            <div id="mobile-menu" class="lg:hidden mobile-menu absolute top-16 left-0 w-full bg-white shadow-lg border-b border-gray-200 hidden">
+            <div id="mobile-menu"
+                class="lg:hidden mobile-menu absolute top-16 left-0 w-full bg-white shadow-lg border-b border-gray-200 hidden">
                 <div class="flex flex-col space-y-4 px-6 py-4">
-                    <a href="services/" class="text-gray-600 hover:text-gray-900 font-medium py-2 transition-colors">Services</a>
-                    <a href="dashboard/" class="text-gray-600 hover:text-gray-900 font-medium py-2 transition-colors">Dashboard</a>
-                    <a href="/display-profile/" class="flex items-center space-x-2 text-gray-600 hover:text-gray-900 font-medium py-2 transition-colors">
-                        <img id="mobile-user-profile-pic" src="https://via.placeholder.com/32" alt="Profile" class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
+                    <a href="/services/"
+                        class="text-gray-600 hover:text-gray-900 font-medium py-2 transition-colors">Services</a>
+                    <a href="/dashboard/"
+                        class="text-gray-600 hover:text-gray-900 font-medium py-2 transition-colors">Dashboard</a>
+                    <a href="/display-profile/"
+                        class="flex items-center space-x-2 text-gray-600 hover:text-gray-900 font-medium py-2 transition-colors">
+                        <img id="mobile-user-profile-pic" src="" alt="Profile"
+                            class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
                         <span>Profile</span>
                     </a>
                     <span id="mobile-user-email" class="text-gray-600 text-sm py-2"></span>
-                    <button id="mobile-logout-btn" class="hero-gradient text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity text-left">Logout</button>
+                    <button id="mobile-logout-btn"
+                        class="hero-gradient text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity text-left">Logout</button>
                 </div>
             </div>
         </div>
@@ -184,52 +224,67 @@
                 Image <span class="image-enhance-gradient bg-clip-text text-transparent">Enhancement</span>
             </h2>
             <p class="text-lg text-gray-600 leading-relaxed max-w-2xl mx-auto">
-                Transform your product images with professional editing. Add banners, remove backgrounds, and integrate logos to make your listings stand out.
+                Transform your product images with professional editing. Add banners, remove backgrounds, and integrate
+                logos to make your listings stand out.
             </p>
         </div>
-        <div id="error-message" class="hidden bg-red-50 border border-red-200 text-red-800 px-6 py-4 rounded-xl mb-8 font-medium"></div>
-        <div id="success-message" class="hidden bg-green-50 border border-green-200 text-green-800 px-6 py-4 rounded-xl mb-8 font-medium"></div>
+        <div id="error-message"
+            class="hidden bg-red-50 border border-red-200 text-red-800 px-6 py-4 rounded-xl mb-8 font-medium"></div>
+        <div id="success-message"
+            class="hidden bg-green-50 border border-green-200 text-green-800 px-6 py-4 rounded-xl mb-8 font-medium">
+        </div>
         <div class="grid lg:grid-cols-3 gap-12">
             <div class="lg:col-span-2">
                 <div class="card rounded-2xl shadow-lg p-8">
                     <div class="mb-6">
                         <h3 class="text-2xl font-bold text-gray-900 mb-2">Enhance Your Image</h3>
                         <p class="text-sm text-gray-500">
-                            Upload an image or paste an image URL, add a banner title, optionally remove the background, and add a logo.
+                            Upload an image or paste an image URL, add a banner title, optionally remove the background,
+                            and add a logo.
                         </p>
                     </div>
                     <div class="space-y-6">
                         <div>
-                            <label for="image_url" class="block text-sm font-semibold text-gray-700 mb-2">Image URL</label>
+                            <label for="image_url" class="block text-sm font-semibold text-gray-700 mb-2">Image
+                                URL</label>
                             <div class="flex items-center space-x-4">
-                                <input id="image_url" type="text" placeholder="https://example.com/image.jpg" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900">
-                                <button id="upload-image-btn" class="upload-btn px-4 py-2 rounded-lg font-semibold cursor-pointer">
+                                <input id="image_url" type="text" placeholder="https://example.com/image.jpg"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900">
+                                <button id="upload-image-btn"
+                                    class="upload-btn px-4 py-2 rounded-lg font-semibold cursor-pointer">
                                     Upload Image
                                 </button>
                                 <input id="image-upload" type="file" accept="image/*" class="hidden">
                             </div>
                         </div>
                         <div>
-                            <label for="title" class="block text-sm font-semibold text-gray-700 mb-2">Banner Title (optional)</label>
-                            <input id="title" type="text" maxlength="80" placeholder="e.g., Super Saver 6-Pack" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900">
+                            <label for="title" class="block text-sm font-semibold text-gray-700 mb-2">Banner Title
+                                (optional)</label>
+                            <input id="title" type="text" maxlength="80" placeholder="e.g., Super Saver 6-Pack"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900">
                             <span id="title-char-count" class="text-sm text-gray-500 mt-1 block">0/80 characters</span>
                         </div>
                         <div>
-                            <label for="logo_url" class="block text-sm font-semibold text-gray-700 mb-2">Logo URL (optional)</label>
+                            <label for="logo_url" class="block text-sm font-semibold text-gray-700 mb-2">Logo URL
+                                (optional)</label>
                             <div class="flex items-center space-x-4">
-                                <input id="logo_url" type="text" placeholder="https://example.com/logo.png" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900">
-                                <button id="upload-logo-btn" class="upload-btn px-4 py-2 rounded-lg font-semibold cursor-pointer">
+                                <input id="logo_url" type="text" placeholder="https://example.com/logo.png"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900">
+                                <button id="upload-logo-btn"
+                                    class="upload-btn px-4 py-2 rounded-lg font-semibold cursor-pointer">
                                     Upload Logo
                                 </button>
                                 <input id="logo-upload" type="file" accept="image/*" class="hidden">
                             </div>
                         </div>
                         <div class="flex items-center space-x-3">
-                            <input id="remove_bg" type="checkbox" class="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+                            <input id="remove_bg" type="checkbox"
+                                class="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
                             <label for="remove_bg" class="text-sm font-semibold text-gray-700">Remove background</label>
                         </div>
                         <div class="flex items-center justify-between">
-                            <button id="go" class="image-enhance-gradient text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">Enhance</button>
+                            <button id="go"
+                                class="image-enhance-gradient text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">Enhance</button>
                             <span id="msg" class="text-sm text-gray-500"></span>
                         </div>
                         <div class="preview" id="preview"></div>
@@ -292,7 +347,8 @@
         </div>
         <div class="mt-6">
             <div class="bg-white rounded-full h-3">
-                <div id="ai-progress" class="ai-progress h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                <div id="ai-progress" class="ai-progress h-3 rounded-full transition-all duration-500"
+                    style="width: 0%"></div>
             </div>
         </div>
     </div>
@@ -308,7 +364,8 @@
                 <div class="space-y-4">
                     <h3 class="text-2xl font-bold">ListFast.ai</h3>
                     <p class="text-gray-400 text-sm leading-relaxed">
-                        Streamline your eBay listings with AI-powered tools for image enhancement, single items, multipacks, and bundles.
+                        Streamline your eBay listings with AI-powered tools for image enhancement, single items,
+                        multipacks, and bundles.
                     </p>
                 </div>
                 <div>
@@ -331,10 +388,13 @@
                 </div>
                 <div>
                     <h4 class="text-lg font-semibold mb-4">Stay Updated</h4>
-                    <p class="text-gray-400 text-sm mb-4">Subscribe to our newsletter for the latest updates and offers.</p>
+                    <p class="text-gray-400 text-sm mb-4">Subscribe to our newsletter for the latest updates and offers.
+                    </p>
                     <form class="flex">
-                        <input type="email" placeholder="Enter your email" class="w-full px-4 py-2 rounded-l-lg bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <button type="submit" class="hero-gradient px-4 py-2 rounded-r-lg font-semibold hover:opacity-90 transition-opacity">Subscribe</button>
+                        <input type="email" placeholder="Enter your email"
+                            class="w-full px-4 py-2 rounded-l-lg bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button type="submit"
+                            class="hero-gradient px-4 py-2 rounded-r-lg font-semibold hover:opacity-90 transition-opacity">Subscribe</button>
                     </form>
                 </div>
             </div>
@@ -342,17 +402,22 @@
                 <div class="flex space-x-4">
                     <a href="#" class="text-gray-400 hover:text-white transition-colors">
                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.15z"></path>
+                            <path
+                                d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.15z">
+                            </path>
                         </svg>
                     </a>
                     <a href="#" class="text-gray-400 hover:text-white transition-colors">
                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-2.596 0-4.194 1.722-4.194 4.6v3.4z"></path>
+                            <path
+                                d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-2.596 0-4.194 1.722-4.194 4.6v3.4z">
+                            </path>
                         </svg>
                     </a>
                     <a href="#" class="text-gray-400 hover:text-white transition-colors">
                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.9 3.9 0 0 0-1.417.923A3.9 3.9 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444.048 3.297.04.852.174 1.433.372 1.942.205.526.478.972.923 1.417.444.445.89.719 1.416.923.51.198 1.09.333 1.942.372C5.555 15.99 5.827 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.9 3.9 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.197-.509.332-1.09.372-1.942C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.851-.175-1.433-.372-1.941a3.9 3.9 0 0 0-.923-1.417A3.9 3.9 0 0 0 13.24.42c-.51-.198-1.092-.333-1.943-.372C10.443.01 10.172 0 7.998 0zm-.717 1.442h.718c2.136 0 2.389.007 3.232.046.78.035 1.204.166 1.486.275.373.145.64.319.92.599s.453.546.598.92c.11.281.24.705.275 1.485.039.843.047 1.096.047 3.231s-.008 2.389-.047 3.232c-.035.78-.166 1.203-.275 1.485a2.5 2.5 0 0 1-.599.919c-.28.28-.546.453-.92.598-.28.11-.704.24-1.485.276-.843.038-1.096.047-3.232.047s-2.39-.009-3.233-.047c-.78-.036-1.203-.166-1.485-.276a2.5 2.5 0 0 1-.92-.598 2.5 2.5 0 0 1-.6-.92c-.109-.281-.24-.705-.275-1.485-.038-.843-.046-1.096-.046-3.233s.008-2.388.046-3.231c.036-.78.166-1.204.276-1.486.145-.373.319-.64.599-.92s.546-.453.92-.598c.282-.11.705-.24 1.485-.276.738-.034 1.024-.044 2.515-.045zm4.988 1.328a.96.96 0 1 0 0 1.92.96.96 0 0 0 0-1.92m-4.27 1.122a4.109 4.109 0 1 0 0 8.217 4.109 4.109 0 0 0 0-8.217m0 1.441a2.667 2.667 0 1 1 0 5.334 2.667 2.667 0 0 1 0-5.334"/>
+                            <path
+                                d="M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.9 3.9 0 0 0-1.417.923A3.9 3.9 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444.048 3.297.04.852.174 1.433.372 1.942.205.526.478.972.923 1.417.444.445.89.719 1.416.923.51.198 1.09.333 1.942.372C5.555 15.99 5.827 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.9 3.9 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.197-.509.332-1.09.372-1.942C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.851-.175-1.433-.372-1.941a3.9 3.9 0 0 0-.923-1.417A3.9 3.9 0 0 0 13.24.42c-.51-.198-1.092-.333-1.943-.372C10.443.01 10.172 0 7.998 0zm-.717 1.442h.718c2.136 0 2.389.007 3.232.046.78.035 1.204.166 1.486.275.373.145.64.319.92.599s.453.546.598.92c.11.281.24.705.275 1.485.039.843.047 1.096.047 3.231s-.008 2.389-.047 3.232c-.035.78-.166 1.203-.275 1.485a2.5 2.5 0 0 1-.599.919c-.28.28-.546.453-.92.598-.28.11-.704.24-1.485.276-.843.038-1.096.047-3.232.047s-2.39-.009-3.233-.047c-.78-.036-1.203-.166-1.485-.276a2.5 2.5 0 0 1-.92-.598 2.5 2.5 0 0 1-.6-.92c-.109-.281-.24-.705-.275-1.485-.038-.843-.046-1.096-.046-3.233s.008-2.388.046-3.231c.036-.78.166-1.204.276-1.486.145-.373.319-.64.599-.92s.546-.453.92-.598c.282-.11.705-.24 1.485-.276.738-.034 1.024-.044 2.515-.045zm4.988 1.328a.96.96 0 1 0 0 1.92.96.96 0 0 0 0-1.92m-4.27 1.122a4.109 4.109 0 1 0 0 8.217 4.109 4.109 0 0 0 0-8.217m0 1.441a2.667 2.667 0 1 1 0 5.334 2.667 2.667 0 0 1 0-5.334" />
                         </svg>
                     </a>
                 </div>
@@ -384,7 +449,7 @@
                 const response = await fetch('/auth-status');
                 const data = await response.json();
                 if (!data.is_logged_in) {
-                    window.location.href = 'login/';
+                    window.location.href = '/login/';
                     return;
                 }
                 document.getElementById('user-email').textContent = data.email;
@@ -405,7 +470,7 @@
                 if (imageUrl) document.getElementById('image_url').value = imageUrl;
                 if (logoUrl) document.getElementById('logo_url').value = logoUrl;
             } catch (error) {
-                window.location.href = 'login/';
+                window.location.href = '/login/';
             }
         });
         const hamburgerBtn = document.getElementById('hamburger-btn');
@@ -417,7 +482,26 @@
         });
         document.getElementById('logout-btn').addEventListener('click', async () => {
             try {
-                await fetch('/logout/', { method: 'POST' });
+                const getCookie = (name) => {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                };
+                const csrftoken = getCookie('csrftoken');
+                await fetch('/logout/', {
+                    method: 'POST', headers: {
+                        'X-CSRFToken': csrftoken
+                    }
+                });
                 window.location.href = '/';
             } catch (error) {
                 console.error('Logout failed:', error);
@@ -425,7 +509,26 @@
         });
         document.getElementById('mobile-logout-btn').addEventListener('click', async () => {
             try {
-                await fetch('/logout/', { method: 'POST' });
+                const getCookie = (name) => {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                };
+                const csrftoken = getCookie('csrftoken');
+                await fetch('/logout/', {
+                    method: 'POST', headers: {
+                        'X-CSRFToken': csrftoken
+                    }
+                });
                 window.location.href = '/';
             } catch (error) {
                 console.error('Logout failed:', error);
@@ -613,4 +716,5 @@
         });
     </script>
 </body>
+
 </html>
