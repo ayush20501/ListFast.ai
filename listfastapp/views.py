@@ -1197,70 +1197,197 @@ class FormatDescriptionView(APIView):
         except Exception as e:
             return Response({"error": f"Failed to format description: {str(e)}"}, status=500)
 
+# class EnhanceImageView(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def post(self, request):
+#         image_url = request.data.get("image_url", "").strip()
+#         title = request.data.get("title", "").strip() or None
+#         logo_url = request.data.get("logo_url", "").strip() or None
+#         remove_bg = request.data.get("remove_bg", False)
+#         if not image_url:
+#             return Response({"error": "image_url is required"}, status=400)
+#         output_file = f"enhanced_{random.randint(1000, 9999)}.png"
+#         try:
+#             response = requests.get(image_url)
+#             response.raise_for_status()
+#             image = Image.open(BytesIO(response.content)).convert("RGBA")
+#             if remove_bg and REMOVE_BG_API_KEY:
+#                 try:
+#                     img_byte_arr = BytesIO()
+#                     image.save(img_byte_arr, format='PNG')
+#                     response = requests.post(
+#                         "https://api.remove.bg/v1.0/removebg",
+#                         files={'image_file': img_byte_arr.getvalue()},
+#                         headers={'X-Api-Key': REMOVE_BG_API_KEY}
+#                     )
+#                     response.raise_for_status()
+#                     image_no_bg = Image.open(BytesIO(response.content)).convert("RGBA")
+#                 except Exception as e:
+#                     print(f"Background removal failed: {e}")
+#                     image_no_bg = image
+#             else:
+#                 image_no_bg = image
+#             tilt_angle = random.randint(-3, 3)
+#             image_tilted = image_no_bg.rotate(tilt_angle, resample=Image.BICUBIC, expand=True, fillcolor=(0, 0, 0, 0))
+#             banner_height = 120 if title else 0
+#             canvas_size = max(image_tilted.width, image_tilted.height + banner_height)
+#             canvas = Image.new("RGBA", (canvas_size, canvas_size), "WHITE")
+#             paste_x = (canvas_size - image_tilted.width) // 2
+#             paste_y = banner_height + (canvas_size - banner_height - image_tilted.height) // 2
+#             canvas.paste(image_tilted, (paste_x, paste_y), image_tilted)
+#             draw = ImageDraw.Draw(canvas)
+#             if title:
+#                 font_size = 150
+#                 padding = 40
+#                 try:
+#                     font = ImageFont.truetype("Roboto-Bold.ttf", font_size)
+#                 except IOError:
+#                     font = ImageFont.load_default()
+#                 while font_size > 10:
+#                     bbox = draw.textbbox((0, 0), title, font=font)
+#                     text_width = bbox[2] - bbox[0]
+#                     if text_width <= canvas_size - padding:
+#                         break
+#                     font_size -= 10
+#                     font = font.font_variant(size=font_size)
+#                 bbox = draw.textbbox((0, 0), title, font=font)
+#                 text_width = bbox[2] - bbox[0]
+#                 text_height = bbox[3] - bbox[1]
+#                 text_x = (canvas_size - text_width) // 2
+#                 text_y = (banner_height - text_height) // 2
+#                 draw.rectangle((0, 0, canvas_size, banner_height), fill="yellow")
+#                 draw.text((text_x, text_y), title, fill="black", font=font)
+#             if logo_url:
+#                 try:
+#                     logo_response = requests.get(logo_url)
+#                     logo_response.raise_for_status()
+#                     logo = Image.open(BytesIO(logo_response.content)).convert("RGBA")
+#                     logo_width = canvas_size // 10
+#                     logo_height = int((logo.height / logo.width) * logo_width)
+#                     logo = logo.resize((logo_width, logo_height), Image.LANCZOS)
+#                     logo_x = canvas_size - logo_width - 20
+#                     logo_y = canvas_size - logo_height - 20
+#                     canvas.paste(logo, (logo_x, logo_y), logo)
+#                 except Exception as e:
+#                     print(f"Failed to process logo: {e}")
+#             output_path = default_storage.save(output_file, ContentFile(b""))
+#             canvas.save(default_storage.path(output_path), "PNG")
+#             response = HttpResponse(default_storage.open(output_path), content_type="image/png")
+#             default_storage.delete(output_path)
+#             return response
+#         except requests.exceptions.RequestException as e:
+#             return Response({"error": f"Failed to download image or logo: {e}"}, status=400)
+#         except Exception as e:
+#             return Response({"error": f"An unexpected error occurred: {e}"}, status=500)
+
 class EnhanceImageView(APIView):
     permission_classes = [IsAuthenticated]
+
+    def get_font(self, size):
+        try:
+            return ImageFont.truetype("arialbd.ttf", size)
+        except IOError:
+            try:
+                return ImageFont.truetype("arial.ttf", size)
+            except IOError:
+                try:
+                    return ImageFont.truetype("Roboto-Bold.ttf", size)
+                except IOError:
+                    return ImageFont.load_default()
 
     def post(self, request):
         image_url = request.data.get("image_url", "").strip()
         title = request.data.get("title", "").strip() or None
         logo_url = request.data.get("logo_url", "").strip() or None
         remove_bg = request.data.get("remove_bg", False)
+
         if not image_url:
-            return Response({"error": "image_url is required"}, status=400)
+            return Response({"error": "The field 'image_url' is required."}, status=400)
+
         output_file = f"enhanced_{random.randint(1000, 9999)}.png"
+
         try:
-            response = requests.get(image_url)
+            response = requests.get(image_url, timeout=10)
             response.raise_for_status()
             image = Image.open(BytesIO(response.content)).convert("RGBA")
+
             if remove_bg and REMOVE_BG_API_KEY:
                 try:
                     img_byte_arr = BytesIO()
-                    image.save(img_byte_arr, format='PNG')
+                    image.save(img_byte_arr, format="PNG")
                     response = requests.post(
                         "https://api.remove.bg/v1.0/removebg",
-                        files={'image_file': img_byte_arr.getvalue()},
-                        headers={'X-Api-Key': REMOVE_BG_API_KEY}
+                        files={"image_file": img_byte_arr.getvalue()},
+                        headers={"X-Api-Key": REMOVE_BG_API_KEY},
+                        timeout=20,
                     )
                     response.raise_for_status()
                     image_no_bg = Image.open(BytesIO(response.content)).convert("RGBA")
                 except Exception as e:
-                    print(f"Background removal failed: {e}")
-                    image_no_bg = image
+                    return Response({"error": f"Background removal failed. Please try again later."}, status=500)
             else:
                 image_no_bg = image
+
             tilt_angle = random.randint(-3, 3)
-            image_tilted = image_no_bg.rotate(tilt_angle, resample=Image.BICUBIC, expand=True, fillcolor=(0, 0, 0, 0))
-            banner_height = 120 if title else 0
+            image_tilted = image_no_bg.rotate(
+                tilt_angle,
+                resample=Image.BICUBIC,
+                expand=True,
+                fillcolor=(0, 0, 0, 0),
+            )
+
+            banner_height = 120
             canvas_size = max(image_tilted.width, image_tilted.height + banner_height)
             canvas = Image.new("RGBA", (canvas_size, canvas_size), "WHITE")
+
             paste_x = (canvas_size - image_tilted.width) // 2
             paste_y = banner_height + (canvas_size - banner_height - image_tilted.height) // 2
             canvas.paste(image_tilted, (paste_x, paste_y), image_tilted)
+
             draw = ImageDraw.Draw(canvas)
+
             if title:
-                font_size = 150
-                padding = 40
-                try:
-                    font = ImageFont.truetype("Roboto-Bold.ttf", font_size)
-                except IOError:
-                    font = ImageFont.load_default()
-                while font_size > 10:
-                    bbox = draw.textbbox((0, 0), title, font=font)
-                    text_width = bbox[2] - bbox[0]
-                    if text_width <= canvas_size - padding:
-                        break
-                    font_size -= 10
-                    font = font.font_variant(size=font_size)
-                bbox = draw.textbbox((0, 0), title, font=font)
-                text_width = bbox[2] - bbox[0]
-                text_height = bbox[3] - bbox[1]
+                padding = 60
+                max_text_width = canvas_size - padding * 2
+                font_size = 80
+                font = self.get_font(font_size)
+
+                if hasattr(font, "getbbox"):
+                    bbox = font.getbbox(title)
+                    text_width, text_height = bbox[2] - bbox[0], bbox[3] - bbox[1]
+                else:
+                    mask = font.getmask(title)
+                    text_width, text_height = mask.size
+
+                while text_width > max_text_width and font_size > 16:
+                    font_size -= 4
+                    font = self.get_font(font_size)
+                    if hasattr(font, "getbbox"):
+                        bbox = font.getbbox(title)
+                        text_width, text_height = bbox[2] - bbox[0], bbox[3] - bbox[1]
+                    else:
+                        mask = font.getmask(title)
+                        text_width, text_height = mask.size
+
+                while text_height > banner_height - 20 and font_size > 16:
+                    font_size -= 4
+                    font = self.get_font(font_size)
+                    if hasattr(font, "getbbox"):
+                        bbox = font.getbbox(title)
+                        text_width, text_height = bbox[2] - bbox[0], bbox[3] - bbox[1]
+                    else:
+                        mask = font.getmask(title)
+                        text_width, text_height = mask.size
+
+                draw.rectangle((0, 0, canvas_size, banner_height), fill="yellow")
                 text_x = (canvas_size - text_width) // 2
                 text_y = (banner_height - text_height) // 2
-                draw.rectangle((0, 0, canvas_size, banner_height), fill="yellow")
                 draw.text((text_x, text_y), title, fill="black", font=font)
+
             if logo_url:
                 try:
-                    logo_response = requests.get(logo_url)
+                    logo_response = requests.get(logo_url, timeout=10)
                     logo_response.raise_for_status()
                     logo = Image.open(BytesIO(logo_response.content)).convert("RGBA")
                     logo_width = canvas_size // 10
@@ -1270,13 +1397,18 @@ class EnhanceImageView(APIView):
                     logo_y = canvas_size - logo_height - 20
                     canvas.paste(logo, (logo_x, logo_y), logo)
                 except Exception as e:
-                    print(f"Failed to process logo: {e}")
+                    return Response({"error": f"Failed to process logo. Please try again later."}, status=400)
+
             output_path = default_storage.save(output_file, ContentFile(b""))
             canvas.save(default_storage.path(output_path), "PNG")
             response = HttpResponse(default_storage.open(output_path), content_type="image/png")
             default_storage.delete(output_path)
             return response
+
         except requests.exceptions.RequestException as e:
-            return Response({"error": f"Failed to download image or logo: {e}"}, status=400)
+            return Response({"error": f"Unable to download image. Please try again later."}, status=400)
+        except OSError as e:
+            return Response({"error": f"Invalid image format. Please try again with a different image."}, status=400)
         except Exception as e:
-            return Response({"error": f"An unexpected error occurred: {e}"}, status=500)
+            return Response({"error": f"Unexpected server error. Please try again later."}, status=500)
+
