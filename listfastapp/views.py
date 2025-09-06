@@ -557,6 +557,7 @@ class eBayLoginView(LoginRequiredMixin, View):
     login_url = '/login/' 
 
     def get(self, request):
+        print("eBayLoginView")
         try:
             profile = request.user.userprofile
         except UserProfile.DoesNotExist:
