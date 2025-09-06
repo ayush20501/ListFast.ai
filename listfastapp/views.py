@@ -36,6 +36,8 @@ from django.core.files.base import ContentFile
 from werkzeug.utils import secure_filename
 from django.contrib.auth.mixins import LoginRequiredMixin
 import uuid
+from typing import Tuple, Optional
+from PIL import Image, ImageDraw, ImageFont, ImageFile, ImageFilter
 
 # Configuration
 DB_URL = config("DB_URL")
@@ -60,7 +62,6 @@ EMAIL_PORT = config("EMAIL_PORT", cast=int)
 
 # External APIs
 OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
-REMOVE_BG_API_KEY = config("REMOVE_BG_API_KEY", default="")
 IMGBB_API_KEY = config("IMGBB_API_KEY", default="")
 
 REMBG_API_KEY = config("REMBG_API_KEY", default="")
@@ -1000,133 +1001,155 @@ class FormatDescriptionView(APIView):
         except Exception as e:
             return Response({"error": f"Failed to format description: {str(e)}"}, status=500)
 
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+
+def download_rgba(url: str) -> Image.Image:
+    r = requests.get(url, timeout=20)
+    r.raise_for_status()
+    return Image.open(io.BytesIO(r.content)).convert("RGBA")
+
+def remove_bg_via_api(img: Image.Image, *, api_url: Optional[str] = None, api_key: Optional[str] = None) -> Image.Image:
+    api_url = api_url or REMBG_API_URL
+    api_key = api_key or REMBG_API_KEY
+    if not api_key:
+        return img
+
+    buf = io.BytesIO()
+    img.convert("RGBA").save(buf, format="PNG")
+    buf.seek(0)
+    headers = {"x-api-key": api_key}
+    files = {"image": ("input.png", buf, "image/png")}
+
+    try:
+        resp = requests.post(api_url, headers=headers, files=files, timeout=60)
+        if resp.status_code == 200:
+            return Image.open(io.BytesIO(resp.content)).convert("RGBA")
+        print(f"[rembg] Error {resp.status_code}: {resp.text[:200]}")
+    except Exception as e:
+        print(f"[rembg] Exception: {e}")
+    return img
+
+def safe_remove_bg(img: Image.Image) -> Image.Image:
+    cut = remove_bg_via_api(img)
+    try:
+        white = Image.new("RGBA", cut.size, (255, 255, 255, 255))
+        return Image.alpha_composite(white, cut)
+    except Exception:
+        return img
+
+def get_text_size(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont) -> Tuple[int, int]:
+    try:
+        bbox = draw.textbbox((0, 0), text, font=font, align="center")
+        return bbox[2] - bbox[0], bbox[3] - bbox[1]
+    except AttributeError:
+        return draw.textsize(text, font=font)
+
+def get_font_from_folder(text: str, max_w: int, max_h: int, draw: ImageDraw.ImageDraw, min_size: int = 12) -> ImageFont.FreeTypeFont:
+    font_folder = os.path.join(settings.BASE_DIR, "fonts")
+    font_files = [f for f in os.listdir(font_folder) if f.endswith(('.ttf', '.otf'))]
+    if not font_files:
+        return ImageFont.load_default()
+
+    for size in range(max_h, min_size - 1, -2):
+        for font_file in font_files:
+            try:
+                font_path = os.path.join(font_folder, font_file)
+                font = ImageFont.truetype(font_path, size)
+                w, h = get_text_size(draw, text, font)
+                if w <= max_w and h <= max_h:
+                    return font
+            except Exception:
+                continue
+    return ImageFont.load_default()
+
+def fit_within(img: Image.Image, box_w: int, box_h: int, margin_ratio: float = 0.94) -> Image.Image:
+    target_w = int(box_w * margin_ratio)
+    target_h = int(box_h * margin_ratio)
+    w, h = img.size
+    scale = min(target_w / w, target_h / h)
+    return img.resize((max(1, int(w * scale)), max(1, int(h * scale))), Image.LANCZOS)
+
+def paste_with_shadow(canvas: Image.Image, tile: Image.Image, x: int, y: int, shadow_offset=(16, 16), blur=22):
+    if tile.mode != "RGBA":
+        tile = tile.convert("RGBA")
+    try:
+        alpha = tile.split()[3]
+    except Exception:
+        alpha = None
+    if alpha is not None:
+        shadow = Image.new("RGBA", tile.size, (0, 0, 0, 0))
+        shadow.putalpha(alpha)
+        shadow = shadow.filter(ImageFilter.GaussianBlur(blur))
+        sx, sy = x + shadow_offset[0], y + shadow_offset[1]
+        canvas.paste(shadow, (sx, sy), shadow)
+    canvas.paste(tile, (x, y), tile)
+
 class EnhanceImageView(APIView):
     permission_classes = [IsAuthenticated]
-
-    def get_font(self, size):
-        font_dir = os.path.join(settings.BASE_DIR, 'fonts')  
-        font_path = os.path.join(font_dir, "arialbd.ttf")
-        try:
-            return ImageFont.truetype(font_path, size)
-        except IOError as e:
-            print(f"Failed to load Arial Bold font: {e}")
-            return ImageFont.load_default()
 
     def post(self, request):
         image_url = request.data.get("image_url", "").strip()
         title = request.data.get("title", "").strip() or None
         logo_url = request.data.get("logo_url", "").strip() or None
-        remove_bg = request.data.get("remove_bg", False)
+        remove_bg = bool(request.data.get("remove_bg", False))
 
         if not image_url:
             return Response({"error": "The field 'image_url' is required."}, status=400)
 
-        output_file = f"enhanced_{random.randint(1000, 9999)}.png"
-
         try:
-            response = requests.get(image_url)
-            response.raise_for_status()
-            image = Image.open(BytesIO(response.content)).convert("RGBA")
+            unit = download_rgba(image_url)
+            if remove_bg:
+                unit = safe_remove_bg(unit)
 
-            if remove_bg and REMOVE_BG_API_KEY:
-                try:
-                    img_byte_arr = BytesIO()
-                    image.save(img_byte_arr, format="PNG")
-                    response = requests.post(
-                        "https://api.remove.bg/v1.0/removebg",
-                        files={"image_file": img_byte_arr.getvalue()},
-                        headers={"X-Api-Key": REMOVE_BG_API_KEY},
-                    )
-                    response.raise_for_status()
-                    image_no_bg = Image.open(BytesIO(response.content)).convert("RGBA")
-                except Exception as e:
-                    return Response({"error": f"Background removal failed. Please try again later."}, status=500)
-            else:
-                image_no_bg = image
-
-            tilt_angle = random.randint(-3, 3)
-            image_tilted = image_no_bg.rotate(
-                tilt_angle,
-                resample=Image.BICUBIC,
-                expand=True,
-                fillcolor=(0, 0, 0, 0),
-            )
-
-            banner_height = 120
-            canvas_size = max(image_tilted.width, image_tilted.height + banner_height)
-            canvas = Image.new("RGBA", (canvas_size, canvas_size), "WHITE")
-
-            paste_x = (canvas_size - image_tilted.width) // 2
-            paste_y = banner_height + (canvas_size - banner_height - image_tilted.height) // 2
-            canvas.paste(image_tilted, (paste_x, paste_y), image_tilted)
-
+            S = 1600 
+            canvas = Image.new("RGBA", (S, S), (255, 255, 255, 255))
             draw = ImageDraw.Draw(canvas)
 
+            banner_h = 0
             if title:
-                padding = 60
-                max_text_width = canvas_size - padding * 2
-                font_size = 80
-                font = self.get_font(font_size)
+                banner_h = max(100, int(S * 0.16))
+                draw.rectangle([0, 0, S, banner_h], fill=(255, 215, 0, 255))
+                font = get_font_from_folder(title, int(S * 0.9), int(banner_h * 0.8), draw)
+                tw, th = get_text_size(draw, title, font)
+                tx, ty = (S - tw) // 2, (banner_h - th) // 2
+                draw.text((tx, ty), title, font=font, fill=(0, 0, 0, 255))
 
-                if hasattr(font, "getbbox"):
-                    bbox = font.getbbox(title)
-                    text_width, text_height = bbox[2] - bbox[0], bbox[3] - bbox[1]
-                else:
-                    mask = font.getmask(title)
-                    text_width, text_height = mask.size
+            content_top = banner_h
+            content_h = S - banner_h
+            box_w = S - 2 * 48
+            box_h = content_h - 2 * 48
+            tile = fit_within(unit, box_w, box_h, margin_ratio=0.96)
+            dx = (S - tile.size[0]) // 2
+            dy = content_top + (content_h - tile.size[1]) // 2
+            canvas.paste(tile, (dx, dy), tile)
 
-                while text_width > max_text_width and font_size > 16:
-                    font_size -= 4
-                    font = self.get_font(font_size)
-                    if hasattr(font, "getbbox"):
-                        bbox = font.getbbox(title)
-                        text_width, text_height = bbox[2] - bbox[0], bbox[3] - bbox[1]
-                    else:
-                        mask = font.getmask(title)
-                        text_width, text_height = mask.size
-
-                while text_height > banner_height - 20 and font_size > 16:
-                    font_size -= 4
-                    font = self.get_font(font_size)
-                    if hasattr(font, "getbbox"):
-                        bbox = font.getbbox(title)
-                        text_width, text_height = bbox[2] - bbox[0], bbox[3] - bbox[1]
-                    else:
-                        mask = font.getmask(title)
-                        text_width, text_height = mask.size
-
-                draw.rectangle((0, 0, canvas_size, banner_height), fill="yellow")
-                text_x = (canvas_size - text_width) // 2
-                text_y = (banner_height - text_height) // 2
-                draw.text((text_x, text_y), title, fill="black", font=font)
 
             if logo_url:
                 try:
-                    logo_response = requests.get(logo_url)
-                    logo_response.raise_for_status()
-                    logo = Image.open(BytesIO(logo_response.content)).convert("RGBA")
-                    logo_width = canvas_size // 10
-                    logo_height = int((logo.height / logo.width) * logo_width)
-                    logo = logo.resize((logo_width, logo_height), Image.LANCZOS)
-                    logo_x = canvas_size - logo_width - 20
-                    logo_y = canvas_size - logo_height - 20
-                    canvas.paste(logo, (logo_x, logo_y), logo)
-                except Exception as e:
-                    return Response({"error": f"Failed to process logo. Please try again later."}, status=400)
+                    logo = download_rgba(logo_url)
+                    max_logo_w = int(S * 0.12)
+                    logo.thumbnail((max_logo_w, max_logo_w), Image.LANCZOS)
+                    lw, lh = logo.size
+                    margin = int(S * 0.02)
+                    x = S - lw - margin
+                    y = S - lh - margin
+                    canvas.paste(logo, (x, y), logo)
+                except Exception:
+                    return Response({"error": "Failed to process logo."}, status=400)
 
-            output_path = default_storage.save(output_file, ContentFile(b""))
-            canvas.save(default_storage.path(output_path), "PNG")
-            response = HttpResponse(default_storage.open(output_path), content_type="image/png")
-            default_storage.delete(output_path)
+            buf = io.BytesIO()
+            canvas.save(buf, format="PNG", optimize=True)
+            buf.seek(0)
+            response = HttpResponse(buf, content_type="image/png")
+            response["Content-Disposition"] = f'inline; filename="enhanced_{random.randint(1000,9999)}.png"'
             return response
 
-        except requests.exceptions.RequestException as e:
-            return Response({"error": f"Unable to download image: {str(e)}"}, status=400)
-        except OSError as e:
-            return Response({"error": f"Invalid image format. Please try again with a different image."}, status=400)
+        except requests.exceptions.RequestException:
+            return Response({"error": "Unable to download image."}, status=400)
+        except OSError:
+            return Response({"error": "Invalid image format."}, status=400)
         except Exception as e:
-            return Response({"error": f"Unexpected server error. Please try again later."}, status=500)
-
+            return Response({"error": f"Unexpected server error: {str(e)}"}, status=500)
 
 class ItemView(APIView):
     permission_classes = [IsAuthenticated]
