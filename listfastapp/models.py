@@ -48,6 +48,12 @@ class ListingCount(models.Model):
 
 
 class UserListing(models.Model):
+    LISTING_TYPE_CHOICES = [
+        ('Single', 'Single'),
+        ('Multi', 'Multi'),
+        ('Bundle', 'Bundle'),
+    ]
+    
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     listing_id = models.CharField(max_length=50)
     offer_id = models.CharField(max_length=50, blank=True, null=True)
@@ -63,6 +69,8 @@ class UserListing(models.Model):
     view_url = models.URLField(blank=True, null=True)
     status = models.CharField(max_length=20, default='ACTIVE')
     created_at = models.DateTimeField(auto_now_add=True)
+    vat_rate = models.FloatField(default=0, blank=True, null=True)
+    listing_type = models.CharField(max_length=20, choices=LISTING_TYPE_CHOICES, default='Single')
 
     class Meta:
         unique_together = ('user', 'listing_id')

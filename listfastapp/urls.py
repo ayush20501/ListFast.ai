@@ -29,4 +29,6 @@ urlpatterns = [
     path('enhance-image/', views.EnhanceImageView.as_view(), name='enhance-image'),
     path('fetch-address-imageprofile/', views.FetchAddressImageProfileView.as_view(), name='fetch-address-imageprofile'),
     path('item/', views.ItemView.as_view(), name='item'),
+    path('multi-item-listing/', views.MultipleItemListingView.as_view(), name='multi-item-listing'),
+    path('multipack-listing/', views.MultipackListingView.as_view(), name='multipack-listing'),
 ]

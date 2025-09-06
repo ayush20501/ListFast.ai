@@ -370,7 +370,7 @@
                     </div>
                 </div>
                 <div class="flex items-center justify-between">
-                    <button
+                    <button id="multipack-listing-btn"
                         class="multipack-gradient text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity hover-lift">
                         List Multipack
                     </button>
@@ -548,9 +548,11 @@
                 button.addEventListener('click', () => {
                     window.location.href = '/image-enhancement/';
                 });
+            } else if (button.id === 'multipack-listing-btn') {
+                button.addEventListener('click', () => {
+                    window.location.href = '/multi-item-listing/';
+                });
             } else if (
-                button.textContent.includes('Get Started') ||
-                button.textContent.includes('List Multipack') ||
                 button.textContent.includes('Create Bundle')
             ) {
                 button.addEventListener('click', () => {
