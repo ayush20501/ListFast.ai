@@ -557,7 +557,6 @@ class eBayLoginView(LoginRequiredMixin, View):
     login_url = '/login/' 
 
     def get(self, request):
-        print("eBayLoginView")
         try:
             profile = request.user.userprofile
         except UserProfile.DoesNotExist:
@@ -565,12 +564,13 @@ class eBayLoginView(LoginRequiredMixin, View):
 
         scope_enc = quote(SCOPES, safe="")
         ru_enc = quote(RU_NAME, safe="")
-        print(f"{AUTH}/oauth2/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={ru_enc}&scope={scope_enc}&state=xyz123&prompt=login")
-        url = f"{AUTH}/oauth2/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={ru_enc}&scope={scope_enc}&state=xyz123&prompt=login"
 
-        # if request.session.get("force_ebay_login"):
-        #     url += "&prompt=login"
+        url = f"{AUTH}/oauth2/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={ru_enc}&scope={scope_enc}&state=xyz123"
 
+        if request.session.get("force_ebay_login"):
+            url += "&prompt=login"
+
+        print(url)
         return redirect(url)
         
 class eBayCallbackView(LoginRequiredMixin, View):
