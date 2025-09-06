@@ -15,7 +15,6 @@ urlpatterns = [
     path('login/', views.LoginView.as_view(), name='login'),
     path('logout/', views.LogoutView.as_view(), name='logout'),
     path('auth-status/', views.AuthStatusView.as_view(), name='auth-status'),
-    path('publish-item/', views.PublishItemView.as_view(), name='publish-item'),
     path('total-listings/', views.TotalListingsView.as_view(), name='total-listings'),
     path('user-stats/', views.UserStatsView.as_view(), name='user-stats'),
     path('my-listings/', views.MyListingsView.as_view(), name='my-listings'),
@@ -29,6 +28,5 @@ urlpatterns = [
     path('format-description/', views.FormatDescriptionView.as_view(), name='format-description'),
     path('enhance-image/', views.EnhanceImageView.as_view(), name='enhance-image'),
     path('fetch-address-imageprofile/', views.FetchAddressImageProfileView.as_view(), name='fetch-address-imageprofile'),
-    path('preview-item/', views.PreviewItemView.as_view(), name='preview-item'),
-    path('publish-item-from-preview/', views.PublishItemFromPreviewView.as_view(), name='publish-item-from-preview'),
+    path('item/', views.ItemView.as_view(), name='item'),
 ]
