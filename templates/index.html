@@ -2,45 +2,160 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ListFast.ai - Create eBay Listings 10× Faster with AI</title>
     <meta name="description" content="Turn product links or notes into polished, policy-safe eBay listings — with AI titles, complete item specifics, clean images, and multipack/bundle flows.">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
         body {
             font-family: 'Inter', sans-serif;
         }
+
         .gradient-bg {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
+
         .hero-gradient {
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%);
             background-size: 200% 200%;
             animation: gradientShift 8s ease-in-out infinite;
         }
+
         @keyframes gradientShift {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
+            0%, 100% { 
+                background-position: 0% 50%; 
+            }
+            50% { 
+                background-position: 100% 50%; 
+            }
         }
+
+        .navbar-backdrop {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+        }
+
+        .nav-link {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-link::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(135deg, #f093fb 0%, #4facfe 100%);
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+        }
+
+        .nav-link:hover::before {
+            width: 100%;
+        }
+
+        .logo-link {
+            transition: filter 0.3s ease;
+        }
+
+        .logo-link:hover {
+            filter: brightness(1.1);
+        }
+
+        .profile-dropdown {
+            transition: all 0.3s ease;
+            transform: scale(0.95);
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .profile-dropdown.active {
+            transform: scale(1);
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .hamburger-line {
+            width: 24px;
+            height: 3px;
+            background-color: #374151;
+            margin: 3px 0;
+            transition: 0.3s;
+            border-radius: 3px;
+        }
+
+        .hamburger.open .hamburger-line:nth-child(1) {
+            transform: rotate(-45deg) translate(-5px, 6px);
+        }
+
+        .hamburger.open .hamburger-line:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger.open .hamburger-line:nth-child(3) {
+            transform: rotate(45deg) translate(-5px, -6px);
+        }
+
+        .mobile-menu {
+            transition: all 0.3s ease-in-out;
+            max-height: 0;
+            overflow: hidden;
+        }
+
+        .mobile-menu.active {
+            max-height: 500px;
+        }
+
         .listing-mockup {
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
             transform: perspective(1000px) rotateY(-10deg) rotateX(5deg);
+            transition: transform 0.3s ease;
         }
+
+        .listing-mockup:hover {
+            transform: perspective(1000px) rotateY(-5deg) rotateX(2deg) scale(1.02);
+        }
+
         .pulse-animation {
             animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
+
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: .8; }
+            0%, 100% { 
+                opacity: 1; 
+            }
+            50% { 
+                opacity: .8; 
+            }
         }
+
         .hover-lift {
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
+
         .hover-lift:hover {
             transform: translateY(-5px);
             box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.2);
         }
+
+        .feature-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 2px solid transparent;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .feature-card:hover {
+            border: 2px solid #3b82f6;
+            background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+            transform: translateY(-5px);
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -54,10 +169,12 @@
             opacity: 0;
             transition: opacity 0.3s ease;
         }
+
         .modal.show {
             display: flex;
             opacity: 1;
         }
+
         .modal-content {
             background: white;
             border-radius: 1rem;
@@ -68,22 +185,26 @@
             transform: scale(0.9);
             transition: transform 0.3s ease;
         }
+
         .modal.show .modal-content {
             transform: scale(1);
         }
+
         .input-field {
             width: 100%;
             padding: 0.75rem;
             border: 2px solid #e5e7eb;
             border-radius: 0.5rem;
-            font-size: 1rem;
+            font-size: 16px;
             transition: border-color 0.3s ease;
         }
+
         .input-field:focus {
             outline: none;
             border-color: #3b82f6;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
+
         .success-message {
             background: linear-gradient(135deg, #10b981, #059669);
             color: white;
@@ -92,6 +213,7 @@
             margin-bottom: 1rem;
             display: none;
         }
+
         .error-message {
             background: #fef2f2;
             border: 1px solid #fecaca;
@@ -101,6 +223,7 @@
             margin-bottom: 1rem;
             display: none;
         }
+
         .otp-input {
             width: 3rem;
             height: 3rem;
@@ -111,16 +234,19 @@
             border-radius: 0.5rem;
             transition: border-color 0.3s ease;
         }
+
         .otp-input:focus {
             outline: none;
             border-color: #3b82f6;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
+
         .timer {
             color: #6b7280;
             font-size: 0.875rem;
             margin-top: 0.5rem;
         }
+
         .resend-button {
             color: #3b82f6;
             background: none;
@@ -129,93 +255,193 @@
             cursor: pointer;
             font-size: 0.875rem;
         }
+
         .resend-button:disabled {
             color: #9ca3af;
             cursor: not-allowed;
+        }
+
+        .floating-elements {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .floating-element {
+            position: absolute;
+            opacity: 0.1;
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+            }
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+            }
+        }
+
+        .stats-counter {
+            animation: countUp 2s ease-out forwards;
+        }
+
+        @keyframes countUp {
+            from {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .modal-content {
+                width: 95%;
+                padding: 1.5rem;
+            }
+            
+            .listing-mockup {
+                transform: perspective(800px) rotateY(-5deg) rotateX(2deg);
+            }
+            
+            .otp-input {
+                width: 2.5rem;
+                height: 2.5rem;
+                font-size: 1rem;
+            }
+        }
+
+        @media (hover: none) and (pointer: coarse) {
+            .hover-lift:hover {
+                transform: none;
+            }
+            
+            .listing-mockup:hover {
+                transform: perspective(1000px) rotateY(-10deg) rotateX(5deg);
+            }
+            
+            button, .hover-lift {
+                min-height: 44px;
+            }
         }
     </style>
 </head>
 <body class="bg-white">
     <!-- Header -->
-    <header class="sticky top-0 z-40 backdrop-blur supports-[backdrop-filter]:bg-white/70 bg-white/90 border-b border-gray-100 px-6 py-4 md:px-12 lg:px-24">
-        <div class="flex justify-between items-center max-w-7xl mx-auto">
-            <a href="#" class="flex items-center gap-2">
-                <img src="https://i.ibb.co/JRYqzk8q/Whats-App-Image-2025-08-27-at-11-33-48-PM.jpg" alt="ListFast.ai" class="h-7 w-auto" />
-                <span class="text-2xl font-bold text-gray-900">ListFast.ai</span>
-            </a>
-            <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-700">
-                <a href="#features" class="hover:text-gray-900">Features</a>
-                <a href="#how" class="hover:text-gray-900">How it works</a>
-                <a href="#demo" class="hover:text-gray-900">Demo</a>
-                <a href="#pricing" class="hover:text-gray-900">Pricing</a>
-                <a href="#faq" class="hover:text-gray-900">FAQ</a>
-            </nav>
-            <div class="flex space-x-4">
-                <button onclick="showLoginModal()" class="text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors">
-                    Sign in
-                </button>
-                <button onclick="showSignupModal()" class="bg-gray-900 text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors hover-lift">
-                    Start free
-                </button>
-            </div>
-            <button id="menuBtn" class="md:hidden inline-flex items-center justify-center rounded-md p-2 text-gray-600 hover:bg-gray-100" aria-label="Open menu">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
-            </button>
-        </div>
-        <div id="mobileMenu" class="md:hidden hidden border-t border-gray-100 bg-white">
-            <nav class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 grid gap-3 text-sm font-medium">
-                <a href="#features" class="hover:text-gray-900">Features</a>
-                <a href="#how" class="hover:text-gray-900">How it works</a>
-                <a href="#demo" class="hover:text-gray-900">Demo</a>
-                <a href="#pricing" class="hover:text-gray-900">Pricing</a>
-                <a href="#faq" class="hover:text-gray-900">FAQ</a>
-                <div class="pt-2 flex gap-2">
-                    <button onclick="showLoginModal()" class="flex-1 text-center rounded-xl border border-gray-300 px-4 py-2">Sign in</button>
-                    <button onclick="showSignupModal()" class="flex-1 text-center rounded-xl bg-gray-900 px-4 py-2 text-white">Start free</button>
+    <nav class="navbar-backdrop fixed w-full top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="#" class="logo-link flex items-center space-x-3">
+                        <img src="https://i.ibb.co/Nd8Qrwmr/Untitled-design.png" alt="ListFast.ai Logo" class="h-10 sm:h-12 w-auto">
+                        <span class="text-lg sm:text-xl font-bold text-gray-900">ListFast.ai</span>
+                    </a>
                 </div>
-            </nav>
-        </div>
-    </header>
-    <!-- Hero -->
-    <section class="relative overflow-hidden px-6 py-12 md:px-12 lg:px-24">
-        <div class="max-w-7xl mx-auto">
-            <div class="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-                <div class="space-y-8">
-                    <div class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700">
-                        <span>⚡ New</span> <span>Multipack & Bundle flows</span>
+
+                <div class="hidden lg:flex items-center space-x-1">
+                    <a href="#features" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Features</a>
+                    <a href="#how" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">How it works</a>
+                    <a href="#demo" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Demo</a>
+                    <a href="#pricing" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Pricing</a>
+                    <a href="#faq" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">FAQ</a>
+                </div>
+
+                <div class="hidden lg:flex items-center space-x-4">
+                    <button onclick="showLoginModal()" class="text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors">
+                        Sign in
+                    </button>
+                    <button onclick="showSignupModal()" class="hero-gradient text-white px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity hover-lift">
+                        Start free
+                    </button>
+                </div>
+
+                <div class="lg:hidden">
+                    <button id="hamburger-btn" class="hamburger p-2 focus:outline-none">
+                        <div class="hamburger-line"></div>
+                        <div class="hamburger-line"></div>
+                        <div class="hamburger-line"></div>
+                    </button>
+                </div>
+            </div>
+
+            <div id="mobile-menu" class="mobile-menu lg:hidden bg-white border-t border-gray-100">
+                <div class="px-4 py-4 space-y-4">
+                    <a href="#features" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Features</a>
+                    <a href="#how" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">How it works</a>
+                    <a href="#demo" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Demo</a>
+                    <a href="#pricing" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Pricing</a>
+                    <a href="#faq" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">FAQ</a>
+                    <hr class="my-2">
+                    <div class="flex flex-col space-y-2">
+                        <button onclick="showLoginModal()" class="text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors text-left">Sign in</button>
+                        <button onclick="showSignupModal()" class="hero-gradient text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity text-left">Start free</button>
                     </div>
-                    <h1 class="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 leading-tight">
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="relative overflow-hidden pt-20 sm:pt-24 pb-12 sm:pb-16">
+        <div class="floating-elements">
+            <div class="floating-element" style="left: 10%; animation-delay: 0s;">⚡</div>
+            <div class="floating-element" style="left: 20%; animation-delay: 2s;">🚀</div>
+            <div class="floating-element" style="left: 80%; animation-delay: 4s;">💎</div>
+            <div class="floating-element" style="left: 90%; animation-delay: 6s;">✨</div>
+        </div>
+        
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid lg:grid-cols-2 gap-8 lg:gap-20 items-center">
+                <div class="space-y-6 sm:space-y-8">
+                    <div class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700">
+                        <span>⚡ New</span> 
+                        <span>Multipack & Bundle flows</span>
+                    </div>
+                    
+                    <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 leading-tight">
                         Create eBay Listings
                         <span class="hero-gradient bg-clip-text text-transparent">
                             10× Faster
                         </span>
                     </h1>
-                    <p class="text-xl md:text-2xl text-gray-600 leading-relaxed">
+                    
+                    <p class="text-lg sm:text-xl md:text-2xl text-gray-600 leading-relaxed">
                         Paste a product URL or notes — ListFast.ai writes the title, fills required item specifics, polishes images, and posts your listing in minutes.
                     </p>
-                    <div class="flex flex-col sm:flex-row gap-3">
-                        <button onclick="showSignupModal()" class="bg-blue-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-blue-700 transition-all hover-lift pulse-animation">
+                    
+                    <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                        <button onclick="showSignupModal()" class="w-full sm:w-auto bg-blue-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-base sm:text-lg font-semibold hover:bg-blue-700 transition-all hover-lift pulse-animation">
                             Start free trial
                         </button>
-                        <button onclick="openDemoModal()" class="inline-flex items-center justify-center rounded-xl border border-gray-300 px-8 py-4 text-lg font-semibold text-gray-800 hover:bg-gray-50 hover-lift">
+                        <button onclick="openDemoModal()" class="w-full sm:w-auto inline-flex items-center justify-center rounded-xl border border-gray-300 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold text-gray-800 hover:bg-gray-50 hover-lift">
                             <svg xmlns="http://www.w3.org/2000/svg" class="mr-2 h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
                             Watch 60-sec demo
                         </button>
                     </div>
-                    <div class="flex items-center gap-6 text-sm text-gray-600">
-                        <div class="flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>OAuth secure</div>
+                    
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 text-sm text-gray-600">
+                        <div class="flex items-center gap-2">
+                            <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                            OAuth secure
+                        </div>
                         <div>Cancel anytime</div>
                         <div>No credit card needed</div>
                     </div>
                 </div>
-                <div class="flex justify-center lg:justify-end">
-                    <div class="listing-mockup bg-white rounded-2xl p-8 border border-gray-200 max-w-md w-full">
-                        <div class="bg-gray-100 rounded-lg p-6">
+                
+                <div class="flex justify-center lg:justify-end mt-8 lg:mt-0">
+                    <div class="listing-mockup bg-white rounded-2xl p-6 sm:p-8 border border-gray-200 max-w-md w-full">
+                        <div class="bg-gray-100 rounded-lg p-4 sm:p-6">
                             <div class="space-y-4">
-                                <div class="bg-gray-200 rounded-lg h-32 flex items-center justify-center">
-                                    <div class="w-16 h-12 border-2 border-gray-400 rounded flex items-center justify-center">
-                                        <div class="w-8 h-6 bg-gray-400 rounded-full relative">
-                                            <div class="absolute top-1 left-2 w-2 h-2 bg-white rounded-full"></div>
+                                <div class="bg-gray-200 rounded-lg h-24 sm:h-32 flex items-center justify-center">
+                                    <div class="w-12 sm:w-16 h-8 sm:h-12 border-2 border-gray-400 rounded flex items-center justify-center">
+                                        <div class="w-6 sm:w-8 h-4 sm:h-6 bg-gray-400 rounded-full relative">
+                                            <div class="absolute top-1 left-1 sm:left-2 w-1.5 sm:w-2 h-1.5 sm:h-2 bg-white rounded-full"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -249,116 +475,151 @@
             </div>
         </div>
     </section>
+
     <!-- Metrics Strip -->
     <section class="bg-gray-50 border-y border-gray-100">
-        <div class="max-w-7xl mx-auto px-6 py-4 grid grid-cols-2 md:grid-cols-4 gap-6 text-center text-sm">
-            <div><div class="text-xl font-bold">10×</div><div class="text-gray-600">faster time-to-list*</div></div>
-            <div><div class="text-xl font-bold">&lt; 60s</div><div class="text-gray-600">avg. listing time*</div></div>
-            <div><div class="text-xl font-bold">99%</div><div class="text-gray-600">mandatory specifics coverage*</div></div>
-            <div><div class="text-xl font-bold">0</div><div class="text-gray-600">spreadsheets required</div></div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 text-center text-sm">
+                <div class="stats-counter">
+                    <div class="text-xl sm:text-2xl font-bold">10×</div>
+                    <div class="text-gray-600 text-xs sm:text-sm">faster time-to-list*</div>
+                </div>
+                <div class="stats-counter">
+                    <div class="text-xl sm:text-2xl font-bold">&lt; 60s</div>
+                    <div class="text-gray-600 text-xs sm:text-sm">avg. listing time*</div>
+                </div>
+                <div class="stats-counter">
+                    <div class="text-xl sm:text-2xl font-bold">99%</div>
+                    <div class="text-gray-600 text-xs sm:text-sm">mandatory specifics coverage*</div>
+                </div>
+                <div class="stats-counter">
+                    <div class="text-xl sm:text-2xl font-bold">0</div>
+                    <div class="text-gray-600 text-xs sm:text-sm">spreadsheets required</div>
+                </div>
+            </div>
         </div>
     </section>
+
     <!-- USP Grid -->
-    <section id="features" class="max-w-7xl mx-auto px-6 py-16">
-        <div class="max-w-3xl mx-auto text-center">
-            <h2 class="text-4xl md:text-5xl font-bold text-gray-900">Why Sellers Choose ListFast.ai</h2>
-            <p class="mt-4 text-xl text-gray-600">USPs that remove friction and boost output.</p>
+    <section id="features" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        <div class="max-w-3xl mx-auto text-center mb-10 sm:mb-12">
+            <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900">Why Sellers Choose ListFast.ai</h2>
+            <p class="mt-4 text-lg sm:text-xl text-gray-600">USPs that remove friction and boost output.</p>
         </div>
-        <div class="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div class="rounded-2xl border border-gray-200 p-6 hover-lift">
-                <div class="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gray-900 text-white">⚡</div>
-                <h3 class="font-semibold text-gray-900">List 10× faster</h3>
-                <p class="mt-1 text-sm text-gray-600">Paste URL or text — we auto-write the title, fill required specifics, and produce a sales-ready description.</p>
+        
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div class="feature-card rounded-2xl border border-gray-200 p-4 sm:p-6">
+                <div class="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gray-900 text-white text-lg">⚡</div>
+                <h3 class="font-semibold text-gray-900 text-base sm:text-lg">List 10× faster</h3>
+                <p class="mt-2 text-sm text-gray-600">Paste URL or text — we auto-write the title, fill required specifics, and produce a sales-ready description.</p>
             </div>
-            <div class="rounded-2xl border border-gray-200 p-6 hover-lift">
-                <div class="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gray-900 text-white">🧭</div>
-                <h3 class="font-semibold text-gray-900">Smart category & specifics</h3>
-                <p class="mt-1 text-sm text-gray-600">AI + eBay API suggest the right leaf category and complete mandatory specifics to avoid listing errors.</p>
+            
+            <div class="feature-card rounded-2xl border border-gray-200 p-4 sm:p-6">
+                <div class="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gray-900 text-white text-lg">🧭</div>
+                <h3 class="font-semibold text-gray-900 text-base sm:text-lg">Smart category & specifics</h3>
+                <p class="mt-2 text-sm text-gray-600">AI + eBay API suggest the right leaf category and complete mandatory specifics to avoid listing errors.</p>
             </div>
-            <div class="rounded-2xl border border-gray-200 p-6 hover-lift">
-                <div class="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gray-900 text-white">🖼️</div>
-                <h3 class="font-semibold text-gray-900">Built-in image enhancer</h3>
-                <p class="mt-1 text-sm text-gray-600">White background, logo/banner overlay, and automatic multi-pack/bundle composites (no Photoshop).</p>
+            
+            <div class="feature-card rounded-2xl border border-gray-200 p-4 sm:p-6">
+                <div class="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gray-900 text-white text-lg">🖼️</div>
+                <h3 class="font-semibold text-gray-900 text-base sm:text-lg">Built-in image enhancer</h3>
+                <p class="mt-2 text-sm text-gray-600">White background, logo/banner overlay, and automatic multi-pack/bundle composites (no Photoshop).</p>
             </div>
-            <div class="rounded-2xl border border-gray-200 p-6 hover-lift">
-                <div class="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gray-900 text-white">📦</div>
-                <h3 class="font-semibold text-gray-900">Single, multipack & bundle</h3>
-                <p class="mt-1 text-sm text-gray-600">List one item, a 6-pack, or a grouped bundle in one flow — no separate templates.</p>
+            
+            <div class="feature-card rounded-2xl border border-gray-200 p-4 sm:p-6">
+                <div class="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gray-900 text-white text-lg">📦</div>
+                <h3 class="font-semibold text-gray-900 text-base sm:text-lg">Single, multipack & bundle</h3>
+                <p class="mt-2 text-sm text-gray-600">List one item, a 6-pack, or a grouped bundle in one flow — no separate templates.</p>
             </div>
-            <div class="rounded-2xl border border-gray-200 p-6 hover-lift">
-                <div class="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gray-900 text-white">🛡️</div>
-                <h3 class="font-semibold text-gray-900">Policy-safe by design</h3>
-                <p class="mt-1 text-sm text-gray-600">Live checks for missing required fields, handling time, returns, and other business policies before you post.</p>
+            
+            <div class="feature-card rounded-2xl border border-gray-200 p-4 sm:p-6">
+                <div class="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gray-900 text-white text-lg">🛡️</div>
+                <h3 class="font-semibold text-gray-900 text-base sm:text-lg">Policy-safe by design</h3>
+                <p class="mt-2 text-sm text-gray-600">Live checks for missing required fields, handling time, returns, and other business policies before you post.</p>
             </div>
-            <div class="rounded-2xl border border-gray-200 p-6 hover-lift">
-                <div class="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gray-900 text-white">🚫</div>
-                <h3 class="font-semibold text-gray-900">No spreadsheets</h3>
-                <p class="mt-1 text-sm text-gray-600">One clean form. Multiple images. Done.</p>
+            
+            <div class="feature-card rounded-2xl border border-gray-200 p-4 sm:p-6">
+                <div class="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gray-900 text-white text-lg">🚫</div>
+                <h3 class="font-semibold text-gray-900 text-base sm:text-lg">No spreadsheets</h3>
+                <p class="mt-2 text-sm text-gray-600">One clean form. Multiple images. Done.</p>
             </div>
         </div>
     </section>
+
     <!-- How it works -->
     <section id="how" class="bg-gray-50 border-y border-gray-100">
-        <div class="max-w-7xl mx-auto px-6 py-16">
-            <div class="max-w-3xl mx-auto text-center">
-                <h2 class="text-4xl md:text-5xl font-bold text-gray-900">Three Steps — From Link to Live</h2>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+            <div class="max-w-3xl mx-auto text-center mb-10 sm:mb-12">
+                <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900">Three Steps — From Link to Live</h2>
             </div>
-            <div class="mt-10 grid lg:grid-cols-3 gap-8">
-                <div class="rounded-2xl border border-gray-200 bg-white p-6 hover-lift">
+            
+            <div class="grid md:grid-cols-3 gap-6 sm:gap-8">
+                <div class="feature-card rounded-2xl border border-gray-200 bg-white p-4 sm:p-6">
                     <div class="text-sm font-semibold text-gray-500">Step 1</div>
-                    <h3 class="mt-1 font-semibold text-gray-900">Paste</h3>
-                    <p class="mt-1 text-sm text-gray-600">Drop in a product URL or raw text; optionally upload images.</p>
+                    <h3 class="mt-2 font-semibold text-gray-900 text-lg">Paste</h3>
+                    <p class="mt-2 text-sm text-gray-600">Drop in a product URL or raw text; optionally upload images.</p>
                 </div>
-                <div class="rounded-2xl border border-gray-200 bg-white p-6 hover-lift">
+                
+                <div class="feature-card rounded-2xl border border-gray-200 bg-white p-4 sm:p-6">
                     <div class="text-sm font-semibold text-gray-500">Step 2</div>
-                    <h3 class="mt-1 font-semibold text-gray-900">Auto-complete</h3>
-                    <p class="mt-1 text-sm text-gray-600">We generate the title, category & item specifics; the enhancer cleans your hero image.</p>
+                    <h3 class="mt-2 font-semibold text-gray-900 text-lg">Auto-complete</h3>
+                    <p class="mt-2 text-sm text-gray-600">We generate the title, category & item specifics; the enhancer cleans your hero image.</p>
                 </div>
-                <div class="rounded-2xl border border-gray-200 bg-white p-6 hover-lift">
+                
+                <div class="feature-card rounded-2xl border border-gray-200 bg-white p-4 sm:p-6">
                     <div class="text-sm font-semibold text-gray-500">Step 3</div>
-                    <h3 class="mt-1 font-semibold text-gray-900">List</h3>
-                    <p class="mt-1 text-sm text-gray-600">Post to eBay with policy checks and an SEO-ready description.</p>
+                    <h3 class="mt-2 font-semibold text-gray-900 text-lg">List</h3>
+                    <p class="mt-2 text-sm text-gray-600">Post to eBay with policy checks and an SEO-ready description.</p>
                 </div>
             </div>
         </div>
     </section>
+
     <!-- Demo Video Section -->
-    <section id="demo" class="max-w-7xl mx-auto px-6 py-16">
-        <div class="max-w-3xl mx-auto text-center">
-            <h2 class="text-4xl md:text-5xl font-bold text-gray-900">See ListFast.ai in Action</h2>
-            <p class="mt-4 text-xl text-gray-600">60-second tour: paste → auto-complete → post. Includes multipack & bundle demo.</p>
+    <section id="demo" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        <div class="max-w-3xl mx-auto text-center mb-8 sm:mb-10">
+            <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900">See ListFast.ai in Action</h2>
+            <p class="mt-4 text-lg sm:text-xl text-gray-600">60-second tour: paste → auto-complete → post. Includes multipack & bundle demo.</p>
         </div>
-        <div class="mt-8 grid lg:grid-cols-3 gap-8 items-start">
+        
+        <div class="grid lg:grid-cols-3 gap-6 sm:gap-8 items-start">
             <div class="lg:col-span-2">
-                <div class="aspect-video w-full overflow-hidden rounded-2xl border border-gray-200 bg-black shadow-sm">
-                    <div class="h-full w-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                        <button onclick="openDemoModal()" class="group inline-flex items-center gap-3 rounded-full bg-white/90 px-5 py-3 ring-1 ring-gray-200 shadow hover:bg-white hover-lift">
-                            <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-900 text-white group-hover:scale-105 transition">
+                <div class="aspect-video w-full overflow-hidden rounded-2xl border border-gray-200 bg-black shadow-lg relative cursor-pointer hover-lift" onclick="openDemoModal()">
+                    <img src="https://img.youtube.com/vi/QIurJqj5ddc/sddefault.jpg" 
+                         alt="ListFast.ai Demo Thumbnail" 
+                         class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-black/20 hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <button class="group inline-flex items-center gap-3 rounded-full bg-white/90 px-4 sm:px-5 py-3 ring-1 ring-gray-200 shadow hover:bg-white hover-lift">
+                            <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white group-hover:scale-105 transition">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
                             </span>
                             <span class="font-semibold text-gray-900">Play demo</span>
                         </button>
                     </div>
                 </div>
-                <p class="mt-2 text-xs text-gray-500">Tip: export a crisp 1280×720 MP4/WebM. Keep captions on for silent autoplay in social reposts.</p>
+                <!-- <p class="mt-3 text-xs text-gray-500">Tip: export a crisp 1280×720 MP4/WebM. Keep captions on for silent autoplay in social reposts.</p> -->
             </div>
+            
             <div class="space-y-4">
-                <div class="rounded-xl border border-gray-200 p-4 hover-lift">
+                <div class="feature-card rounded-xl border border-gray-200 p-4">
                     <div class="text-xs font-semibold text-gray-500">USP</div>
                     <h3 class="font-semibold text-gray-900">AI titles that sell</h3>
                     <p class="mt-1 text-sm text-gray-600">Keyword-aware, compliant titles — editable before posting.</p>
                 </div>
-                <div class="rounded-xl border border-gray-200 p-4 hover-lift">
+                
+                <div class="feature-card rounded-xl border border-gray-200 p-4">
                     <div class="text-xs font-semibold text-gray-500">USP</div>
                     <h3 class="font-semibold text-gray-900">Category & specifics autopilot</h3>
                     <p class="mt-1 text-sm text-gray-600">Fewer rejections with smart leaf selection and required fields auto-filled.</p>
                 </div>
-                <div class="rounded-xl border border-gray-200 p-4 hover-lift">
+                
+                <div class="feature-card rounded-xl border border-gray-200 p-4">
                     <div class="text-xs font-semibold text-gray-500">USP</div>
                     <h3 class="font-semibold text-gray-900">Image enhancer</h3>
                     <p class="mt-1 text-sm text-gray-600">White background, logo/banner overlay, and multi-pack badges for clean, clickable images.</p>
                 </div>
-                <div class="rounded-xl border border-gray-200 p-4 hover-lift">
+                
+                <div class="feature-card rounded-xl border border-gray-200 p-4">
                     <div class="text-xs font-semibold text-gray-500">USP</div>
                     <h3 class="font-semibold text-gray-900">Multipack & bundles</h3>
                     <p class="mt-1 text-sm text-gray-600">List single items, 6-packs, or grouped sets in the same flow.</p>
@@ -366,37 +627,57 @@
             </div>
         </div>
     </section>
+
     <!-- Feature Highlights -->
-    <section class="max-w-7xl mx-auto px-6 py-16">
-        <div class="grid lg:grid-cols-2 gap-12 items-center">
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        <div class="grid lg:grid-cols-2 gap-8 sm:gap-12 items-center">
             <div>
-                <h2 class="text-4xl md:text-5xl font-bold text-gray-900">Built for Speed, Safety, and Scale</h2>
+                <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900">Built for Speed, Safety, and Scale</h2>
                 <ul class="mt-6 space-y-3 text-gray-700">
-                    <li class="flex gap-3"><span>✅</span><span><strong>AI titles & SEO descriptions</strong> tuned for eBay search.</span></li>
-                    <li class="flex gap-3"><span>✅</span><span><strong>Business policy helpers</strong> for payment, shipping & returns.</span></li>
-                    <li class="flex gap-3"><span>✅</span><span><strong>Bulk queueing</strong> that respects eBay rate limits (safe retries).</span></li>
-                    <li class="flex gap-3"><span>✅</span><span><strong>HTML or plain-text output</strong> with easy editing before posting.</span></li>
-                    <li class="flex gap-3"><span>✅</span><span><strong>Secure OAuth login</strong> — we never store your eBay password.</span></li>
+                    <li class="flex gap-3">
+                        <span>✅</span>
+                        <span><strong>AI titles & SEO descriptions</strong> tuned for eBay search.</span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span>✅</span>
+                        <span><strong>Business policy helpers</strong> for payment, shipping & returns.</span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span>✅</span>
+                        <span><strong>Bulk queueing</strong> that respects eBay rate limits (safe retries).</span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span>✅</span>
+                        <span><strong>HTML or plain-text output</strong> with easy editing before posting.</span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span>✅</span>
+                        <span><strong>Secure OAuth login</strong> — we never store your eBay password.</span>
+                    </li>
                 </ul>
             </div>
-            <div class="rounded-2xl border border-gray-200 bg-gray-50 p-6">
+            
+            <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-6">
                 <div class="grid sm:grid-cols-2 gap-4">
-                    <div class="rounded-xl bg-white p-4 border border-gray-200">
+                    <div class="feature-card rounded-xl bg-white p-4 border border-gray-200">
                         <div class="text-xs font-semibold text-gray-500">Guardrails</div>
                         <div class="mt-1 font-semibold text-gray-900">Error & policy checks</div>
                         <p class="mt-1 text-sm text-gray-600">Warnings for missing specifics, images, policies — before you post.</p>
                     </div>
-                    <div class="rounded-xl bg-white p-4 border border-gray-200">
+                    
+                    <div class="feature-card rounded-xl bg-white p-4 border border-gray-200">
                         <div class="text-xs font-semibold text-gray-500">Images</div>
                         <div class="mt-1 font-semibold text-gray-900">Auto cleanups</div>
                         <p class="mt-1 text-sm text-gray-600">White background & bundle badges baked in.</p>
                     </div>
-                    <div class="rounded-xl bg-white p-4 border border-gray-200">
+                    
+                    <div class="feature-card rounded-xl bg-white p-4 border border-gray-200">
                         <div class="text-xs font-semibold text-gray-500">Flex</div>
                         <div class="mt-1 font-semibold text-gray-900">No template lock-in</div>
                         <p class="mt-1 text-sm text-gray-600">Edit everything freely pre-publish.</p>
                     </div>
-                    <div class="rounded-xl bg-white p-4 border border-gray-200">
+                    
+                    <div class="feature-card rounded-xl bg-white p-4 border border-gray-200">
                         <div class="text-xs font-semibold text-gray-500">Teams</div>
                         <div class="mt-1 font-semibold text-gray-900">Seats & roles</div>
                         <p class="mt-1 text-sm text-gray-600">Optional — for growing stores.</p>
@@ -405,159 +686,203 @@
             </div>
         </div>
     </section>
+
     <!-- Social Proof -->
     <section class="bg-gray-50 border-y border-gray-100">
-        <div class="max-w-7xl mx-auto px-6 py-16">
-            <div class="max-w-3xl mx-auto text-center">
-                <h2 class="text-4xl md:text-5xl font-bold text-gray-900">What Early Sellers Say</h2>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+            <div class="max-w-3xl mx-auto text-center mb-10 sm:mb-12">
+                <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900">What Early Sellers Say</h2>
             </div>
-            <div class="mt-10 grid md:grid-cols-3 gap-6">
-                <div class="rounded-2xl border border-gray-200 bg-white p-6 hover-lift">
-                    <p class="text-gray-700">“I went from 12 to 120 listings a day. The image enhancer alone is worth it.”</p>
+            
+            <div class="grid md:grid-cols-3 gap-4 sm:gap-6">
+                <div class="feature-card rounded-2xl border border-gray-200 bg-white p-4 sm:p-6">
+                    <p class="text-gray-700">"I went from 12 to 120 listings a day. The image enhancer alone is worth it."</p>
                     <div class="mt-4 text-sm font-semibold text-gray-900">Alex M.</div>
                     <div class="text-xs text-gray-500">Top Rated Seller</div>
                 </div>
-                <div class="rounded-2xl border border-gray-200 bg-white p-6 hover-lift">
-                    <p class="text-gray-700">“No more copy-paste chaos. Category & specifics are just… done.”</p>
+                
+                <div class="feature-card rounded-2xl border border-gray-200 bg-white p-4 sm:p-6">
+                    <p class="text-gray-700">"No more copy-paste chaos. Category & specifics are just… done."</p>
                     <div class="mt-4 text-sm font-semibold text-gray-900">Priya S.</div>
                     <div class="text-xs text-gray-500">Books & Goods</div>
                 </div>
-                <div class="rounded-2xl border border-gray-200 bg-white p-6 hover-lift">
-                    <p class="text-gray-700">“Multipacks and bundles in one flow changed our process.”</p>
+                
+                <div class="feature-card rounded-2xl border border-gray-200 bg-white p-4 sm:p-6">
+                    <p class="text-gray-700">"Multipacks and bundles in one flow changed our process."</p>
                     <div class="mt-4 text-sm font-semibold text-gray-900">Jamie K.</div>
                     <div class="text-xs text-gray-500">Electronics Reseller</div>
                 </div>
             </div>
         </div>
     </section>
+
     <!-- Pricing -->
-    <section id="pricing" class="max-w-7xl mx-auto px-6 py-16">
-        <div class="max-w-3xl mx-auto text-center">
-            <h2 class="text-4xl md:text-5xl font-bold text-gray-900">Simple Pricing</h2>
-            <p class="mt-4 text-xl text-gray-600">Pick the plan that matches your listing volume.</p>
+    <section id="pricing" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        <div class="max-w-3xl mx-auto text-center mb-10 sm:mb-12">
+            <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900">Simple Pricing</h2>
+            <p class="mt-4 text-lg sm:text-xl text-gray-600">Pick the plan that matches your listing volume.</p>
         </div>
-        <div class="mt-10 grid md:grid-cols-3 gap-6">
-            <div class="rounded-2xl border border-gray-200 p-6 hover-lift">
+        
+        <div class="grid md:grid-cols-3 gap-4 sm:gap-6">
+            <div class="feature-card rounded-2xl border border-gray-200 p-4 sm:p-6">
                 <div class="text-sm font-semibold text-gray-500">Starter</div>
-                <div class="mt-2 text-3xl font-bold text-gray-900">£0<span class="text-base font-semibold text-gray-500">/mo</span></div>
+                <div class="mt-2 text-2xl sm:text-3xl font-bold text-gray-900">£0<span class="text-base font-semibold text-gray-500">/mo</span></div>
                 <ul class="mt-4 space-y-2 text-sm text-gray-700">
                     <li>Up to 5 listings/mo</li>
                     <li>AI titles & descriptions</li>
                     <li>Image enhancer</li>
                 </ul>
-                <button onclick="showSignupModal()" class="mt-6 w-full bg-gray-900 text-white px-4 py-2 rounded-xl font-semibold hover:bg-gray-800 hover-lift">
+                <button onclick="showSignupModal()" class="mt-6 w-full bg-gray-900 text-white px-4 py-3 rounded-xl font-semibold hover:bg-gray-800 hover-lift transition-colors">
                     Start Starter
                 </button>
             </div>
-            <div class="rounded-2xl border-2 border-gray-900 p-6 hover-lift">
+            
+            <div class="feature-card rounded-2xl border-2 border-gray-900 p-4 sm:p-6 transform scale-105">
                 <div class="text-sm font-semibold text-gray-500">Pro</div>
-                <div class="mt-2 text-3xl font-bold text-gray-900">£4.99<span class="text-base font-semibold text-gray-500">/mo</span></div>
+                <div class="mt-2 text-2xl sm:text-3xl font-bold text-gray-900">£4.99<span class="text-base font-semibold text-gray-500">/mo</span></div>
                 <ul class="mt-4 space-y-2 text-sm text-gray-700">
                     <li>Up to 30 listings/mo</li>
                     <li>Multipack & bundles</li>
                     <li>Bulk queueing (rate-limit smart)</li>
                 </ul>
-                <button onclick="showSignupModal()" class="mt-6 w-full bg-gray-900 text-white px-4 py-2 rounded-xl font-semibold hover:bg-gray-800 hover-lift">
+                <button onclick="showSignupModal()" class="mt-6 w-full bg-gray-900 text-white px-4 py-3 rounded-xl font-semibold hover:bg-gray-800 hover-lift transition-colors">
                     Start Pro
                 </button>
             </div>
-            <div class="rounded-2xl border border-gray-200 p-6 hover-lift">
+            
+            <div class="feature-card rounded-2xl border border-gray-200 p-4 sm:p-6">
                 <div class="text-sm font-semibold text-gray-500">Business</div>
-                <div class="mt-2 text-3xl font-bold text-gray-900">£9.99<span class="text-base font-semibold text-gray-500">/mo</span></div>
+                <div class="mt-2 text-2xl sm:text-3xl font-bold text-gray-900">£9.99<span class="text-base font-semibold text-gray-500">/mo</span></div>
                 <ul class="mt-4 space-y-2 text-sm text-gray-700">
                     <li>Up to 100 listings/mo</li>
                     <li>Multipack & bundles</li>
                     <li>Priority support & API</li>
                 </ul>
-                <button onclick="showSignupModal()" class="mt-6 w-full bg-gray-900 text-white px-4 py-2 rounded-xl font-semibold hover:bg-gray-800 hover-lift">
+                <button onclick="showSignupModal()" class="mt-6 w-full bg-gray-900 text-white px-4 py-3 rounded-xl font-semibold hover:bg-gray-800 hover-lift transition-colors">
                     Start Business
                 </button>
             </div>
         </div>
     </section>
+
     <!-- FAQ -->
     <section id="faq" class="bg-gray-50 border-y border-gray-100">
-        <div class="max-w-7xl mx-auto px-6 py-16">
-            <div class="max-w-3xl mx-auto text-center">
-                <h2 class="text-4xl md:text-5xl font-bold text-gray-900">Frequently Asked Questions</h2>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+            <div class="max-w-3xl mx-auto text-center mb-8 sm:mb-10">
+                <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900">Frequently Asked Questions</h2>
             </div>
-            <div class="mt-8 grid md:grid-cols-2 gap-6">
-                <details class="rounded-xl border border-gray-200 bg-white p-5">
+            
+            <div class="grid md:grid-cols-2 gap-4 sm:gap-6">
+                <details class="feature-card rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
                     <summary class="cursor-pointer font-semibold text-gray-900">Do I need spreadsheets?</summary>
-                    <p class="mt-2 text-sm text-gray-600">No. One clean form, optional image uploads, and you’re done.</p>
+                    <p class="mt-2 text-sm text-gray-600">No. One clean form, optional image uploads, and you're done.</p>
                 </details>
-                <details class="rounded-xl border border-gray-200 bg-white p-5">
+                
+                <details class="feature-card rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
                     <summary class="cursor-pointer font-semibold text-gray-900">Does it handle multipacks & bundles?</summary>
                     <p class="mt-2 text-sm text-gray-600">Yes. Create 6-packs or grouped sets in the same flow as single items.</p>
                 </details>
-                <details class="rounded-xl border border-gray-200 bg-white p-5">
+                
+                <details class="feature-card rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
                     <summary class="cursor-pointer font-semibold text-gray-900">How do you handle eBay rate limits?</summary>
-                    <p class="mt-2 text-sm text-gray-600">We queue and retry safely to respect eBay API limits, so bulk runs don’t fail mid-way.</p>
+                    <p class="mt-2 text-sm text-gray-600">We queue and retry safely to respect eBay API limits, so bulk runs don't fail mid-way.</p>
                 </details>
-                <details class="rounded-xl border border-gray-200 bg-white p-5">
+                
+                <details class="feature-card rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
                     <summary class="cursor-pointer font-semibold text-gray-900">Do you store my eBay password?</summary>
                     <p class="mt-2 text-sm text-gray-600">No. We use secure OAuth — passwords are never stored by ListFast.ai.</p>
                 </details>
             </div>
         </div>
     </section>
+
     <!-- Final CTA -->
-    <section id="cta" class="max-w-7xl mx-auto px-6 py-16">
-        <div class="rounded-3xl gradient-bg p-10 text-white">
-            <div class="grid md:grid-cols-2 gap-8 items-center">
+    <section id="cta" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        <div class="rounded-3xl gradient-bg p-8 sm:p-10 text-white">
+            <div class="grid md:grid-cols-2 gap-6 sm:gap-8 items-center">
                 <div>
-                    <h2 class="text-4xl md:text-5xl font-bold">Ready to List Faster Than Ever?</h2>
-                    <p class="mt-4 text-xl text-white/80">Try ListFast.ai free — no credit card required.</p>
+                    <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold">Ready to List Faster Than Ever?</h2>
+                    <p class="mt-4 text-lg sm:text-xl text-white/80">Try ListFast.ai free — no credit card required.</p>
                 </div>
-                <div class="flex md:justify-end items-center gap-3">
-                    <button onclick="showSignupModal()" class="bg-white text-gray-900 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-gray-100 transition-all hover-lift pulse-animation">
+                <div class="flex flex-col sm:flex-row md:justify-end items-center gap-3">
+                    <button onclick="showSignupModal()" class="w-full sm:w-auto bg-white text-gray-900 px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-base sm:text-lg font-semibold hover:bg-gray-100 transition-all hover-lift pulse-animation">
                         Start free
                     </button>
-                    <button onclick="openDemoModal()" class="inline-flex items-center justify-center rounded-xl bg-transparent ring-1 ring-white/30 px-8 py-4 text-lg font-semibold text-white hover:bg-white/10 hover-lift">
+                    <button onclick="openDemoModal()" class="w-full sm:w-auto inline-flex items-center justify-center rounded-xl bg-transparent ring-1 ring-white/30 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold text-white hover:bg-white/10 hover-lift">
                         Watch demo
                     </button>
                 </div>
             </div>
         </div>
     </section>
+
     <!-- Footer -->
-    <footer class="border-t border-gray-100">
-        <div class="max-w-7xl mx-auto px-6 py-10 grid md:grid-cols-3 gap-8 text-sm text-gray-600">
-            <div>
-                <div class="flex items-center gap-2">
-                    <img src="https://i.ibb.co/JRYqzk8q/Whats-App-Image-2025-08-27-at-11-33-48-PM.jpg"
-                     class="w-8 h-8 object-contain"
-                     alt="ListFast.ai logo" />
-                    <span class="font-bold text-gray-900">ListFast.ai</span>
+    <footer class="bg-gray-900 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+                <div class="space-y-4 sm:col-span-2 lg:col-span-1">
+                    <h3 class="text-xl sm:text-2xl font-bold">ListFast.ai</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        Streamline your eBay listings with AI-powered tools for image enhancement, single items, multipacks, and bundles.
+                    </p>
                 </div>
-                <p class="mt-3">Create eBay listings 10× faster with AI titles, category & specifics auto-fill, and a built-in image enhancer.</p>
+                <div>
+                    <h4 class="text-base sm:text-lg font-semibold mb-4">Quick Links</h4>
+                    <ul class="space-y-2 text-gray-400 text-sm">
+                        <li><a href="/" class="hover:text-white transition-colors">Home</a></li>
+                        <li><a href="#features" class="hover:text-white transition-colors">Features</a></li>
+                        <li><a href="#how" class="hover:text-white transition-colors">How it works</a></li>
+                        <li><a href="#pricing" class="hover:text-white transition-colors">Pricing</a></li>
+                        <li><a href="#faq" class="hover:text-white transition-colors">FAQ</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-base sm:text-lg font-semibold mb-4">Support</h4>
+                    <ul class="space-y-2 text-gray-400 text-sm">
+                        <li><a href="#" class="hover:text-white transition-colors">Help Center</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Contact Us</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Terms & Conditions</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-base sm:text-lg font-semibold mb-4">Stay Updated</h4>
+                    <p class="text-gray-400 text-sm mb-4">Subscribe to our newsletter for the latest updates and offers.</p>
+                    <form class="flex flex-col sm:flex-row gap-2">
+                        <input type="email" placeholder="Enter your email" class="flex-1 px-4 py-2 rounded-lg bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                        <button type="submit" class="hero-gradient px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity text-sm">Subscribe</button>
+                    </form>
+                </div>
             </div>
-            <div>
-                <div class="font-semibold text-gray-900">Product</div>
-                <ul class="mt-3 space-y-2">
-                    <li><a href="#features" class="hover:text-gray-900">Features</a></li>
-                    <li><a href="#how" class="hover:text-gray-900">How it works</a></li>
-                    <li><a href="#pricing" class="hover:text-gray-900">Pricing</a></li>
-                    <li><a href="#faq" class="hover:text-gray-900">FAQ</a></li>
-                </ul>
-            </div>
-            <div>
-                <div class="font-semibold text-gray-900">Legal</div>
-                <ul class="mt-3 space-y-2">
-                    <li><a href="/terms" class="hover:text-gray-900">Terms</a></li>
-                    <li><a href="/privacy" class="hover:text-gray-900">Privacy</a></li>
-                    <li><a href="/security" class="hover:text-gray-900">Security</a></li>
-                </ul>
+            <div class="mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                <div class="flex space-x-4">
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.15z"></path>
+                        </svg>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-2.596 0-4.194 1.722-4.194 4.6v3.4z"></path>
+                        </svg>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.9 3.9 0 0 0-1.417.923A3.9 3.9 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444.048 3.297.04.852.174 1.433.372 1.942.205.526.478.972.923 1.417.444.445.89.719 1.416.923.51.198 1.09.333 1.942.372C5.555 15.99 5.827 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.9 3.9 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.197-.509.332-1.09.372-1.942C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.851-.175-1.433-.372-1.941a3.9 3.9 0 0 0-.923-1.417A3.9 3.9 0 0 0 13.24.42c-.51-.198-1.092-.333-1.943-.372C10.443.01 10.172 0 7.998 0zm-.717 1.442h.718c2.136 0 2.389.007 3.232.046.78.035 1.204.166 1.486.275.373.145.64.319.92.599s.453.546.598.92c.11.281.24.705.275 1.485.039.843.047 1.096.047 3.231s-.008 2.389-.047 3.232c-.035.78-.166 1.203-.275 1.485a2.5 2.5 0 0 1-.599.919c-.28.28-.546.453-.92.598-.28.11-.704.24-1.485.276-.843.038-1.096.047-3.232.047s-2.39-.009-3.233-.047c-.78-.036-1.203-.166-1.485-.276a2.5 2.5 0 0 1-.92-.598 2.5 2.5 0 0 1-.6-.92c-.109-.281-.24-.705-.275-1.485-.038-.843-.046-1.096-.046-3.233s.008-2.388.046-3.231c.036-.78.166-1.204.276-1.486.145-.373.319-.64.599-.92s.546-.453.92-.598c.282-.11.705-.24 1.485-.276.738-.034 1.024-.044 2.515-.045zm4.988 1.328a.96.96 0 1 0 0 1.92.96.96 0 0 0 0-1.92m-4.27 1.122a4.109 4.109 0 1 0 0 8.217 4.109 4.109 0 0 0 0-8.217m0 1.441a2.667 2.667 0 1 1 0 5.334 2.667 2.667 0 0 1 0-5.334"></path>
+                        </svg>
+                    </a>
+                </div>
+                <p class="text-gray-400 text-sm">&copy; <span id="year"></span> ListFast.ai. All rights reserved.</p>
             </div>
         </div>
-        <div class="border-t border-gray-100 py-6 text-center text-xs text-gray-500">© <span id="year"></span> ListFast.ai — All rights reserved.</div>
     </footer>
+
     <!-- Login Modal -->
     <div id="loginModal" class="modal">
         <div class="modal-content">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-gray-900">Welcome Back</h2>
-                <button onclick="closeModal('loginModal')" class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Welcome Back</h2>
+                <button onclick="closeModal('loginModal')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
             </div>
             <div id="loginSuccess" class="success-message">
                 🎉 Login successful! Welcome back to ListFast.ai
@@ -585,12 +910,13 @@
             </div>
         </div>
     </div>
+
     <!-- Signup Modal -->
     <div id="signupModal" class="modal">
         <div class="modal-content">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-gray-900">Get Started</h2>
-                <button onclick="closeModal('signupModal')" class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Get Started</h2>
+                <button onclick="closeModal('signupModal')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
             </div>
             <div id="signupSuccess" class="success-message">
                 📧 Please check your email for the verification code
@@ -622,12 +948,13 @@
             </div>
         </div>
     </div>
+
     <!-- OTP Verification Modal -->
     <div id="otpModal" class="modal">
         <div class="modal-content">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-gray-900">Verify Your Email</h2>
-                <button onclick="closeModal('otpModal')" class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Verify Your Email</h2>
+                <button onclick="closeModal('otpModal')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
             </div>
             <div class="text-center mb-6">
                 <p class="text-gray-600 mb-2">We've sent a 6-digit code to</p>
@@ -663,6 +990,7 @@
             </form>
         </div>
     </div>
+
     <!-- Demo Modal -->
     <div id="demoModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 p-4">
         <div class="relative w-full max-w-4xl">
@@ -674,24 +1002,32 @@
             </div>
         </div>
     </div>
+
     <script>
         let otpTimer;
-        let otpTimeLeft = 600; // 10 minutes
+        let otpTimeLeft = 600;
         let pendingSignupData = null;
-        // Mobile menu toggle
-        const menuBtn = document.getElementById('menuBtn');
-        const mobileMenu = document.getElementById('mobileMenu');
-        menuBtn?.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
-        // Year
+
+        const hamburgerBtn = document.getElementById('hamburger-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        hamburgerBtn?.addEventListener('click', () => {
+            hamburgerBtn.classList.toggle('open');
+            mobileMenu.classList.toggle('active');
+        });
+
         document.getElementById('year').textContent = new Date().getFullYear();
+
         function showLoginModal() {
             document.getElementById('loginModal').classList.add('show');
             document.body.style.overflow = 'hidden';
         }
+
         function showSignupModal() {
             document.getElementById('signupModal').classList.add('show');
             document.body.style.overflow = 'hidden';
         }
+
         function showOtpModal(email) {
             document.getElementById('otpEmail').textContent = email;
             document.getElementById('otpModal').classList.add('show');
@@ -699,6 +1035,7 @@
             startOtpTimer();
             document.querySelectorAll('.otp-input')[0].focus();
         }
+
         function closeModal(modalId) {
             document.getElementById(modalId).classList.remove('show');
             document.body.style.overflow = 'auto';
@@ -715,21 +1052,25 @@
                 }
             }
         }
+
         function switchToSignup() {
             closeModal('loginModal');
             setTimeout(() => showSignupModal(), 200);
         }
+
         function switchToLogin() {
             closeModal('signupModal');
             setTimeout(() => showLoginModal(), 200);
         }
+
         function openDemoModal() {
             const modal = document.getElementById('demoModal');
             const player = document.getElementById('modalPlayer');
-            player.src = 'https://www.youtube.com/embed/YOUR_YT_ID?autoplay=1&rel=0';
+            player.src = 'https://www.youtube.com/embed/QIurJqj5ddc?autoplay=1&rel=0';
             modal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
         }
+
         function closeDemoModal() {
             const modal = document.getElementById('demoModal');
             const player = document.getElementById('modalPlayer');
@@ -737,6 +1078,7 @@
             modal.classList.add('hidden');
             document.body.style.overflow = '';
         }
+
         function handleOtpInput(input, index) {
             input.value = input.value.replace(/[^0-9]/g, '');
             if (input.value && index < 5) {
@@ -748,15 +1090,18 @@
                 }
             });
         }
+
         function startOtpTimer() {
             otpTimeLeft = 600;
             const timerDisplay = document.getElementById('otpTimer');
             const resendButton = document.getElementById('resendButton');
             resendButton.disabled = true;
+            
             otpTimer = setInterval(() => {
                 const minutes = Math.floor(otpTimeLeft / 60);
                 const seconds = otpTimeLeft % 60;
                 timerDisplay.textContent = `Code expires in: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+                
                 if (otpTimeLeft <= 0) {
                     clearInterval(otpTimer);
                     timerDisplay.textContent = 'Code expired';
@@ -766,11 +1111,13 @@
                 otpTimeLeft--;
             }, 1000);
         }
+
         async function resendOtp() {
             if (!pendingSignupData) return;
             const resendButton = document.getElementById('resendButton');
             resendButton.disabled = true;
             resendButton.textContent = 'Sending...';
+            
             try {
                 const response = await fetch('/resend-otp/', {
                     method: 'POST',
@@ -780,6 +1127,7 @@
                     },
                     body: JSON.stringify({ email: pendingSignupData.email }),
                 });
+                
                 const data = await response.json();
                 if (response.ok) {
                     startOtpTimer();
@@ -797,6 +1145,7 @@
                 document.getElementById('otpError').style.display = 'block';
             }
         }
+
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
@@ -811,16 +1160,20 @@
             }
             return cookieValue;
         }
+
         async function handleLogin(event) {
             event.preventDefault();
             const form = event.target;
             const email = form.querySelector('input[type="email"]').value;
             const password = form.querySelector('input[type="password"]').value;
             const submitBtn = form.querySelector('button[type="submit"]');
+            
             document.getElementById('loginSuccess').style.display = 'none';
             document.getElementById('loginError').style.display = 'none';
+            
             submitBtn.disabled = true;
             submitBtn.textContent = 'Signing in...';
+            
             try {
                 const response = await fetch('/login/', {
                     method: 'POST',
@@ -830,6 +1183,7 @@
                     },
                     body: JSON.stringify({ email, password }),
                 });
+                
                 const data = await response.json();
                 if (response.ok) {
                     document.getElementById('loginSuccess').style.display = 'block';
@@ -844,9 +1198,11 @@
                 document.getElementById('loginError').textContent = 'Network error. Please try again.';
                 document.getElementById('loginError').style.display = 'block';
             }
+            
             submitBtn.disabled = false;
             submitBtn.textContent = 'Sign In';
         }
+
         async function handleSignup(event) {
             event.preventDefault();
             const form = event.target;
@@ -854,15 +1210,19 @@
             const password = form.querySelector('input[type="password"]').value;
             const confirmPassword = form.querySelectorAll('input[type="password"]')[1].value;
             const submitBtn = form.querySelector('button[type="submit"]');
+            
             document.getElementById('signupSuccess').style.display = 'none';
             document.getElementById('signupError').style.display = 'none';
+            
             if (password !== confirmPassword) {
                 document.getElementById('signupError').textContent = 'Passwords do not match!';
                 document.getElementById('signupError').style.display = 'block';
                 return;
             }
+            
             submitBtn.disabled = true;
             submitBtn.textContent = 'Sending verification...';
+            
             try {
                 const response = await fetch('/signup/', {
                     method: 'POST',
@@ -872,6 +1232,7 @@
                     },
                     body: JSON.stringify({ email, password }),
                 });
+                
                 const data = await response.json();
                 if (response.ok) {
                     pendingSignupData = { email, password };
@@ -888,23 +1249,29 @@
                 document.getElementById('signupError').textContent = 'Network error. Please try again.';
                 document.getElementById('signupError').style.display = 'block';
             }
+            
             submitBtn.disabled = false;
             submitBtn.textContent = 'Create Account';
         }
+
         async function handleOtpVerification(event) {
             event.preventDefault();
             const otpInputs = document.querySelectorAll('.otp-input');
             const otp = Array.from(otpInputs).map(input => input.value).join('');
             const submitBtn = event.target.querySelector('button[type="submit"]');
+            
             document.getElementById('otpSuccess').style.display = 'none';
             document.getElementById('otpError').style.display = 'none';
+            
             if (otp.length !== 6) {
                 document.getElementById('otpError').textContent = 'Please enter all 6 digits';
                 document.getElementById('otpError').style.display = 'block';
                 return;
             }
+            
             submitBtn.disabled = true;
             submitBtn.textContent = 'Verifying...';
+            
             try {
                 const response = await fetch('/verify-otp/', {
                     method: 'POST',
@@ -917,6 +1284,7 @@
                         otp: otp
                     }),
                 });
+                
                 const data = await response.json();
                 if (response.ok) {
                     document.getElementById('otpSuccess').style.display = 'block';
@@ -936,14 +1304,17 @@
                 document.getElementById('otpError').textContent = 'Network error. Please try again.';
                 document.getElementById('otpError').style.display = 'block';
             }
+            
             submitBtn.disabled = false;
             submitBtn.textContent = 'Verify Code';
         }
+
         window.onclick = function(event) {
             const loginModal = document.getElementById('loginModal');
             const signupModal = document.getElementById('signupModal');
             const otpModal = document.getElementById('otpModal');
             const demoModal = document.getElementById('demoModal');
+            
             if (event.target === loginModal) {
                 closeModal('loginModal');
             }
@@ -957,6 +1328,7 @@
                 closeDemoModal();
             }
         }
+
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {
                 closeModal('loginModal');
@@ -964,6 +1336,46 @@
                 closeModal('otpModal');
                 closeDemoModal();
             }
+        });
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                    if (mobileMenu.classList.contains('active')) {
+                        hamburgerBtn.classList.remove('open');
+                        mobileMenu.classList.remove('active');
+                    }
+                }
+            });
+        });
+
+        // Intersection Observer for animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.feature-card, .stats-counter').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(20px)';
+            el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(el);
         });
     </script>
 </body>

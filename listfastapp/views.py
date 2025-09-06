@@ -1171,7 +1171,6 @@ class ItemView(APIView):
         except eBayToken.DoesNotExist:
             return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
         access = ensure_access_token(request.user)
-
         if action == "publish" and all(field in request.data for field in ["title", "description", "aspects", "sku", "price", "quantity", "condition", "category_id", "marketplace_id", "images"]):
             title = _clean_text(request.data.get("title"), limit=80)
             description = request.data.get("description", {})
@@ -1186,6 +1185,7 @@ class ItemView(APIView):
             marketplace_id = request.data.get("marketplace_id")
             images = _https_only(request.data.get("images"))
             category_name = request.data.get("category_name")
+            remove_background = request.data.get("remove_background", False)
         else:
             serializer = ListingSerializer(data=request.data)
             if not serializer.is_valid():
@@ -1197,9 +1197,27 @@ class ItemView(APIView):
             price = serializer.validated_data["price"]
             quantity = serializer.validated_data["quantity"]
             condition = serializer.validated_data.get("condition", "NEW").upper()
+            sku = request.data.get("sku") or _gen_sku("RAW")
+            remove_background = request.data.get("remove_bg", False)
 
             if not raw_text_in and not images:
                 return Response({"error": "Raw text or images required"}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                output_path = f"media/multipack_{uuid.uuid4().hex}.jpg"
+                os.makedirs("media", exist_ok=True)
+                compose_multipack(
+                        image_url=images[0],
+                        pack_size=1,
+                        output_path=output_path,
+                        do_remove_bg=remove_background
+                    )
+                processed_image_url = upload_to_imgbb(output_path)
+                images[0] = processed_image_url
+                os.remove(output_path)
+            except Exception as e:
+                print(f"[Image Processing Error] {e}")
+                return Response({"error": f"Failed to process or upload multipack image: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             if not OPENAI_API_KEY:
                 normalized_title = smart_titlecase(raw_text_in[:80]) or _fallback_title(raw_text_in)
@@ -1301,7 +1319,6 @@ class ItemView(APIView):
                 description_html = f"<p>{description_text}</p>"
 
             title = smart_titlecase(normalized_title)[:80]
-            sku = _gen_sku("RAW")
             category_id = cat_id
             category_name = cat_name
             aspects = filled_aspects
@@ -1319,7 +1336,8 @@ class ItemView(APIView):
                 "category_name": category_name,
                 "marketplace_id": marketplace_id,
                 "images": images,
-                "single_value_aspects": single_value_aspects
+                "single_value_aspects": single_value_aspects,
+                "remove_background": remove_background
             })
 
         try:
@@ -1506,7 +1524,7 @@ def compose_multipack(
     do_remove_bg: bool = True,
     margin_ratio: float = 0.94
 ):
-    assert 2 <= pack_size <= 6, "pack_size must be between 2 and 6"
+    # assert 2 <= pack_size <= 6, "pack_size must be between 2 and 6"
     unit = download_rgba(image_url)
     if do_remove_bg:
         unit = safe_remove_bg(unit)
@@ -1590,20 +1608,21 @@ class MultipackListingView(APIView):
             vat_rate = float(request.data.get("vat_rate", 0))
             sku = request.data.get("sku") or _gen_sku_multi("MULTI")
             remove_background = request.data.get("remove_background", False)
+            multipack_quantity = request.data.get("multipack_quantity", 2)
 
             if not raw_text_in and not images:
                 return Response({"error": "Raw text or images required"}, status=status.HTTP_400_BAD_REQUEST)
 
-            if quantity < 1 or quantity > 6:
+            if multipack_quantity < 1 or multipack_quantity > 6:
                 return Response({"error": "Multipack quantity must be between 1 and 6"}, status=status.HTTP_400_BAD_REQUEST)
 
-            if quantity > 1 and images:
+            if multipack_quantity > 1 and images:
                 try:
                     output_path = f"media/multipack_{uuid.uuid4().hex}.jpg"
                     os.makedirs("media", exist_ok=True)
                     compose_multipack(
                         image_url=images[0],
-                        pack_size=quantity,
+                        pack_size=multipack_quantity,
                         output_path=output_path,
                         do_remove_bg=remove_background
                     )
@@ -1620,7 +1639,7 @@ class MultipackListingView(APIView):
                 brand = None
             else:
                 system_prompt = (
-                    f"Extract concise keywords for eBay category selection and search for a multipack listing of {quantity} items. "
+                    f"Extract concise keywords for eBay category selection and search for a multipack listing of {multipack_quantity} items. "
                     "Return STRICT JSON. Use ONLY facts from input. "
                     "Lowercase all keywords, no punctuation, no duplicates. "
                     "For normalized_title, describe ONE specific multipack item, selecting the first mentioned variant for any attribute that defines a unique item (e.g., color, size, model), and include the pack size (e.g., '{quantity}-Pack')."
@@ -1632,7 +1651,7 @@ class MultipackListingView(APIView):
                 OUTPUT RULES:
                 - category_keywords: 1–5 short phrases (2–3 words) for product category.
                 - search_keywords: 3–12 search terms, lowercase, ≤ 30 chars.
-                - normalized_title: <=80 chars, clean, factual, includes '{quantity}-Pack', describes ONE item.
+                - normalized_title: <=80 chars, clean, factual, includes '{multipack_quantity}-Pack', describes ONE item.
                 - brand: only if in RAW_TEXT.
                 - identifiers: only if present (isbn/ean/gtin/mpn)."""
                 try:
@@ -1668,7 +1687,7 @@ class MultipackListingView(APIView):
 
             if OPENAI_API_KEY and (req_names or rec_names):
                 system_prompt2 = (
-                    f"Fill eBay item aspects for a multipack listing of {quantity} items. NEVER leave required aspects empty; "
+                    f"Fill eBay item aspects for a multipack listing of {multipack_quantity} items. NEVER leave required aspects empty; "
                     "extract when explicit, infer when reasonable, otherwise use 'Does not apply'. "
                     "For aspects that define unique item variations, select ONLY the first value mentioned in the text to describe a single item."
                 )
