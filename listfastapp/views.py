@@ -1,3 +1,4 @@
+from decimal import Decimal
 import io
 import os
 import base64
@@ -94,7 +95,7 @@ class ProfileSerializer(Serializer):
     profile_pic_url = URLField(required=False, allow_blank=True)
 
 class PriceSerializer(Serializer):
-    value = DecimalField(max_digits=10, decimal_places=2, min_value=0.01)
+    value = DecimalField(max_digits=10, decimal_places=2, min_value=Decimal("0.01"))
     currency = ChoiceField(choices=["GBP", "USD", "EUR"])
 
 
