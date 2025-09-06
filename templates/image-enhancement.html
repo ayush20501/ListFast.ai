@@ -7,7 +7,7 @@
     <title>Image Enhancement - ListFast.ai</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
         body {
             font-family: 'Inter', sans-serif;
@@ -31,37 +31,89 @@
             }
         }
 
+        .navbar-backdrop {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+        }
+
+        .nav-link {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-link::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(135deg, #f093fb 0%, #4facfe 100%);
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+        }
+
+        .nav-link:hover::before {
+            width: 100%;
+        }
+
+        .logo-link {
+            transition: filter 0.3s ease;
+        }
+
+        .logo-link:hover {
+            filter: brightness(1.1);
+            transform: none;
+        }
+
+        .profile-dropdown {
+            transition: all 0.3s ease;
+            transform: scale(0.95);
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .profile-dropdown.active {
+            transform: scale(1);
+            opacity: 1;
+            visibility: visible;
+        }
+
         .image-enhance-gradient {
             background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
         }
 
-        .nav-gradient {
-            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        .hamburger-line {
+            width: 24px;
+            height: 3px;
+            background-color: #374151;
+            margin: 3px 0;
+            transition: 0.3s;
+            border-radius: 3px;
         }
 
-        .hamburger div {
-            transition: all 0.3s ease;
+        .hamburger.open .hamburger-line:nth-child(1) {
+            transform: rotate(-45deg) translate(-5px, 6px);
         }
 
-        .hamburger.active .top {
-            transform: translateY(8px) rotate(45deg);
-        }
-
-        .hamburger.active .middle {
+        .hamburger.open .hamburger-line:nth-child(2) {
             opacity: 0;
         }
 
-        .hamburger.active .bottom {
-            transform: translateY(-8px) rotate(-45deg);
+        .hamburger.open .hamburger-line:nth-child(3) {
+            transform: rotate(45deg) translate(-5px, -6px);
         }
 
         .mobile-menu {
             transition: all 0.3s ease-in-out;
-            transform: translateY(-100%);
+            max-height: 0;
+            overflow: hidden;
         }
 
         .mobile-menu.active {
-            transform: translateY(0);
+            max-height: 500px;
         }
 
         .card {
@@ -73,14 +125,7 @@
         .card:hover {
             border: 2px solid #a855f7;
             background: linear-gradient(135deg, #ffffff 0%, #f3e8ff 100%);
-        }
-
-        .preview img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 10px;
-            border: 2px solid #e5e7eb;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
         }
 
         .upload-btn {
@@ -93,6 +138,7 @@
         .upload-btn:hover {
             background: #a855f7;
             color: #ffffff;
+            transform: translateY(-1px);
         }
 
         .popup {
@@ -103,6 +149,7 @@
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
             z-index: 1000;
             justify-content: center;
             align-items: center;
@@ -110,261 +157,372 @@
 
         .popup-content {
             background: white;
-            padding: 20px;
-            border-radius: 10px;
+            padding: 2rem;
+            border-radius: 1rem;
             max-width: 90%;
             max-height: 90%;
             overflow: auto;
             position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         }
 
         .popup-close {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 1rem;
+            right: 1rem;
             cursor: pointer;
-            font-size: 24px;
+            font-size: 1.5rem;
             color: #666;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f3f4f6;
+            transition: all 0.3s ease;
         }
 
-        .error-message {
-            display: none;
-            background-color: #fee2e2;
-            color: #dc2626;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 16px;
-            border: 1px solid #fecaca;
-        }
-
-        .success-message {
-            display: none;
-            background-color: #dcfce7;
-            color: #15803d;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 16px;
-            border: 1px solid #bbf7d0;
+        .popup-close:hover {
+            background: #e5e7eb;
+            color: #374151;
         }
 
         .ai-status {
-            background-color: #e0f2fe;
+            background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
             border: 2px solid #bae6fd;
-            border-radius: 16px;
-            padding: 24px;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
         }
 
         .ai-progress {
             background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
         }
 
-        .text-red-500 {
-            color: #dc2626;
+        .preview img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 0.75rem;
+            border: 2px solid #e5e7eb;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
         }
-        label .required-asterisk {
-            color: red;
+
+        .required-asterisk {
+            color: #dc2626;
             margin-left: 0.2em;
             font-weight: bold;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-group input {
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px -5px rgba(168, 85, 247, 0.15);
+        }
+
+        .feature-item {
+            transition: all 0.3s ease;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+        }
+
+        .feature-item:hover {
+            background: rgba(168, 85, 247, 0.05);
+            transform: translateX(0.25rem);
+        }
+
+        @media (max-width: 768px) {
+            .card {
+                margin-bottom: 1.5rem;
+            }
         }
     </style>
 </head>
 
 <body class="min-h-screen bg-gray-50">
-    <nav class="nav-gradient border-b border-gray-200 fixed w-full top-0 z-50">
-        <div class="max-w-7xl mx-auto px-6 lg:px-12">
+    <nav class="navbar-backdrop fixed w-full top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center">
-                    <a href="/" class="flex items-center space-x-2">
-                        <span class="text-2xl font-bold text-gray-900">ListFast.ai</span>
+                    <a href="/" class="logo-link flex items-center space-x-3">
+                        <img src="https://i.ibb.co/Nd8Qrwmr/Untitled-design.png" alt="ListFast.ai Logo"
+                            class="h-12 w-auto">
+                        <span class="text-xl font-bold text-gray-900">ListFast.ai</span>
                     </a>
                 </div>
-                <div class="hidden lg:flex items-center space-x-8">
+
+                <div class="hidden lg:flex items-center space-x-1">
+                    <a href="/"
+                        class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">
+                        Home
+                    </a>
                     <a href="/services/"
-                        class="text-gray-600 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Services</a>
-                    <a href="/dashboard/"
-                        class="text-gray-600 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Dashboard</a>
-                    <a href="/display-profile/" id="profile-btn"
-                        class="flex items-center space-x-2 text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg transition-colors">
-                        <img id="user-profile-pic" src="" alt="Profile"
-                            class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
-                        <span class="font-medium">Profile</span>
+                        class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">
+                        Services
                     </a>
-                    <span id="user-email" class="text-gray-600 text-sm"></span>
-                    <button id="logout-btn"
-                        class="hero-gradient text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity">Logout</button>
+                    <!-- <a href="/my-listings/"
+                        class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">
+                        Dashboard
+                    </a> -->
                 </div>
-                <div class="lg:hidden flex items-center">
-                    <button id="hamburger-btn" class="p-2 focus:outline-none">
-                        <div class="hamburger space-y-1.5">
-                            <div class="top w-6 h-0.5 bg-gray-900"></div>
-                            <div class="middle w-6 h-0.5 bg-gray-900"></div>
-                            <div class="bottom w-6 h-0.5 bg-gray-900"></div>
+
+                <div class="hidden lg:flex items-center space-x-4">
+                    <span id="user-email" class="text-gray-600 text-sm font-medium"></span>
+
+                    <div class="relative">
+                        <button id="profile-dropdown-btn"
+                            class="flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 transition-colors">
+                            <img id="user-profile-pic" src="https://via.placeholder.com/32" alt="Profile"
+                                class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
+                        </button>
+
+                        <div id="profile-dropdown"
+                            class="profile-dropdown absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
+                            <a href="/display-profile/"
+                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z">
+                                        </path>
+                                    </svg>
+                                    <span>Profile</span>
+                                </div>
+                            </a>
+                            <hr class="my-1">
+                            <button id="logout-btn"
+                                class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                                        </path>
+                                    </svg>
+                                    <span>Logout</span>
+                                </div>
+                            </button>
                         </div>
+                    </div>
+                </div>
+
+                <div class="lg:hidden">
+                    <button id="hamburger-btn" class="hamburger p-2 focus:outline-none">
+                        <div class="hamburger-line"></div>
+                        <div class="hamburger-line"></div>
+                        <div class="hamburger-line"></div>
                     </button>
                 </div>
             </div>
-            <div id="mobile-menu"
-                class="lg:hidden mobile-menu absolute top-16 left-0 w-full bg-white shadow-lg border-b border-gray-200 hidden">
-                <div class="flex flex-col space-y-4 px-6 py-4">
-                    <a href="/services/"
-                        class="text-gray-600 hover:text-gray-900 font-medium py-2 transition-colors">Services</a>
-                    <a href="/dashboard/"
-                        class="text-gray-600 hover:text-gray-900 font-medium py-2 transition-colors">Dashboard</a>
-                    <a href="/display-profile/"
-                        class="flex items-center space-x-2 text-gray-600 hover:text-gray-900 font-medium py-2 transition-colors">
-                        <img id="mobile-user-profile-pic" src="" alt="Profile"
-                            class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
-                        <span>Profile</span>
+
+            <div id="mobile-menu" class="mobile-menu lg:hidden bg-white border-t border-gray-100">
+                <div class="px-4 py-4 space-y-4">
+                    <a href="/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">
+                        Home
                     </a>
-                    <span id="mobile-user-email" class="text-gray-600 text-sm py-2"></span>
+                    <a href="/services/"
+                        class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">
+                        Services
+                    </a>
+                    <!-- <a href="/my-listings/"
+                        class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">
+                        Dashboard
+                    </a> -->
+                    <hr class="my-2">
+                    <div class="flex items-center space-x-3 py-2">
+                        <img id="mobile-user-profile-pic" src="https://via.placeholder.com/32" alt="Profile"
+                            class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
+                        <span id="mobile-user-email" class="text-gray-600 text-sm font-medium"></span>
+                    </div>
+                    <a href="/display-profile/"
+                        class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">
+                        Profile Settings
+                    </a>
                     <button id="mobile-logout-btn"
-                        class="hero-gradient text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity text-left">Logout</button>
+                        class="w-full text-left text-red-600 hover:text-red-700 font-medium py-2 transition-colors">
+                        Logout
+                    </button>
                 </div>
             </div>
         </div>
     </nav>
-    <div class="max-w-7xl mx-auto px-6 lg:px-12 py-16 pt-24">
-        <div class="text-center mb-12">
-            <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-                Image <span class="image-enhance-gradient bg-clip-text text-transparent">Enhancement</span>
-            </h2>
-            <p class="text-lg text-gray-600 leading-relaxed max-w-2xl mx-auto">
-                Transform your product images with professional editing. Add banners, remove backgrounds, and integrate
-                logos to make your listings stand out.
-            </p>
-        </div>
-        <div id="error-message"
-            class="hidden bg-red-50 border border-red-200 text-red-800 px-6 py-4 rounded-xl mb-8 font-medium"></div>
-        <div id="success-message"
-            class="hidden bg-green-50 border border-green-200 text-green-800 px-6 py-4 rounded-xl mb-8 font-medium">
-        </div>
-        <div class="grid lg:grid-cols-3 gap-12">
-            <div class="lg:col-span-2">
-                <div class="card rounded-2xl shadow-lg p-8">
-                    <div class="mb-6">
-                        <h3 class="text-2xl font-bold text-gray-900 mb-2">Enhance Your Image</h3>
-                        <p class="text-sm text-gray-500">
-                            Upload an image or paste an image URL, add a banner title, optionally remove the background,
-                            and add a logo.
-                        </p>
-                    </div>
-                    <div class="space-y-6">
-                        <div>
-                            <label for="image_url" class="block text-sm font-semibold text-gray-700 mb-2">Image URL<span class="required-asterisk">*</span></label>
-                            <div class="flex items-center space-x-4">
-                                <input id="image_url" type="text" placeholder="https://example.com/image.jpg"
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900">
-                                <button id="upload-image-btn"
-                                    class="upload-btn px-4 py-2 rounded-lg font-semibold cursor-pointer">
-                                    Upload Image
-                                </button>
-                                <input id="image-upload" type="file" accept="image/*" class="hidden">
+
+    <main class="pt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+            <div class="text-center mb-12 lg:mb-16">
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
+                    Image <span class="hero-gradient bg-clip-text text-transparent">Enhancement</span>
+                </h1>
+                <p class="text-lg sm:text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto px-4">
+                    Transform your product images with professional editing. Add banners, remove backgrounds, and
+                    integrate logos to make your listings stand out.
+                </p>
+            </div>
+
+            <div id="error-message"
+                class="hidden bg-red-50 border border-red-200 text-red-800 px-6 py-4 rounded-xl mb-8 font-medium"></div>
+            <div id="success-message"
+                class="hidden bg-green-50 border border-green-200 text-green-800 px-6 py-4 rounded-xl mb-8 font-medium">
+            </div>
+
+            <div class="grid lg:grid-cols-3 gap-8 lg:gap-12">
+                <div class="lg:col-span-2">
+                    <div class="card rounded-2xl shadow-lg p-6 lg:p-8">
+                        <div class="mb-8">
+                            <h2 class="text-2xl lg:text-3xl font-bold text-gray-900 mb-3">Enhance Your Image</h2>
+                            <p class="text-gray-600">
+                                Upload an image or paste an image URL, add a banner title, optionally remove the
+                                background, and add a logo.
+                            </p>
+                        </div>
+
+                        <div class="space-y-6">
+                            <div class="input-group">
+                                <label for="image_url" class="block text-sm font-semibold text-gray-700 mb-3">
+                                    Image URL<span class="required-asterisk">*</span>
+                                </label>
+                                <div class="flex flex-col sm:flex-row gap-3">
+                                    <input id="image_url" type="text" placeholder="https://example.com/image.jpg"
+                                        class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900">
+                                    <button id="upload-image-btn"
+                                        class="upload-btn px-6 py-3 rounded-lg font-semibold whitespace-nowrap">
+                                        Upload Image
+                                    </button>
+                                    <input id="image-upload" type="file" accept="image/*" class="hidden">
+                                </div>
                             </div>
-                        </div>
-                        <div>
-                            <label for="title" class="block text-sm font-semibold text-gray-700 mb-2">Banner Title
-                                (optional)</label>
-                            <input id="title" type="text" maxlength="80" placeholder="e.g., Super Saver 6-Pack"
-                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900">
-                            <span id="title-char-count" class="text-sm text-gray-500 mt-1 block">0/80 characters</span>
-                        </div>
-                        <div>
-                            <label for="logo_url" class="block text-sm font-semibold text-gray-700 mb-2">Logo URL
-                                (optional)</label>
-                            <div class="flex items-center space-x-4">
-                                <input id="logo_url" type="text" placeholder="https://example.com/logo.png"
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900">
-                                <button id="upload-logo-btn"
-                                    class="upload-btn px-4 py-2 rounded-lg font-semibold cursor-pointer">
-                                    Upload Logo
-                                </button>
-                                <input id="logo-upload" type="file" accept="image/*" class="hidden">
+
+                            <div class="input-group">
+                                <label for="title" class="block text-sm font-semibold text-gray-700 mb-3">
+                                    Banner Title (optional)
+                                </label>
+                                <input id="title" type="text" maxlength="80" placeholder="e.g., Super Saver 6-Pack"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900">
+                                <div class="flex justify-between items-center mt-2">
+                                    <span id="title-char-count" class="text-sm text-gray-500">0/80 characters</span>
+                                </div>
                             </div>
+
+                            <div class="input-group">
+                                <label for="logo_url" class="block text-sm font-semibold text-gray-700 mb-3">
+                                    Logo URL (optional)
+                                </label>
+                                <div class="flex flex-col sm:flex-row gap-3">
+                                    <input id="logo_url" type="text" placeholder="https://example.com/logo.png"
+                                        class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900">
+                                    <button id="upload-logo-btn"
+                                        class="upload-btn px-6 py-3 rounded-lg font-semibold whitespace-nowrap">
+                                        Upload Logo
+                                    </button>
+                                    <input id="logo-upload" type="file" accept="image/*" class="hidden">
+                                </div>
+                            </div>
+
+                            <div class="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+                                <input id="remove_bg" type="checkbox"
+                                    class="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+                                <label for="remove_bg" class="text-sm font-semibold text-gray-700">Remove
+                                    background</label>
+                            </div>
+
+                            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                                <button id="go"
+                                    class="w-full sm:w-auto image-enhance-gradient text-white px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">
+                                    Enhance Image
+                                </button>
+                                <span id="msg" class="text-sm text-gray-500"></span>
+                            </div>
+
+                            <div class="preview" id="preview"></div>
                         </div>
-                        <div class="flex items-center space-x-3">
-                            <input id="remove_bg" type="checkbox"
-                                class="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
-                            <label for="remove_bg" class="text-sm font-semibold text-gray-700">Remove background</label>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <button id="go"
-                                class="image-enhance-gradient text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">Enhance</button>
-                            <span id="msg" class="text-sm text-gray-500"></span>
-                        </div>
-                        <div class="preview" id="preview"></div>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="card p-6 rounded-2xl shadow-lg">
+                        <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                            <span class="text-2xl mr-3">✨</span>
+                            Enhancement Features
+                        </h3>
+                        <ul class="space-y-3">
+                            <li class="feature-item flex items-start">
+                                <div class="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                                <span class="text-sm text-gray-700">Add custom banners with your text</span>
+                            </li>
+                            <li class="feature-item flex items-start">
+                                <div class="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                                <span class="text-sm text-gray-700">Remove backgrounds automatically</span>
+                            </li>
+                            <li class="feature-item flex items-start">
+                                <div class="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                                <span class="text-sm text-gray-700">Integrate your brand logos</span>
+                            </li>
+                            <li class="feature-item flex items-start">
+                                <div class="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                                <span class="text-sm text-gray-700">Auto-tilt for dynamic appearance</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="card p-6 rounded-2xl shadow-lg">
+                        <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                            <span class="text-2xl mr-3">💡</span>
+                            Pro Tips
+                        </h3>
+                        <ul class="space-y-3">
+                            <li class="feature-item flex items-start">
+                                <div class="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                                <span class="text-sm text-gray-700">Use high-resolution images for best results</span>
+                            </li>
+                            <li class="feature-item flex items-start">
+                                <div class="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                                <span class="text-sm text-gray-700">Ensure good lighting in your photos</span>
+                            </li>
+                            <li class="feature-item flex items-start">
+                                <div class="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                                <span class="text-sm text-gray-700">Keep backgrounds simple for removal</span>
+                            </li>
+                            <li class="feature-item flex items-start">
+                                <div class="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                                <span class="text-sm text-gray-700">Highlight key product features</span>
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </div>
-            <div class="space-y-6">
-                <div class="card p-6 rounded-2xl shadow-lg">
-                    <h3 class="text-lg font-bold text-gray-900 mb-4">✨ Image Enhancement Features</h3>
-                    <ul class="space-y-3 text-sm text-gray-600">
-                        <li class="flex items-start">
-                            <div class="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-2"></div>
-                            Add custom banners
-                        </li>
-                        <li class="flex items-start">
-                            <div class="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-2"></div>
-                            Remove backgrounds
-                        </li>
-                        <li class="flex items-start">
-                            <div class="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-2"></div>
-                            Integrate logos
-                        </li>
-                        <li class="flex items-start">
-                            <div class="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-2"></div>
-                            Auto-tilt for dynamic look
-                        </li>
-                    </ul>
-                </div>
-                <div class="card p-6 rounded-2xl shadow-lg">
-                    <h3 class="text-lg font-bold text-gray-900 mb-4">📈 Tips for Better Images</h3>
-                    <ul class="space-y-3 text-sm text-gray-600">
-                        <li class="flex items-start">
-                            <div class="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-2"></div>
-                            Use high-resolution images
-                        </li>
-                        <li class="flex items-start">
-                            <div class="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-2"></div>
-                            Ensure good lighting
-                        </li>
-                        <li class="flex items-start">
-                            <div class="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-2"></div>
-                            Keep the background clean
-                        </li>
-                        <li class="flex items-start">
-                            <div class="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-2"></div>
-                            Highlight key features
-                        </li>
-                    </ul>
+        </div>
+
+        <div id="ai-status" class="hidden ai-status max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
+            <div class="flex items-center mb-6">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mr-4"></div>
+                <div>
+                    <h3 class="text-lg font-semibold text-purple-900">Processing Image Enhancement</h3>
+                    <p id="ai-status-text" class="text-purple-700 mt-1">Analyzing image...</p>
                 </div>
             </div>
-        </div>
-    </div>
-    <div id="ai-status" class="hidden ai-status max-w-7xl mx-auto px-6 lg:px-12 mb-16">
-        <div class="flex items-center">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-4"></div>
-            <div>
-                <h3 class="text-lg font-semibold text-blue-900">Processing Image Enhancement</h3>
-                <p id="ai-status-text" class="text-blue-700 mt-1">Analyzing image...</p>
-            </div>
-        </div>
-        <div class="mt-6">
-            <div class="bg-white rounded-full h-3">
+            <div class="bg-white rounded-full h-3 overflow-hidden">
                 <div id="ai-progress" class="ai-progress h-3 rounded-full transition-all duration-500"
                     style="width: 0%"></div>
             </div>
         </div>
-    </div>
+    </main>
+
     <div id="image-popup" class="popup">
         <div class="popup-content">
             <span class="popup-close">&times;</span>
             <div id="popup-preview"></div>
         </div>
     </div>
+
     <footer class="bg-gray-900 text-white">
-        <div class="max-w-7xl mx-auto px-6 lg:px-12 py-12">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div class="space-y-4">
                     <h3 class="text-2xl font-bold">ListFast.ai</h3>
                     <p class="text-gray-400 text-sm leading-relaxed">
@@ -377,7 +535,7 @@
                     <ul class="space-y-2 text-gray-400 text-sm">
                         <li><a href="/" class="hover:text-white transition-colors">Home</a></li>
                         <li><a href="/services/" class="hover:text-white transition-colors">Services</a></li>
-                        <li><a href="/dashboard/" class="hover:text-white transition-colors">Dashboard</a></li>
+                        <!-- <li><a href="/my-listings/" class="hover:text-white transition-colors">Dashboard</a></li> -->
                         <li><a href="/display-profile/" class="hover:text-white transition-colors">Profile</a></li>
                     </ul>
                 </div>
@@ -394,15 +552,18 @@
                     <h4 class="text-lg font-semibold mb-4">Stay Updated</h4>
                     <p class="text-gray-400 text-sm mb-4">Subscribe to our newsletter for the latest updates and offers.
                     </p>
-                    <form class="flex">
+                    <form class="flex flex-col sm:flex-row gap-2">
                         <input type="email" placeholder="Enter your email"
-                            class="w-full px-4 py-2 rounded-l-lg bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            class="flex-1 px-4 py-2 rounded-lg bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <button type="submit"
-                            class="hero-gradient px-4 py-2 rounded-r-lg font-semibold hover:opacity-90 transition-opacity">Subscribe</button>
+                            class="hero-gradient px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity whitespace-nowrap">
+                            Subscribe
+                        </button>
                     </form>
                 </div>
             </div>
-            <div class="mt-12 pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">
+            <div
+                class="mt-12 pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
                 <div class="flex space-x-4">
                     <a href="#" class="text-gray-400 hover:text-white transition-colors">
                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
@@ -425,29 +586,34 @@
                         </svg>
                     </a>
                 </div>
-                <p class="text-gray-400 text-sm mt-4 md:mt-0">
+                <p class="text-gray-400 text-sm">
                     &copy; 2025 ListFast.ai. All rights reserved.
                 </p>
             </div>
         </div>
     </footer>
+
     <script>
         const aiStatusEl = document.getElementById('ai-status');
         const aiStatusTextEl = document.getElementById('ai-status-text');
         const aiProgressEl = document.getElementById('ai-progress');
+
         function showAIStatus(message, progress = 0) {
             aiStatusEl.classList.remove('hidden');
             aiStatusTextEl.textContent = message;
             aiProgressEl.style.width = `${progress}%`;
         }
+
         function hideAIStatus() {
             aiStatusEl.classList.add('hidden');
             aiProgressEl.style.width = '0%';
         }
+
         function updateAIProgress(message, progress) {
             aiStatusTextEl.textContent = message;
             aiProgressEl.style.width = `${progress}%`;
         }
+
         window.addEventListener('load', async () => {
             try {
                 const response = await fetch('/auth-status');
@@ -458,6 +624,7 @@
                 }
                 document.getElementById('user-email').textContent = data.email;
                 document.getElementById('mobile-user-email').textContent = data.email;
+
                 try {
                     const profileResponse = await fetch('/fetch-address-imageprofile/');
                     const profileData = await profileResponse.json();
@@ -468,6 +635,7 @@
                 } catch (error) {
                     console.error('Error loading profile image:', error);
                 }
+
                 const urlParams = new URLSearchParams(window.location.search);
                 const imageUrl = urlParams.get('image_url');
                 const logoUrl = urlParams.get('logo_url');
@@ -477,13 +645,28 @@
                 window.location.href = '/login/';
             }
         });
+
         const hamburgerBtn = document.getElementById('hamburger-btn');
         const mobileMenu = document.getElementById('mobile-menu');
+        const profileDropdownBtn = document.getElementById('profile-dropdown-btn');
+        const profileDropdown = document.getElementById('profile-dropdown');
+
         hamburgerBtn.addEventListener('click', () => {
+            hamburgerBtn.classList.toggle('open');
             mobileMenu.classList.toggle('active');
-            hamburgerBtn.classList.toggle('active');
-            mobileMenu.classList.toggle('hidden');
         });
+
+        profileDropdownBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            profileDropdown.classList.toggle('active');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!profileDropdown.contains(e.target) && !profileDropdownBtn.contains(e.target)) {
+                profileDropdown.classList.remove('active');
+            }
+        });
+
         document.getElementById('logout-btn').addEventListener('click', async () => {
             try {
                 const getCookie = (name) => {
@@ -502,15 +685,15 @@
                 };
                 const csrftoken = getCookie('csrftoken');
                 await fetch('/logout/', {
-                    method: 'POST', headers: {
-                        'X-CSRFToken': csrftoken
-                    }
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrftoken }
                 });
                 window.location.href = '/';
             } catch (error) {
                 console.error('Logout failed:', error);
             }
         });
+
         document.getElementById('mobile-logout-btn').addEventListener('click', async () => {
             try {
                 const getCookie = (name) => {
@@ -529,17 +712,18 @@
                 };
                 const csrftoken = getCookie('csrftoken');
                 await fetch('/logout/', {
-                    method: 'POST', headers: {
-                        'X-CSRFToken': csrftoken
-                    }
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrftoken }
                 });
                 window.location.href = '/';
             } catch (error) {
                 console.error('Logout failed:', error);
             }
         });
+
         const errorMessage = document.getElementById('error-message');
         const successMessage = document.getElementById('success-message');
+
         function showError(message) {
             errorMessage.textContent = message;
             errorMessage.classList.remove('hidden');
@@ -549,6 +733,7 @@
                 errorMessage.textContent = '';
             }, 5000);
         }
+
         function showSuccess(message) {
             successMessage.textContent = message;
             successMessage.classList.remove('hidden');
@@ -558,31 +743,40 @@
                 successMessage.textContent = '';
             }, 5000);
         }
+
         const imageUploadInput = document.getElementById('image-upload');
         const logoUploadInput = document.getElementById('logo-upload');
+
         document.getElementById('upload-image-btn').addEventListener('click', () => {
             imageUploadInput.click();
         });
+
         imageUploadInput.addEventListener('change', () => {
             uploadFile(imageUploadInput, 'Image', 'image_url');
         });
+
         document.getElementById('upload-logo-btn').addEventListener('click', () => {
             logoUploadInput.click();
         });
+
         logoUploadInput.addEventListener('change', () => {
             uploadFile(logoUploadInput, 'Logo', 'logo_url');
         });
+
         async function uploadFile(fileInput, type, targetInputId) {
             if (!fileInput.files || fileInput.files.length === 0) {
                 showError(`No ${type} file selected`);
                 return;
             }
+
             const file = fileInput.files[0];
             const formData = new FormData();
             formData.append('image', file);
+
             const uploadBtn = document.getElementById(type === 'Image' ? 'upload-image-btn' : 'upload-logo-btn');
             uploadBtn.disabled = true;
             uploadBtn.textContent = `Uploading ${type}...`;
+
             try {
                 const getCookie = (name) => {
                     let cookieValue = null;
@@ -619,42 +813,52 @@
                 fileInput.value = '';
             }
         }
+
         const goBtn = document.getElementById('go');
         const preview = document.getElementById('preview');
         const popup = document.getElementById('image-popup');
         const popupPreview = document.getElementById('popup-preview');
         const popupClose = document.querySelector('.popup-close');
+
         function showPopup() {
             popup.style.display = 'flex';
         }
+
         function hidePopup() {
             popup.style.display = 'none';
             popupPreview.innerHTML = '';
         }
+
         popupClose.addEventListener('click', hidePopup);
         popup.addEventListener('click', (e) => {
             if (e.target === popup) hidePopup();
         });
+
         goBtn.addEventListener('click', async () => {
             const image_url = document.getElementById('image_url').value.trim();
             const title = document.getElementById('title').value.trim();
             const logo_url = document.getElementById('logo_url').value.trim();
             const remove_bg = document.getElementById('remove_bg').checked;
+
             if (title.length > 80) {
                 showError('Banner title must not exceed 80 characters');
                 return;
             }
+
             if (!image_url) {
                 showError('Please provide an image URL or upload an image');
                 return;
             }
+
             goBtn.disabled = true;
             goBtn.textContent = 'Enhancing...';
             preview.innerHTML = '';
+
             showAIStatus('🤖 Analyzing image...', 10);
             setTimeout(() => updateAIProgress('🔍 Processing enhancements...', 25), 500);
             setTimeout(() => updateAIProgress('🖼️ Applying banner and logo...', 50), 1500);
             setTimeout(() => updateAIProgress('🎨 Finalizing image...', 75), 2500);
+
             try {
                 const getCookie = (name) => {
                     let cookieValue = null;
@@ -673,26 +877,31 @@
                 const csrftoken = getCookie('csrftoken');
                 const payload = { image_url, title, remove_bg };
                 if (logo_url) payload.logo_url = logo_url;
+
                 const res = await fetch('/enhance-image/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
                     body: JSON.stringify(payload)
                 });
+
                 if (!res.ok) {
                     const err = await res.json().catch(() => ({ error: 'Unknown error' }));
                     throw new Error(err.error || res.statusText);
                 }
+
                 const blob = await res.blob();
                 const url = URL.createObjectURL(blob);
                 const img = document.createElement('img');
                 img.src = url;
                 popupPreview.appendChild(img);
+
                 const downloadBtn = document.createElement('a');
                 downloadBtn.href = url;
                 downloadBtn.download = 'enhanced.png';
                 downloadBtn.textContent = 'Download Enhanced Image';
                 downloadBtn.className = 'mt-4 inline-block px-6 py-3 image-enhance-gradient text-white rounded-lg font-semibold hover:opacity-90 transition-opacity';
                 popupPreview.appendChild(downloadBtn);
+
                 updateAIProgress('✅ Image enhanced successfully!', 100);
                 setTimeout(() => {
                     hideAIStatus();
@@ -704,9 +913,10 @@
                 hideAIStatus();
             } finally {
                 goBtn.disabled = false;
-                goBtn.textContent = 'Enhance';
+                goBtn.textContent = 'Enhance Image';
             }
         });
+
         const titleInput = document.getElementById('title');
         const titleCharCount = document.getElementById('title-char-count');
         titleInput.addEventListener('input', () => {
