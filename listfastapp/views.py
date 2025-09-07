@@ -1273,7 +1273,7 @@ class ItemView(APIView):
             try:
                 output_path = f"media/single_{uuid.uuid4().hex}.jpg"
                 os.makedirs("media", exist_ok=True)
-                create_single_image(image_url=images[0], pack_size=1, output_path=output_path, do_remove_bg=remove_background)
+                create_single_image(image_url=images[0], output_path=output_path, do_remove_bg=remove_background)
                 processed_image_url = upload_to_imgbb(output_path)
                 images[0] = processed_image_url
                 os.remove(output_path)
