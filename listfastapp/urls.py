@@ -37,5 +37,5 @@ urlpatterns = [
     path('api/multipack-listing/', views.MultipackListingAPIView.as_view(), name='multipack-listing'),
     path('api/bundle-listing/', views.BundleListingAPIView.as_view(), name='bundle-listing'),
 
-    path('<path:invalid_path>', views.custom_404_view, name='custom_404'),
+    # path('<path:invalid_path>', views.custom_404_view, name='custom_404'),
 ]
