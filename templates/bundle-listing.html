@@ -1077,9 +1077,14 @@
                 return;
             }
 
-            const uploadBtn = uploadImageInput.previousElementSibling;
-            uploadBtn.disabled = true;
-            uploadBtn.textContent = 'Uploading Image...';
+            // FIXED: Get the label element properly
+            const uploadBtn = uploadImageInput.closest('label');
+            const originalText = uploadBtn.textContent.trim();
+
+            // Disable the button and show upload status
+            uploadBtn.style.pointerEvents = 'none';
+            uploadBtn.style.opacity = '0.6';
+            uploadBtn.innerHTML = 'Uploading Image...';
 
             const formData = new FormData();
             formData.append('image', file);
@@ -1108,7 +1113,9 @@
                 });
 
                 const data = await response.json();
+
                 if (response.ok && data.status === 'success') {
+                    // Find an empty input field or create a new one
                     const inputs = imagesContainer.querySelectorAll('input[name="image_url"]');
                     let emptyInput = null;
                     for (let input of inputs) {
@@ -1138,8 +1145,16 @@
                 document.getElementById('error-message').classList.remove('hidden');
             }
 
-            uploadBtn.disabled = false;
-            uploadBtn.textContent = 'Upload Image';
+            // FIXED: Restore button state properly
+            uploadBtn.style.pointerEvents = 'auto';
+            uploadBtn.style.opacity = '1';
+            uploadBtn.innerHTML = `Upload Image<input type="file" id="upload-image-input" accept="image/*" class="hidden">`;
+
+            // Re-attach the event listener to the new input element
+            const newInput = uploadBtn.querySelector('#upload-image-input');
+            newInput.addEventListener('change', () => uploadFile(newInput));
+
+            // Clear the file input
             fileInput.value = '';
         }
 
