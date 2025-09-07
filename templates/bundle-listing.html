@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bundle Listing - ListFast.ai</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .hero-gradient {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 8s ease-in-out infinite;
+        }
+
+        @keyframes gradientShift {
+
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        .navbar-backdrop {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+        }
+
+        .nav-link {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-link::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(135deg, #f093fb 0%, #4facfe 100%);
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+        }
+
+        .nav-link:hover::before {
+            width: 100%;
+        }
+
+        .logo-link {
+            transition: filter 0.3s ease;
+        }
+
+        .logo-link:hover {
+            filter: brightness(1.1);
+        }
+
+        .profile-dropdown {
+            transition: all 0.3s ease;
+            transform: scale(0.95);
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .profile-dropdown.active {
+            transform: scale(1);
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .hamburger-line {
+            width: 24px;
+            height: 3px;
+            background-color: #374151;
+            margin: 3px 0;
+            transition: 0.3s;
+            border-radius: 3px;
+        }
+
+        .hamburger.open .hamburger-line:nth-child(1) {
+            transform: rotate(-45deg) translate(-5px, 6px);
+        }
+
+        .hamburger.open .hamburger-line:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger.open .hamburger-line:nth-child(3) {
+            transform: rotate(45deg) translate(-5px, -6px);
+        }
+
+        .mobile-menu {
+            transition: all 0.3s ease-in-out;
+            max-height: 0;
+            overflow: hidden;
+        }
+
+        .mobile-menu.active {
+            max-height: 500px;
+        }
+
+        .card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 2px solid transparent;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card:hover {
+            border: 2px solid #f59e0b;
+            background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
+        }
+
+        .upload-btn {
+            background: #ffffff;
+            border: 2px solid #f59e0b;
+            color: #f59e0b;
+            transition: all 0.3s ease;
+            min-height: 44px;
+        }
+
+        .upload-btn:hover {
+            background: #f59e0b;
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        .bundle-gradient {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-group input,
+        .input-group textarea,
+        .input-group select {
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus,
+        .input-group textarea:focus,
+        .input-group select:focus {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.15);
+            border-color: #f59e0b;
+        }
+
+        .preview-modal {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .image-modal {
+            background: rgba(0, 0, 0, 0.75);
+        }
+
+        .required-asterisk {
+            color: #dc2626;
+            margin-left: 0.2em;
+            font-weight: bold;
+        }
+
+        .feature-item {
+            transition: all 0.3s ease;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+        }
+
+        .feature-item:hover {
+            background: rgba(245, 158, 11, 0.05);
+            transform: translateX(0.25rem);
+        }
+
+        .ai-status {
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            border: 2px solid #fde68a;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .ai-progress {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .input-field {
+            border: 2px solid #e5e7eb;
+            transition: all 0.3s ease;
+            font-size: 16px;
+        }
+
+        .input-field:focus {
+            border-color: #f59e0b;
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.15);
+        }
+
+        .pulse-animation {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: .8;
+            }
+        }
+
+        .hover-lift {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .hover-lift:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .popup-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 32px;
+            height: 32px;
+            background: #f3f4f6;
+            color: #374151;
+            border: none;
+            border-radius: 50%;
+            font-size: 20px;
+            line-height: 1;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .popup-close:hover {
+            background: #e5e7eb;
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 480px) {
+            .hero-gradient {
+                font-size: 1.8rem;
+            }
+
+            .card {
+                margin-bottom: 1rem;
+                padding: 1rem;
+            }
+
+            .preview-modal-content {
+                width: 98%;
+                margin: 1%;
+                padding: 1rem;
+            }
+
+            .navbar-backdrop .max-w-7xl {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .preview-modal-content {
+                width: 95%;
+                margin: 2.5%;
+            }
+
+            .grid.lg\:grid-cols-3 {
+                gap: 1.5rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .card {
+                margin-bottom: 1.5rem;
+            }
+        }
+
+        @media (hover: none) and (pointer: coarse) {
+            .hover-lift:hover {
+                transform: none;
+            }
+
+            .nav-link:hover::before {
+                width: 0;
+            }
+
+            button,
+            .upload-btn {
+                min-height: 44px;
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen bg-gray-50">
+    <nav class="navbar-backdrop fixed w-full top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="/" class="logo-link flex items-center space-x-3">
+                        <img src="https://i.ibb.co/Nd8Qrwmr/Untitled-design.png" alt="ListFast.ai Logo"
+                            class="h-10 sm:h-12 w-auto">
+                        <span class="text-lg sm:text-xl font-bold text-gray-900">ListFast.ai</span>
+                    </a>
+                </div>
+
+                <div class="hidden lg:flex items-center space-x-1">
+                    <a href="/"
+                        class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Home</a>
+                    <a href="/services/"
+                        class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Services</a>
+                </div>
+
+                <div class="hidden lg:flex items-center space-x-4">
+                    <span id="user-email" class="text-gray-600 text-sm font-medium"></span>
+                    <div class="relative">
+                        <button id="profile-dropdown-btn"
+                            class="flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 transition-colors">
+                            <img id="user-profile-pic" src="https://via.placeholder.com/32" alt="Profile"
+                                class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
+                        </button>
+                        <div id="profile-dropdown"
+                            class="profile-dropdown absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
+                            <a href="/display-profile/"
+                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z">
+                                        </path>
+                                    </svg>
+                                    <span>Profile</span>
+                                </div>
+                            </a>
+                            <hr class="my-1">
+                            <button id="logout-btn"
+                                class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                                        </path>
+                                    </svg>
+                                    <span>Logout</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:hidden">
+                    <button id="hamburger-btn" class="hamburger p-2 focus:outline-none">
+                        <div class="hamburger-line"></div>
+                        <div class="hamburger-line"></div>
+                        <div class="hamburger-line"></div>
+                    </button>
+                </div>
+            </div>
+
+            <div id="mobile-menu" class="mobile-menu lg:hidden bg-white border-t border-gray-100">
+                <div class="px-4 py-4 space-y-4">
+                    <a href="/"
+                        class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Home</a>
+                    <a href="/services/"
+                        class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Services</a>
+                    <hr class="my-2">
+                    <div class="flex items-center space-x-3 py-2">
+                        <img id="mobile-user-profile-pic" src="https://via.placeholder.com/32" alt="Profile"
+                            class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
+                        <span id="mobile-user-email" class="text-gray-600 text-sm font-medium"></span>
+                    </div>
+                    <a href="/display-profile/"
+                        class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Profile
+                        Settings</a>
+                    <button id="mobile-logout-btn"
+                        class="w-full text-left text-red-600 hover:text-red-700 font-medium py-2 transition-colors">Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-16">
+        <div class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-8 sm:py-12 lg:py-16">
+            <div id="preview-modal"
+                class="hidden fixed inset-0 preview-modal z-50 flex items-center justify-center p-2 sm:p-4">
+                <div
+                    class="preview-modal-content bg-white p-4 sm:p-6 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+                    <div class="flex items-start justify-between mb-6 sm:mb-8">
+                        <div class="flex-1">
+                            <h3 class="text-xl sm:text-2xl font-bold text-gray-900">Preview Bundle Listing</h3>
+                            <p class="text-gray-600 mt-1 text-sm sm:text-base">Review and edit your bundle listing
+                                before publishing to eBay</p>
+                        </div>
+                        <button id="close-preview" class="popup-close">&times;</button>
+                    </div>
+                    <form id="preview-form" class="space-y-4 sm:space-y-6">
+                        <div class="input-group">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Title</label>
+                            <input type="text" id="preview-title" maxlength="80"
+                                class="input-field w-full px-3 sm:px-4 py-3 sm:py-4 rounded-xl text-base">
+                            <p class="text-sm text-gray-500 mt-2">Max 80 characters</p>
+                        </div>
+                        <div class="input-group">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                            <textarea id="preview-description" rows="6"
+                                class="input-field w-full px-3 sm:px-4 py-3 sm:py-4 rounded-xl text-base resize-none"
+                                placeholder="Enter description text here..."></textarea>
+                            <p class="text-sm text-gray-500 mt-2">Edit the generated description if needed. HTML tags
+                                will be preserved in the final listing.</p>
+                        </div>
+                        <div class="input-group">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Item Aspects</label>
+                            <div id="preview-aspects" class="space-y-3"></div>
+                            <p class="text-sm text-gray-500 mt-2">Edit or add aspect values as needed</p>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Price</label>
+                                <p id="preview-price-currency" class="text-base text-gray-900"></p>
+                                <p class="text-sm text-gray-500 mt-2">Price and currency (non-editable)</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Bundle Items</label>
+                                <p id="preview-bundle-quantity" class="text-base text-gray-900"></p>
+                                <p class="text-sm text-gray-500 mt-2">Number of different items in bundle (non-editable)
+                                </p>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Condition</label>
+                            <p id="preview-condition" class="text-base text-gray-900"></p>
+                            <p class="text-sm text-gray-500 mt-2">Item condition (non-editable)</p>
+                        </div>
+                        <div class="input-group">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Quantity</label>
+                            <input type="number" id="preview-quantity" min="1" value="1"
+                                class="input-field w-full px-3 sm:px-4 py-3 rounded-lg text-base">
+                            <p class="text-sm text-gray-500 mt-2">Total quantity available for sale</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Images</label>
+                            <div id="preview-images"
+                                class="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 mb-4">
+                            </div>
+                        </div>
+                        <div id="preview-error"
+                            class="hidden bg-red-50 border border-red-200 text-red-800 px-4 sm:px-6 py-3 sm:py-4 rounded-xl font-medium text-sm">
+                        </div>
+                        <div id="preview-success"
+                            class="hidden bg-green-50 border border-green-200 text-green-800 px-4 sm:px-6 py-3 sm:py-4 rounded-xl font-medium text-sm">
+                        </div>
+                        <div class="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:space-x-3 gap-0 sm:gap-4 pt-2">
+                            <button type="submit"
+                                class="w-full sm:flex-1 bundle-gradient text-white px-4 sm:px-6 py-3 rounded-lg text-base sm:text-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 order-1">Publish
+                                to eBay</button>
+                            <button type="button" id="cancel-preview"
+                                class="w-full sm:flex-1 bg-gray-200 text-gray-700 px-4 sm:px-6 py-3 rounded-lg text-base sm:text-lg font-medium hover:bg-gray-300 order-2">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div id="image-modal"
+                class="hidden fixed inset-0 image-modal z-50 flex items-center justify-center p-2 sm:p-4">
+                <div class="relative max-w-4xl max-h-full">
+                    <img id="modal-image" src="" alt="Full size preview"
+                        class="max-w-full max-h-full object-contain rounded-lg">
+                    <button onclick="closeImageModal()" class="popup-close">&times;</button>
+                </div>
+            </div>
+
+            <div class="text-center mb-8 sm:mb-12 lg:mb-16">
+                <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4 sm:mb-6">
+                    Create New <span class="hero-gradient bg-clip-text text-transparent">Bundle</span> Listing
+                </h1>
+                <p class="text-base sm:text-lg md:text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto px-4">
+                    List multiple different items as one complete package with AI-optimized titles, descriptions, and
+                    categories perfect for bundled deals.
+                </p>
+            </div>
+
+            <div id="error-message"
+                class="hidden bg-red-50 border border-red-200 text-red-800 px-4 sm:px-6 py-3 sm:py-4 rounded-xl mb-6 sm:mb-8 font-medium text-sm">
+            </div>
+            <div id="success-message"
+                class="hidden bg-green-50 border border-green-200 text-green-800 px-4 sm:px-6 py-3 sm:py-4 rounded-xl mb-6 sm:mb-8 font-medium text-sm">
+            </div>
+
+            <div class="grid lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-12">
+                <div class="lg:col-span-2">
+                    <form id="listing-form" class="card rounded-2xl shadow-lg p-4 sm:p-6 lg:p-8">
+                        <div
+                            class="mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-center p-3 sm:p-4 bg-orange-50 border border-orange-200 rounded-xl gap-3 sm:gap-4">
+                            <button type="button" id="autofill-btn"
+                                class="w-full sm:w-auto bundle-gradient text-white px-4 sm:px-6 py-3 rounded-lg hover:opacity-90 transition-opacity font-medium flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                                Fill Sample Data
+                            </button>
+                            <span class="text-sm text-orange-700 font-medium text-center sm:text-left">Click to see how
+                                it works with example data</span>
+                        </div>
+
+                        <div class="space-y-4 sm:space-y-6">
+                            <div class="input-group">
+                                <label class="block text-sm font-semibold text-gray-700 mb-3">Bundle Description <span
+                                        class="required-asterisk">*</span></label>
+                                <textarea id="raw_text" required rows="5"
+                                    placeholder="Describe your bundle - include all items, brands, features, condition details, etc. Be specific about what's included in this package."
+                                    class="input-field w-full px-3 sm:px-4 py-3 rounded-lg text-base resize-none"></textarea>
+                                <p class="text-sm text-gray-500 mt-3">💡 The more detail you provide about each item in
+                                    the bundle, the better our AI can optimize your listing for search and sales</p>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="input-group">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-3">Price (£) <span
+                                            class="required-asterisk">*</span></label>
+                                    <input type="number" id="price_value" step="0.01" min="0.01" required
+                                        placeholder="0.00"
+                                        class="input-field w-full px-3 sm:px-4 py-3 rounded-lg text-base">
+                                </div>
+                                <div class="input-group">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-3">Number of Items <span
+                                            class="required-asterisk">*</span></label>
+                                    <select id="bundle_quantity" required
+                                        class="input-field w-full px-3 sm:px-4 py-3 rounded-lg text-base">
+                                        <option value="">Select number of items...</option>
+                                        <option value="2" selected>2 different items</option>
+                                        <option value="3">3 different items</option>
+                                        <option value="4">4 different items</option>
+                                        <option value="5">5 different items</option>
+                                        <option value="6">6 different items</option>
+                                    </select>
+                                    <p class="text-sm text-gray-500 mt-2">Number of different items in this bundle</p>
+                                </div>
+                            </div>
+
+                            <div class="input-group">
+                                <label class="block text-sm font-semibold text-gray-700 mb-3">Quantity <span
+                                        class="required-asterisk">*</span></label>
+                                <input type="number" id="quantity" min="1" value="1" required
+                                    class="input-field w-full px-3 sm:px-4 py-3 rounded-lg text-base">
+                                <p class="text-sm text-gray-500 mt-2">Total quantity of bundles available for sale</p>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div class="input-group">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-3">Condition <span
+                                            class="required-asterisk">*</span></label>
+                                    <select id="condition" required
+                                        class="input-field w-full px-3 sm:px-4 py-3 rounded-lg text-base">
+                                        <option value="">Select condition...</option>
+                                        <option value="NEW" selected>New</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-3">Currency <span
+                                            class="required-asterisk">*</span></label>
+                                    <select id="currency" required
+                                        class="input-field w-full px-3 sm:px-4 py-3 rounded-lg text-base">
+                                        <option value="GBP" selected>GBP (£)</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-3">UK VAT Rate
+                                        (%)</label>
+                                    <select id="vat_rate"
+                                        class="input-field w-full px-3 sm:px-4 py-3 rounded-lg text-base">
+                                        <option value="0">0% (No VAT)</option>
+                                        <option value="5">5% (Reduced Rate)</option>
+                                        <option value="20" selected>20% (Standard Rate)</option>
+                                    </select>
+                                    <p class="text-sm text-gray-500 mt-2">UK VAT rate for this bundle</p>
+                                </div>
+                            </div>
+
+                            <div class="input-group">
+                                <label class="block text-sm font-semibold text-gray-700 mb-3">SKU (Optional)</label>
+                                <input type="text" id="sku" placeholder="Enter your bundle SKU"
+                                    class="input-field w-full px-3 sm:px-4 py-3 rounded-lg text-base">
+                                <p class="text-sm text-gray-500 mt-3">🏷️ Stock Keeping Unit - a unique identifier for
+                                    inventory tracking</p>
+                            </div>
+
+                            <div class="input-group">
+                                <label class="block text-sm font-semibold text-gray-700 mb-3">Bundle Images <span
+                                        class="required-asterisk">*</span></label>
+                                <div class="space-y-4">
+                                    <div class="flex flex-col sm:flex-row gap-3">
+                                        <label
+                                            class="upload-btn px-4 sm:px-6 py-3 rounded-lg font-semibold cursor-pointer text-center sm:text-left">
+                                            Upload Image
+                                            <input type="file" id="upload-image-input" accept="image/*" class="hidden">
+                                        </label>
+                                    </div>
+                                    <div id="images-container" class="space-y-2">
+                                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                            <input type="text" name="image_url" placeholder="Paste image URL for item 1"
+                                                class="input-field flex-1 px-3 sm:px-4 py-3 rounded-lg text-base">
+                                            <button type="button"
+                                                class="remove-image-btn px-3 py-2 sm:py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-bold text-lg min-h-[44px] hidden">−</button>
+                                            <button type="button"
+                                                class="add-image-btn px-3 py-2 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold text-lg min-h-[44px]">+</button>
+                                        </div>
+                                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                            <input type="text" name="image_url" placeholder="Paste image URL for item 2"
+                                                class="input-field flex-1 px-3 sm:px-4 py-3 rounded-lg text-base">
+                                            <button type="button"
+                                                class="remove-image-btn px-3 py-2 sm:py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-bold text-lg min-h-[44px] hidden">−</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-gray-500 mt-3">📸 <strong>Minimum <span
+                                            id="min-images-required">2</span> images required</strong> for bundle
+                                    listings (one per item). You can upload images or paste HTTPS URLs. Include images
+                                    of individual items and the complete bundle!</p>
+                            </div>
+
+                            <div class="flex items-center space-x-3 p-3 sm:p-4 bg-gray-50 rounded-lg">
+                                <input id="remove_background" type="checkbox"
+                                    class="w-5 h-5 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
+                                <label for="remove_background" class="text-sm font-semibold text-gray-700">Remove
+                                    background from images</label>
+                            </div>
+
+                            <div class="pt-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                                    <button type="button" id="preview-btn"
+                                        class="bg-orange-600 text-white py-4 px-6 rounded-xl text-lg font-semibold hover:bg-orange-700 transition-all disabled:bg-gray-400 disabled:cursor-not-allowed hover-lift order-2 md:order-1">Preview,
+                                        Edit & Publish</button>
+                                    <button type="submit" id="publish-btn"
+                                        class="w-full bundle-gradient text-white py-3 sm:py-4 px-4 sm:px-6 rounded-xl text-base sm:text-lg font-semibold hover:opacity-90 transition-opacity disabled:bg-gray-400 disabled:cursor-not-allowed hover-lift pulse-animation order-1 md:order-2">Publish
+                                        to eBay</button>
+                                </div>
+                                <p class="text-sm text-gray-500 text-center mt-3">💡 Use "Preview" to review and edit
+                                    your listing before publishing, or "Publish" to go live immediately</p>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="space-y-4 sm:space-y-6">
+                    <div class="card p-4 sm:p-6 rounded-2xl shadow-lg">
+                        <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center">
+                            <span class="text-xl sm:text-2xl mr-3">🎁</span>
+                            AI-Powered Bundle Listing
+                        </h3>
+                        <ul class="space-y-3">
+                            <li class="feature-item flex items-start">
+                                <div class="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                                <span class="text-sm text-gray-700">Automatic bundle value optimization</span>
+                            </li>
+                            <li class="feature-item flex items-start">
+                                <div class="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                                <span class="text-sm text-gray-700">SEO-optimized bundle titles</span>
+                            </li>
+                            <li class="feature-item flex items-start">
+                                <div class="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                                <span class="text-sm text-gray-700">Perfect category detection for bundles</span>
+                            </li>
+                            <li class="feature-item flex items-start">
+                                <div class="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                                <span class="text-sm text-gray-700">Professional bundle descriptions</span>
+                            </li>
+                            <li class="feature-item flex items-start">
+                                <div class="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                                <span class="text-sm text-gray-700">eBay bundle best practices</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="card p-4 sm:p-6 rounded-2xl shadow-lg">
+                        <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center">
+                            <span class="text-xl sm:text-2xl mr-3">💡</span>
+                            Tips for Better Bundle Sales
+                        </h3>
+                        <ul class="space-y-3">
+                            <li class="feature-item flex items-start">
+                                <div class="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                                <span class="text-sm text-gray-700">Show clear value proposition</span>
+                            </li>
+                            <li class="feature-item flex items-start">
+                                <div class="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                                <span class="text-sm text-gray-700">Include savings vs individual items</span>
+                            </li>
+                            <li class="feature-item flex items-start">
+                                <div class="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                                <span class="text-sm text-gray-700">List all included items clearly</span>
+                            </li>
+                            <li class="feature-item flex items-start">
+                                <div class="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                                <span class="text-sm text-gray-700">Use images showing the complete bundle</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div id="ai-status" class="hidden ai-status max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 sm:mt-8">
+                <div class="flex items-center mb-4 sm:mb-6">
+                    <div
+                        class="animate-spin rounded-full h-6 sm:h-8 w-6 sm:w-8 border-b-2 border-orange-600 mr-3 sm:mr-4">
+                    </div>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-semibold text-orange-900">AI Processing Your Bundle Listing
+                        </h3>
+                        <p id="ai-status-text" class="text-orange-700 mt-1 text-sm sm:text-base">Analyzing your bundle
+                            description...</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-full h-2 sm:h-3 overflow-hidden">
+                    <div id="ai-progress" class="ai-progress h-2 sm:h-3 rounded-full transition-all duration-500"
+                        style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-gray-900 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+                <div class="space-y-4 sm:col-span-2 lg:col-span-1">
+                    <h3 class="text-xl sm:text-2xl font-bold">ListFast.ai</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        Streamline your eBay listings with AI-powered tools for image enhancement, single items,
+                        multipacks, and bundles.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="text-base sm:text-lg font-semibold mb-4">Quick Links</h4>
+                    <ul class="space-y-2 text-gray-400 text-sm">
+                        <li><a href="/" class="hover:text-white transition-colors">Home</a></li>
+                        <li><a href="/services/" class="hover:text-white transition-colors">Services</a></li>
+                        <li><a href="/display-profile/" class="hover:text-white transition-colors">Profile</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-base sm:text-lg font-semibold mb-4">Support</h4>
+                    <ul class="space-y-2 text-gray-400 text-sm">
+                        <li><a href="#" class="hover:text-white transition-colors">Help Center</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Contact Us</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">FAQ</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Terms & Conditions</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-base sm:text-lg font-semibold mb-4">Stay Updated</h4>
+                    <p class="text-gray-400 text-sm mb-4">Subscribe to our newsletter for the latest updates and offers.
+                    </p>
+                    <form class="flex flex-col sm:flex-row gap-2">
+                        <input type="email" placeholder="Enter your email"
+                            class="flex-1 px-4 py-2 rounded-lg bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                        <button type="submit"
+                            class="hero-gradient px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity text-sm">Subscribe</button>
+                    </form>
+                </div>
+            </div>
+            <div
+                class="mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                <div class="flex space-x-4">
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path
+                                d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.15z">
+                            </path>
+                        </svg>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path
+                                d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-2.596 0-4.194 1.722-4.194 4.6v3.4z">
+                            </path>
+                        </svg>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.9 3.9 0 0 0-1.417.923A3.9 3.9 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444.048 3.297.04.852.174 1.433.372 1.942.205.526.478.972.923 1.417.444.445.89.719 1.416.923.51.198 1.09.333 1.942.372C5.555 15.99 5.827 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.9 3.9 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.197-.509.332-1.09.372-1.942C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.851-.175-1.433-.372-1.941a3.9 3.9 0 0 0-.923-1.417A3.9 3.9 0 0 0 13.24.42c-.51-.198-1.092-.333-1.943-.372C10.443.01 10.172 0 7.998 0zm-.717 1.442h.718c2.136 0 2.389.007 3.232.046.78.035 1.204.166 1.486.275.373.145.64.319.92.599s.453.546.598.92c.11.281.24.705.275 1.485.039.843.047 1.096.047 3.231s-.008 2.389-.047 3.232c-.035.78-.166 1.203-.275 1.485a2.5 2.5 0 0 1-.599.919c-.28.28-.546.453-.92.598-.28.11-.704.24-1.485.276-.843.038-1.096.047-3.232.047s-2.39-.009-3.233-.047c-.78-.036-1.203-.166-1.485-.276a2.5 2.5 0 0 1-.92-.598 2.5 2.5 0 0 1-.6-.92c-.109-.281-.24-.705-.275-1.485-.038-.843-.046-1.096-.046-3.233s.008-2.388.046-3.231c.036-.78.166-1.204.276-1.486.145-.373.319-.64.599-.92s.546-.453.92-.598c.282-.11.705-.24 1.485-.276.738-.034 1.024-.044 2.515-.045zm4.988 1.328a.96.96 0 1 0 0 1.92.96.96 0 0 0 0-1.92m-4.27 1.122a4.109 4.109 0 1 0 0 8.217 4.109 4.109 0 1 0 0-8.217m0 1.441a2.667 2.667 0 1 1 0 5.334 2.667 2.667 0 1 1 0-5.334">
+                            </path>
+                        </svg>
+                    </a>
+                </div>
+                <p class="text-gray-400 text-sm">&copy; 2025 ListFast.ai. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const aiStatusEl = document.getElementById('ai-status');
+        const aiStatusTextEl = document.getElementById('ai-status-text');
+        const aiProgressEl = document.getElementById('ai-progress');
+
+        function showAIStatus(message, progress = 0) {
+            aiStatusEl.classList.remove('hidden');
+            aiStatusTextEl.textContent = message;
+            aiProgressEl.style.width = `${progress}%`;
+        }
+
+        function hideAIStatus() {
+            aiStatusEl.classList.add('hidden');
+            aiProgressEl.style.width = '0%';
+        }
+
+        function updateAIProgress(message, progress) {
+            aiStatusTextEl.textContent = message;
+            aiProgressEl.style.width = `${progress}%`;
+        }
+
+        function openImageModal(imageUrl) {
+            document.getElementById('modal-image').src = imageUrl;
+            document.getElementById('image-modal').classList.remove('hidden');
+        }
+
+        function closeImageModal() {
+            document.getElementById('image-modal').classList.add('hidden');
+        }
+
+        document.getElementById('image-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'image-modal') {
+                closeImageModal();
+            }
+        });
+
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch('/auth-status');
+                const data = await response.json();
+                if (!data.is_logged_in) {
+                    window.location.href = '/login/';
+                    return;
+                } else if (!data.has_profile) {
+                    window.location.href = '/display-profile/';
+                    return;
+                } else if (!data.has_ebay_auth) {
+                    window.location.href = '/ebay-auth/';
+                    return;
+                }
+                document.getElementById('user-email').textContent = data.email;
+                document.getElementById('mobile-user-email').textContent = data.email;
+                try {
+                    const profileResponse = await fetch('/fetch-address-imageprofile/');
+                    const profileData = await profileResponse.json();
+                    if (profileResponse.ok && profileData.profile_pic_url) {
+                        document.getElementById('user-profile-pic').src = profileData.profile_pic_url;
+                        document.getElementById('mobile-user-profile-pic').src = profileData.profile_pic_url;
+                    }
+                } catch (error) {
+                    console.error('Error loading profile image:', error);
+                }
+            } catch (error) {
+                window.location.href = '/login/';
+            }
+        });
+
+        const hamburgerBtn = document.getElementById('hamburger-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const profileDropdownBtn = document.getElementById('profile-dropdown-btn');
+        const profileDropdown = document.getElementById('profile-dropdown');
+
+        hamburgerBtn.addEventListener('click', () => {
+            hamburgerBtn.classList.toggle('open');
+            mobileMenu.classList.toggle('active');
+        });
+
+        profileDropdownBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            profileDropdown.classList.toggle('active');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!profileDropdown.contains(e.target) && !profileDropdownBtn.contains(e.target)) {
+                profileDropdown.classList.remove('active');
+            }
+        });
+
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            try {
+                const getCookie = (name) => {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                };
+                const csrftoken = getCookie('csrftoken');
+                await fetch('/logout/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrftoken }
+                });
+                window.location.href = '/index/';
+            } catch (error) {
+                console.error('Logout failed:', error);
+            }
+        });
+
+        document.getElementById('mobile-logout-btn').addEventListener('click', async () => {
+            try {
+                const getCookie = (name) => {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                };
+                const csrftoken = getCookie('csrftoken');
+                await fetch('/logout/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrftoken }
+                });
+                window.location.href = '/index/';
+            } catch (error) {
+                console.error('Logout failed:', error);
+            }
+        });
+
+        const imagesContainer = document.getElementById('images-container');
+        const bundleQuantitySelect = document.getElementById('bundle_quantity');
+
+        function updateImageFields(count) {
+            // Clear existing fields
+            imagesContainer.innerHTML = '';
+            // Create new fields based on count
+            for (let i = 0; i < count; i++) {
+                const newRow = document.createElement('div');
+                newRow.className = 'flex flex-col sm:flex-row items-stretch sm:items-center gap-2';
+
+                const newInput = document.createElement('input');
+                newInput.type = 'text';
+                newInput.name = 'image_url';
+                newInput.placeholder = `Paste image URL for item ${i + 1}`;
+                newInput.className = 'input-field flex-1 px-3 sm:px-4 py-3 rounded-lg text-base';
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'remove-image-btn px-3 py-2 sm:py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-bold text-lg min-h-[44px]';
+                removeBtn.textContent = '−';
+                removeBtn.addEventListener('click', () => {
+                    newRow.remove();
+                    updateImageButtons();
+                });
+
+                const addBtn = document.createElement('button');
+                addBtn.type = 'button';
+                addBtn.className = 'add-image-btn px-3 py-2 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold text-lg min-h-[44px] hidden';
+                addBtn.textContent = '+';
+                addBtn.addEventListener('click', () => {
+                    addImageField();
+                });
+
+                newRow.appendChild(newInput);
+                newRow.appendChild(removeBtn);
+                newRow.appendChild(addBtn);
+                imagesContainer.appendChild(newRow);
+            }
+            // Update the minimum images required text
+            document.getElementById('min-images-required').textContent = count;
+            updateImageButtons();
+        }
+
+        function addImageField() {
+            const newRow = document.createElement('div');
+            newRow.className = 'flex flex-col sm:flex-row items-stretch sm:items-center gap-2';
+
+            const newInput = document.createElement('input');
+            newInput.type = 'text';
+            newInput.name = 'image_url';
+            newInput.placeholder = `Paste image URL for additional item`;
+            newInput.className = 'input-field flex-1 px-3 sm:px-4 py-3 rounded-lg text-base';
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'remove-image-btn px-3 py-2 sm:py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-bold text-lg min-h-[44px]';
+            removeBtn.textContent = '−';
+            removeBtn.addEventListener('click', () => {
+                newRow.remove();
+                updateImageButtons();
+            });
+
+            const addBtn = document.createElement('button');
+            addBtn.type = 'button';
+            addBtn.className = 'add-image-btn px-3 py-2 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold text-lg min-h-[44px]';
+            addBtn.textContent = '+';
+            addBtn.addEventListener('click', () => {
+                addImageField();
+            });
+
+            newRow.appendChild(newInput);
+            newRow.appendChild(removeBtn);
+            newRow.appendChild(addBtn);
+            imagesContainer.appendChild(newRow);
+            updateImageButtons();
+        }
+
+        function updateImageButtons() {
+            const imageRows = imagesContainer.querySelectorAll('.flex');
+            const bundleQuantity = parseInt(bundleQuantitySelect.value) || 2;
+
+            imageRows.forEach((row, index) => {
+                const removeBtn = row.querySelector('.remove-image-btn');
+                const addBtn = row.querySelector('.add-image-btn');
+
+                // Show remove button only if number of fields exceeds required
+                removeBtn.classList.toggle('hidden', imageRows.length <= bundleQuantity);
+
+                // Show add button only on the last row
+                addBtn.classList.toggle('hidden', index !== imageRows.length - 1);
+            });
+        }
+
+        // Initialize with 2 fields (default)
+        updateImageFields(2);
+
+        // Update fields when bundle quantity changes
+        bundleQuantitySelect.addEventListener('change', () => {
+            const bundleQuantity = parseInt(bundleQuantitySelect.value) || 2;
+            updateImageFields(bundleQuantity);
+        });
+
+        const uploadImageInput = document.getElementById('upload-image-input');
+
+        async function uploadFile(fileInput) {
+            if (!fileInput.files || fileInput.files.length === 0) {
+                document.getElementById('error-message').textContent = 'No image file selected';
+                document.getElementById('error-message').classList.remove('hidden');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            if (!file.type.startsWith('image/')) {
+                document.getElementById('error-message').textContent = 'Please select an image file';
+                document.getElementById('error-message').classList.remove('hidden');
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                document.getElementById('error-message').textContent = 'Image file size must be less than 10MB';
+                document.getElementById('error-message').classList.remove('hidden');
+                return;
+            }
+
+            const uploadBtn = uploadImageInput.previousElementSibling;
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Uploading Image...';
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            try {
+                const getCookie = (name) => {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                };
+                const csrftoken = getCookie('csrftoken');
+
+                const response = await fetch('/upload-profile-image/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrftoken },
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (response.ok && data.status === 'success') {
+                    const inputs = imagesContainer.querySelectorAll('input[name="image_url"]');
+                    let emptyInput = null;
+                    for (let input of inputs) {
+                        if (!input.value.trim()) {
+                            emptyInput = input;
+                            break;
+                        }
+                    }
+
+                    if (emptyInput) {
+                        emptyInput.value = data.image_url;
+                    } else {
+                        addImageField();
+                        const newInputs = imagesContainer.querySelectorAll('input[name="image_url"]');
+                        newInputs[newInputs.length - 1].value = data.image_url;
+                    }
+
+                    document.getElementById('success-message').textContent = 'Image uploaded successfully!';
+                    document.getElementById('success-message').classList.remove('hidden');
+                    document.getElementById('error-message').classList.add('hidden');
+                } else {
+                    document.getElementById('error-message').textContent = `Image upload failed: ${data.error || 'Unknown error'}`;
+                    document.getElementById('error-message').classList.remove('hidden');
+                }
+            } catch (err) {
+                document.getElementById('error-message').textContent = `Error uploading image: ${err.message}`;
+                document.getElementById('error-message').classList.remove('hidden');
+            }
+
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = 'Upload Image';
+            fileInput.value = '';
+        }
+
+        uploadImageInput.addEventListener('change', () => uploadFile(uploadImageInput));
+
+        document.getElementById('autofill-btn').addEventListener('click', () => {
+            document.getElementById('raw_text').value = "Gaming Bundle - Premium Wireless Gaming Mouse, Mechanical Keyboard, and RGB Gaming Mousepad. High-quality gaming peripherals perfect for PC gaming setup. Mouse features 16000 DPI precision sensor, keyboard has blue mechanical switches, and mousepad has RGB lighting. All items are new and work perfectly together.";
+            document.getElementById('price_value').value = "89.99";
+            document.getElementById('bundle_quantity').value = "3";
+            document.getElementById('quantity').value = "5";
+            document.getElementById('condition').value = "NEW";
+            document.getElementById('vat_rate').value = "20";
+            document.getElementById('sku').value = "BUNDLE-GAMING-001";
+            document.getElementById('remove_background').checked = true;
+
+            const sampleImages = [
+                "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400",
+                "https://images.unsplash.com/photo-1595044426077-d36d9236d54a?w=400",
+                "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400",
+                "https://images.unsplash.com/photo-1516321310762-479e93c6d5a0?w=400",
+                "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=400",
+                "https://images.unsplash.com/photo-1504198266287-8ae7b9366a7e?w=400"
+            ];
+
+            // Update image fields based on bundle_quantity
+            const bundleQuantity = parseInt(document.getElementById('bundle_quantity').value) || 2;
+            updateImageFields(bundleQuantity);
+
+            // Populate image inputs
+            const imageInputs = imagesContainer.querySelectorAll('input[name="image_url"]');
+            imageInputs.forEach((input, index) => {
+                if (sampleImages[index]) {
+                    input.value = sampleImages[index];
+                }
+            });
+
+            document.getElementById('min-images-required').textContent = bundleQuantity;
+            document.getElementById('error-message').classList.add('hidden');
+            document.getElementById('success-message').classList.add('hidden');
+
+            const form = document.getElementById('listing-form');
+            form.style.transform = 'scale(1.01)';
+            form.style.transition = 'transform 0.2s ease';
+            setTimeout(() => {
+                form.style.transform = 'scale(1)';
+            }, 200);
+        });
+
+        function collectImages() {
+            const inputs = imagesContainer.querySelectorAll('input[name="image_url"]');
+            const images = [];
+            inputs.forEach(input => {
+                const val = input.value.trim();
+                if (val && val.startsWith('https://')) {
+                    images.push(val);
+                }
+            });
+            return images;
+        }
+
+        function validateMinimumImages() {
+            const images = collectImages();
+            const bundleQuantity = parseInt(document.getElementById('bundle_quantity').value) || 2;
+            if (images.length < bundleQuantity) {
+                document.getElementById('error-message').textContent = `Bundle listings require a minimum of ${bundleQuantity} images. Please add more images.`;
+                document.getElementById('error-message').classList.remove('hidden');
+                document.getElementById('success-message').classList.add('hidden');
+                return false;
+            }
+            return true;
+        }
+
+        async function submitToItemEndpoint(formData, button, action) {
+            if (!validateMinimumImages()) {
+                return;
+            }
+
+            button.disabled = true;
+            button.textContent = action === 'preview' ? 'Generating Preview...' : 'Publishing...';
+
+            document.getElementById('error-message').classList.add('hidden');
+            document.getElementById('success-message').classList.add('hidden');
+
+            if (action === 'preview') {
+                document.getElementById('preview-error').classList.add('hidden');
+                document.getElementById('preview-success').classList.add('hidden');
+            }
+
+            showAIStatus(`🤖 ${action === 'preview' ? 'Generating preview...' : 'Analyzing bundle description...'}`, 10);
+            setTimeout(() => updateAIProgress('🔍 Extracting keywords and metadata...', 25), 500);
+            setTimeout(() => updateAIProgress('📂 Finding optimal eBay category...', 50), 1500);
+            setTimeout(() => updateAIProgress('📋 Filling bundle specifications...', 75), 2500);
+            setTimeout(() => updateAIProgress('✍️ Generating marketing description...', 90), 3500);
+
+            try {
+                const getCookie = (name) => {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                };
+                const csrftoken = getCookie('csrftoken');
+
+                formData.action = action;
+
+                const response = await fetch('/bundle-listing/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    },
+                    body: JSON.stringify(formData),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    updateAIProgress(`✅ ${action === 'preview' ? 'Preview Generated!' : 'Published to eBay!'}`, 100);
+                    if (action === 'preview') {
+                        setTimeout(() => {
+                            hideAIStatus();
+                            displayPreview(data);
+                            document.getElementById('preview-modal').classList.remove('hidden');
+                        }, 1000);
+                    } else {
+                        setTimeout(() => {
+                            hideAIStatus();
+                            localStorage.setItem('listing-success', JSON.stringify(data));
+                            window.location.href = '/success/';
+                        }, 1000);
+                    }
+                } else {
+                    hideAIStatus();
+                    const errorEl = action === 'preview' ? document.getElementById('preview-error') : document.getElementById('error-message');
+                    errorEl.textContent = data.error || `Failed to ${action} listing`;
+                    errorEl.classList.remove('hidden');
+                }
+            } catch (error) {
+                hideAIStatus();
+                const errorEl = action === 'preview' ? document.getElementById('preview-error') : document.getElementById('error-message');
+                errorEl.textContent = 'Network error. Please try again.';
+                errorEl.classList.remove('hidden');
+            }
+
+            button.disabled = false;
+            button.textContent = action === 'preview' ? 'Preview, Edit & Publish' : 'Publish to eBay';
+        }
+
+        function displayPreview(data) {
+            document.getElementById('preview-title').value = data.title || '';
+            document.getElementById('preview-description').value = data.description.text || '';
+
+            const aspectsContainer = document.getElementById('preview-aspects');
+            aspectsContainer.innerHTML = '';
+            const singleValueAspects = data.single_value_aspects || [];
+
+            Object.entries(data.aspects || {}).forEach(([key, values]) => {
+                const aspectDiv = document.createElement('div');
+                const isSingleValue = singleValueAspects.includes(key) || values.length === 1;
+                const inputValue = isSingleValue ? values[0] : values.join(', ');
+
+                aspectDiv.innerHTML = `
+                    <label class="block text-sm font-medium text-gray-700 mb-2">${key}</label>
+                    <input type="text" value="${inputValue}" data-aspect="${key}" data-single-value="${isSingleValue}" class="input-field w-full px-3 sm:px-4 py-3 rounded-lg mb-2">
+                    ${isSingleValue ? '<p class="text-sm text-gray-500">Enter a single value for this aspect</p>' : '<p class="text-sm text-gray-500">Enter multiple values separated by commas</p>'}
+                `;
+                aspectsContainer.appendChild(aspectDiv);
+            });
+
+            const currencySymbols = { GBP: '£', USD: '$', EUR: '€' };
+            document.getElementById('preview-price-currency').textContent =
+                `${currencySymbols[data.price?.currency] || data.price?.currency || 'GBP'} ${data.price?.value || '0.00'} ${data.price?.currency || 'GBP'}`;
+            document.getElementById('preview-bundle-quantity').textContent = data.bundle_quantity || '1';
+            document.getElementById('preview-quantity').value = data.quantity || '1';
+            document.getElementById('preview-condition').textContent = data.condition || 'NEW';
+
+            const imagesContainer = document.getElementById('preview-images');
+            imagesContainer.innerHTML = '';
+            (data.images || []).forEach((url, index) => {
+                const imgDiv = document.createElement('div');
+                imgDiv.className = 'relative group';
+                imgDiv.innerHTML = `
+                    <img src="${url}" alt="Bundle Image ${index + 1}" class="w-full h-24 sm:h-32 object-cover rounded-lg border-2 border-gray-200 hover:border-orange-400 transition-colors cursor-pointer" onclick="openImageModal('${url}')" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMiA5VjEzTTEyIDE3SDE2TTggMTdIMTJNOCAxM0gxMk04IDlIMTZNNCAxN1Y3QTIgMiAwIDAgMSA2IDVIMThBMiAyIDAgMCAxIDIwIDdWMTdBMiAyIDAgMCAxIDE4IDE5SDZBMiAyIDAgMCAxIDQgMTdaIiBzdHJva2U9IiM2QjczODAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+Cjwvc3ZnPgo='; this.className += ' opacity-50'">
+                    <div class="absolute top-1 sm:top-2 left-1 sm:left-2 bg-black bg-opacity-50 text-white text-xs px-1 sm:px-2 py-1 rounded">${index + 1}</div>
+                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded-lg flex items-center justify-center">
+                        <svg class="w-6 sm:w-8 h-6 sm:h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                `;
+                imagesContainer.appendChild(imgDiv);
+            });
+
+            document.getElementById('preview-form').dataset.preview = JSON.stringify(data);
+        }
+
+        document.getElementById('listing-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!validateMinimumImages()) {
+                return;
+            }
+
+            const images = collectImages();
+
+            const formData = {
+                raw_text: document.getElementById('raw_text').value.trim(),
+                price: {
+                    value: parseFloat(document.getElementById('price_value').value),
+                    currency: document.getElementById('currency').value
+                },
+                bundle_quantity: parseInt(document.getElementById('bundle_quantity').value),
+                quantity: parseInt(document.getElementById('quantity').value),
+                condition: document.getElementById('condition').value,
+                vat_rate: parseFloat(document.getElementById('vat_rate').value),
+                sku: document.getElementById('sku').value.trim() || null,
+                remove_background: document.getElementById('remove_background').checked,
+                images: images,
+                action: 'publish'
+            };
+
+            const button = document.getElementById('publish-btn');
+            await submitToItemEndpoint(formData, button, 'publish');
+        });
+
+        document.getElementById('preview-btn').addEventListener('click', async () => {
+            if (!validateMinimumImages()) {
+                return;
+            }
+
+            const images = collectImages();
+
+            const formData = {
+                raw_text: document.getElementById('raw_text').value.trim(),
+                price: {
+                    value: parseFloat(document.getElementById('price_value').value),
+                    currency: document.getElementById('currency').value
+                },
+                bundle_quantity: parseInt(document.getElementById('bundle_quantity').value),
+                quantity: parseInt(document.getElementById('quantity').value),
+                condition: document.getElementById('condition').value,
+                vat_rate: parseFloat(document.getElementById('vat_rate').value),
+                sku: document.getElementById('sku').value.trim() || null,
+                remove_background: document.getElementById('remove_background').checked,
+                images: images,
+                action: 'preview'
+            };
+
+            const button = document.getElementById('preview-btn');
+            await submitToItemEndpoint(formData, button, 'preview');
+        });
+
+        document.getElementById('preview-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const previewData = JSON.parse(document.getElementById('preview-form').dataset.preview || '{}');
+            const button = document.getElementById('preview-form').querySelector('button[type="submit"]');
+            button.disabled = true;
+            button.textContent = 'Publishing...';
+
+            previewData.title = document.getElementById('preview-title').value.trim();
+            previewData.description.text = document.getElementById('preview-description').value.trim();
+            previewData.quantity = parseInt(document.getElementById('preview-quantity').value);
+
+            try {
+                const formattedDescription = await formatDescriptionWithLLM(previewData.description.text);
+                previewData.description.html = formattedDescription.html;
+                previewData.description.used_html = true;
+            } catch (error) {
+                console.error("Failed to format description:", error);
+                const editedText = previewData.description.text;
+                previewData.description.html = editedText
+                    .split('\n\n')
+                    .filter(p => p.trim())
+                    .map(p => `<p>${p.trim().replace(/\n/g, '<br>')}</p>`)
+                    .join('');
+                previewData.description.used_html = true;
+            }
+
+            const aspectsInputs = document.getElementById('preview-aspects').querySelectorAll('input[data-aspect]');
+            const updatedAspects = {};
+            aspectsInputs.forEach(input => {
+                const key = input.dataset.aspect;
+                const isSingleValue = input.dataset.singleValue === 'true';
+                const value = input.value.trim();
+                updatedAspects[key] = isSingleValue ? [value] : value.split(',').map(v => v.trim()).filter(v => v);
+            });
+            previewData.aspects = updatedAspects;
+
+            try {
+                const getCookie = (name) => {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                };
+                const csrftoken = getCookie('csrftoken');
+
+                previewData.action = 'publish';
+
+                const response = await fetch('/bundle-listing/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    },
+                    body: JSON.stringify(previewData),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('preview-success').textContent = 'Successfully published to eBay!';
+                    document.getElementById('preview-success').classList.remove('hidden');
+                    document.getElementById('preview-error').classList.add('hidden');
+                    setTimeout(() => {
+                        localStorage.setItem('listing-success', JSON.stringify(data));
+                        window.location.href = '/success/';
+                    }, 1000);
+                } else {
+                    document.getElementById('preview-error').textContent = data.error || 'Failed to publish listing';
+                    document.getElementById('preview-error').classList.remove('hidden');
+                    document.getElementById('preview-success').classList.add('hidden');
+                }
+            } catch (error) {
+                document.getElementById('preview-error').textContent = 'Network error. Please try again.';
+                document.getElementById('preview-error').classList.remove('hidden');
+                document.getElementById('preview-success').classList.add('hidden');
+            }
+
+            button.disabled = false;
+            button.textContent = 'Publish to eBay';
+        });
+
+        document.getElementById('close-preview').addEventListener('click', () => {
+            document.getElementById('preview-modal').classList.add('hidden');
+            hideAIStatus();
+        });
+
+        document.getElementById('cancel-preview').addEventListener('click', () => {
+            document.getElementById('preview-modal').classList.add('hidden');
+            hideAIStatus();
+        });
+
+        async function formatDescriptionWithLLM(description) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    const paragraphs = description.split('\n\n').filter(p => p.trim());
+                    const html = paragraphs.map(p => `<p>${p.trim().replace(/\n/g, '<br>')}</p>`).join('');
+                    resolve({ html, used_html: true });
+                }, 500);
+            });
+        }
+    </script>
+</body>
+
+</html>

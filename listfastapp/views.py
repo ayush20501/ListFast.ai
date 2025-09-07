@@ -1004,7 +1004,20 @@ class FormatDescriptionView(APIView):
         except Exception as e:
             return Response({"error": f"Failed to format description: {str(e)}"}, status=500)
 
+def upload_to_imgbb(image_path: str) -> str:
+    if not IMGBB_API_KEY:
+        raise RuntimeError("IMGBB_API_KEY is not set in the environment")
+    with open(image_path, "rb") as file:
+        files = {"image": (os.path.basename(image_path), file, "image/jpeg")}
+        params = {"key": IMGBB_API_KEY}
+        resp = requests.post("https://api.imgbb.com/1/upload", files=files, params=params, timeout=60)
+    if resp.status_code != 200 or not resp.json().get("data", {}).get("url"):
+        raise RuntimeError(f"ImgBB upload failed: {resp.status_code} {resp.text[:200]}")
+    return resp.json()["data"]["url"]
+
 ImageFile.LOAD_TRUNCATED_IMAGES = True
+
+# --------------------------------------------------------------Enhance Image--------------------------------------------------------------
 
 def download_rgba(url: str) -> Image.Image:
     r = requests.get(url, timeout=20)
@@ -1154,6 +1167,57 @@ class EnhanceImageView(APIView):
         except Exception as e:
             return Response({"error": f"Unexpected server error: {str(e)}"}, status=500)
 
+# --------------------------------------------------------------Item View--------------------------------------------------------------
+
+def fetch_image(url: str) -> Image.Image:
+    r = requests.get(url, timeout=20)
+    r.raise_for_status()
+    return Image.open(io.BytesIO(r.content)).convert("RGBA")
+
+def strip_background(img: Image.Image) -> Image.Image:
+    if not REMBG_API_KEY:
+        raise RuntimeError("REMBG_API_KEY is not set in the environment")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    headers = {"x-api-key": REMBG_API_KEY}
+    files = {"image": ("image.png", buf, "image/png")}
+    resp = requests.post(REMBG_API_URL, headers=headers, files=files, timeout=60)
+    if resp.status_code != 200 or not resp.content:
+        raise RuntimeError(f"rembg API error: {resp.status_code} {resp.text[:200]}")
+    return Image.open(io.BytesIO(resp.content)).convert("RGBA")
+
+def safe_strip_background(img: Image.Image) -> Image.Image:
+    try:
+        cut = strip_background(img)
+        white = Image.new("RGBA", cut.size, (255, 255, 255, 255))
+        return Image.alpha_composite(white, cut)
+    except Exception as e:
+        print(f"[rembg] background removal failed, using original image: {e}")
+        return img
+
+def resize_to_fit(img: Image.Image, box_w: int, box_h: int, margin_ratio: float = 0.94) -> Image.Image:
+    target_w = int(box_w * margin_ratio)
+    target_h = int(box_h * margin_ratio)
+    w, h = img.size
+    scale = min(target_w / w, target_h / h)
+    return img.resize((max(1, int(w * scale)), max(1, int(h * scale))), Image.LANCZOS)
+
+def create_single_image(image_url: str, output_path: str = "single_item.jpg", output_size: int = 1600, padding: int = 28, do_remove_bg: bool = True, margin_ratio: float = 0.94):
+    unit = fetch_image(image_url)
+    if do_remove_bg:
+        unit = safe_strip_background(unit)
+    S = int(output_size)
+    canvas = Image.new("RGBA", (S, S), (255, 255, 255, 255))
+    cell_size = S - 2 * padding
+    tile = resize_to_fit(unit, cell_size, cell_size, margin_ratio=margin_ratio)
+    dx = (S - tile.size[0]) // 2
+    dy = (S - tile.size[1]) // 2
+    canvas.paste(tile, (dx, dy), tile if tile.mode == "RGBA" else None)
+    print(f"[*] Saving -> {output_path}")
+    canvas.convert("RGB").save(output_path, quality=95, optimize=True, subsampling=2)
+    return output_path
+
 class ItemView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1207,14 +1271,9 @@ class ItemView(APIView):
                 return Response({"error": "Raw text or images required"}, status=status.HTTP_400_BAD_REQUEST)
 
             try:
-                output_path = f"media/multipack_{uuid.uuid4().hex}.jpg"
+                output_path = f"media/single_{uuid.uuid4().hex}.jpg"
                 os.makedirs("media", exist_ok=True)
-                compose_multipack(
-                        image_url=images[0],
-                        pack_size=1,
-                        output_path=output_path,
-                        do_remove_bg=remove_background
-                    )
+                create_single_image(image_url=images[0], pack_size=1, output_path=output_path, do_remove_bg=remove_background)
                 processed_image_url = upload_to_imgbb(output_path)
                 images[0] = processed_image_url
                 os.remove(output_path)
@@ -1463,6 +1522,8 @@ class ItemView(APIView):
             return Response({"error": f"Unexpected error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+# --------------------------------------------------------------Multipack View--------------------------------------------------------------
+
 def _gen_sku_multi(prefix="MULTI"):
     ts = str(int(time.time() * 1000))
     unique_id = str(uuid.uuid4())[:8].upper()
@@ -1518,16 +1579,8 @@ def grid_spec(pack_size: int):
         cells = [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2)]
     return rows, cols, cells
 
-def compose_multipack(
-    image_url: str,
-    pack_size: int = 4,
-    output_path: str = "multipack.jpg",
-    output_size: int = 1600,
-    padding: int = 28,
-    do_remove_bg: bool = True,
-    margin_ratio: float = 0.94
-):
-    # assert 2 <= pack_size <= 6, "pack_size must be between 2 and 6"
+def compose_multipack(image_url: str, pack_size: int = 4, output_path: str = "multipack.jpg", output_size: int = 1600, padding: int = 28, do_remove_bg: bool = True, margin_ratio: float = 0.94):
+    assert 2 <= pack_size <= 6, "pack_size must be between 2 and 6"
     unit = download_rgba(image_url)
     if do_remove_bg:
         unit = safe_remove_bg(unit)
@@ -1553,16 +1606,6 @@ def compose_multipack(
     canvas.convert("RGB").save(output_path, quality=95, optimize=True, subsampling=2)
     return output_path
 
-def upload_to_imgbb(image_path: str) -> str:
-    if not IMGBB_API_KEY:
-        raise RuntimeError("IMGBB_API_KEY is not set in the environment")
-    with open(image_path, "rb") as file:
-        files = {"image": (os.path.basename(image_path), file, "image/jpeg")}
-        params = {"key": IMGBB_API_KEY}
-        resp = requests.post("https://api.imgbb.com/1/upload", files=files, params=params, timeout=60)
-    if resp.status_code != 200 or not resp.json().get("data", {}).get("url"):
-        raise RuntimeError(f"ImgBB upload failed: {resp.status_code} {resp.text[:200]}")
-    return resp.json()["data"]["url"]
 
 class MultipackListingView(APIView):
     permission_classes = [IsAuthenticated]
@@ -1869,6 +1912,433 @@ class MultipackListingView(APIView):
                 "title": title,
                 "aspects": aspects,
                 "vat_rate": vat_rate,
+            })
+        except requests.exceptions.RequestException as e:
+            return Response({"error": f"Network error with eBay: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except RuntimeError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": f"Unexpected error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# --------------------------------------------------------------Bundle View--------------------------------------------------------------
+
+class BundleItemListingView(View):
+    def get(self, request):
+        return render(request, 'bundle-listing.html')
+
+
+def fetch_image_rgba(url: str) -> Image.Image:
+    r = requests.get(url, timeout=20)
+    r.raise_for_status()
+    return Image.open(io.BytesIO(r.content)).convert("RGBA")
+
+
+def remove_bg_api(img: Image.Image) -> Image.Image:
+    if not REMBG_API_KEY:
+        raise RuntimeError("REMBG_API_KEY is not set in the environment")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    headers = {"x-api-key": REMBG_API_KEY}
+    files = {"image": ("image.png", buf, "image/png")}
+    resp = requests.post(REMBG_API_URL, headers=headers, files=files, timeout=60)
+    if resp.status_code != 200 or not resp.content:
+        raise RuntimeError(f"rembg API error: {resp.status_code} {resp.text[:200]}")
+    return Image.open(io.BytesIO(resp.content)).convert("RGBA")
+
+
+def remove_bg_safe(img: Image.Image) -> Image.Image:
+    try:
+        cut = remove_bg_api(img)
+        white = Image.new("RGBA", cut.size, (255, 255, 255, 255))
+        return Image.alpha_composite(white, cut)
+    except Exception as e:
+        print(f"[rembg] background removal failed, using original image: {e}")
+        return img
+
+
+def resize_to_fit(img: Image.Image, box_w: int, box_h: int, margin_ratio: float = 0.94) -> Image.Image:
+    target_w = int(box_w * margin_ratio)
+    target_h = int(box_h * margin_ratio)
+    w, h = img.size
+    scale = min(target_w / w, target_h / h)
+    return img.resize((max(1, int(w * scale)), max(1, int(h * scale))), Image.LANCZOS)
+
+
+def make_grid_layout(n: int) -> tuple[int, int, list[tuple[float, float]]]:
+    n = max(2, min(6, int(n)))
+    if n == 2:
+        rows, cols = 1, 2
+        cells = [(0, 0.0), (0, 1.0)]
+    elif n == 3:
+        rows, cols = 1, 3
+        cells = [(0, 0.0), (0, 1.0), (0, 2.0)]
+    elif n == 4:
+        rows, cols = 2, 2
+        cells = [(0, 0.0), (0, 1.0), (1, 0.0), (1, 1.0)]
+    elif n == 5:
+        rows, cols = 2, 3
+        cells = [(0, 0.0), (0, 1.0), (0, 2.0), (1, 0.5), (1, 1.5)]
+    else:  # 6
+        rows, cols = 2, 3
+        cells = [(0, 0.0), (0, 1.0), (0, 2.0), (1, 0.0), (1, 1.0), (1, 2.0)]
+    return rows, cols, cells
+
+
+def compose_bundle(
+    image_urls: list[str],
+    output_path: str = "bundle.jpg",
+    output_size: int = 1600,
+    padding: int = 0,
+    do_remove_bg: bool = True,
+    margin_ratio: float = 0.94,
+):
+    assert 2 <= len(image_urls) <= 6, "Provide 2 to 6 item URLs."
+    items: list[Image.Image] = []
+    for i, url in enumerate(image_urls, 1):
+        print(f"[*] Downloading item {i}…")
+        img = fetch_image_rgba(url)
+        if do_remove_bg:
+            img = remove_bg_safe(img)
+        items.append(img)
+
+    S = int(output_size)
+    canvas = Image.new("RGBA", (S, S), (255, 255, 255, 255))
+
+    rows, cols, cells = make_grid_layout(len(items))
+    cell_w = (S - (cols + 1) * padding) // cols
+    cell_h = (S - (rows + 1) * padding) // rows
+    cell_size = min(cell_w, cell_h)
+
+    grid_w = cols * cell_size + (cols + 1) * padding
+    grid_h = rows * cell_size + (rows + 1) * padding
+    grid_left = (S - grid_w) // 2
+    grid_top = (S - grid_h) // 2
+
+    for img, (r, c) in zip(items, cells):
+        x0 = grid_left + padding + float(c) * (cell_size + padding)
+        y0 = grid_top + padding + int(r) * (cell_size + padding)
+        tile = resize_to_fit(img, cell_size, cell_size, margin_ratio=margin_ratio)
+        dx = int(round(x0 + (cell_size - tile.size[0]) / 2.0))
+        dy = int(round(y0 + (cell_size - tile.size[1]) / 2.0))
+        canvas.paste(tile, (dx, dy), tile if tile.mode == "RGBA" else None)
+
+    print(f"[*] Saving -> {output_path}")
+    canvas.convert("RGB").save(output_path, quality=95, optimize=True, subsampling=2)
+    
+class BundleListingView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        action = request.data.get("action", "publish")
+        if action not in ["preview", "publish"]:
+            return Response({"error": "Invalid action. Use 'preview' or 'publish'"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            profile = UserProfile.objects.get(user=request.user)
+        except UserProfile.DoesNotExist:
+            return Response({"error": "Please create your profile first"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            token = eBayToken.objects.get(user=request.user)
+            if not token.refresh_token:
+                return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
+        except eBayToken.DoesNotExist:
+            return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
+
+        access = ensure_access_token(request.user)
+        if action == "publish" and all(field in request.data for field in ["title", "description", "aspects", "sku", "price", "quantity", "condition", "category_id", "marketplace_id", "images", "bundle_quantity"]):
+            title = _clean_text(request.data.get("title"), limit=80)
+            description = request.data.get("description", {})
+            description_text = _clean_text(description.get("text"), limit=2000)
+            description_html = description.get("html") if description.get("used_html") else f"<p>{description_text}</p>"
+            aspects = request.data.get("aspects", {})
+            sku = request.data.get("sku")
+            price = request.data.get("price")
+            quantity = int(request.data.get("quantity", 1))
+            condition = request.data.get("condition").upper()
+            category_id = request.data.get("category_id")
+            marketplace_id = request.data.get("marketplace_id")
+            images = _https_only(request.data.get("images"))
+            category_name = request.data.get("category_name")
+            vat_rate = float(request.data.get("vat_rate", 0))
+            remove_background = request.data.get("remove_background", False)
+            bundle_quantity = int(request.data.get("bundle_quantity", 2))
+        else:
+            raw_text_in = _clean_text(request.data.get("raw_text"), limit=8000)
+            images = _https_only(request.data.get("images", []))
+            marketplace_id = MARKETPLACE_ID
+            price = request.data.get("price")
+            quantity = int(request.data.get("quantity", 1))
+            condition = request.data.get("condition", "NEW").upper()
+            vat_rate = float(request.data.get("vat_rate", 0))
+            sku = request.data.get("sku") or _gen_sku_multi("BUNDLE")
+            remove_background = request.data.get("remove_background", False)
+            bundle_quantity = int(request.data.get("bundle_quantity", 2))
+
+            if not raw_text_in or not images:
+                return Response({"error": "Raw text and images required"}, status=status.HTTP_400_BAD_REQUEST)
+
+            if bundle_quantity < 2 or bundle_quantity > 6:
+                return Response({"error": "Bundle quantity must be between 2 and 6"}, status=status.HTTP_400_BAD_REQUEST)
+
+            if len(images) < bundle_quantity:
+                return Response({"error": f"Bundle listings require at least {bundle_quantity} images"}, status=status.HTTP_400_BAD_REQUEST)
+
+            if remove_background:
+                try:
+                    output_path = f"media/bundle_{uuid.uuid4().hex}.jpg"
+                    os.makedirs("media", exist_ok=True)
+                    compose_bundle(
+                        image_urls=images[:bundle_quantity],
+                        output_path=output_path,
+                        output_size=1600,
+                        padding=0,
+                        do_remove_bg=True,
+                        margin_ratio=0.94
+                    )
+                    processed_image_url = upload_to_imgbb(output_path)
+                    images = [processed_image_url] + images[bundle_quantity:]
+                    os.remove(output_path)
+                except Exception as e:
+                    print(f"[Image Processing Error] {e}")
+                    return Response({"error": f"Failed to process or upload bundle image: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            if not OPENAI_API_KEY:
+                normalized_title = smart_titlecase(raw_text_in[:80]) or _fallback_title(raw_text_in)
+                category_keywords = []
+                brand = None
+            else:
+                system_prompt = (
+                    f"Extract concise keywords for eBay category selection and search for a bundle listing of {bundle_quantity} different items. "
+                    "Return STRICT JSON. Use ONLY facts from input. "
+                    "Lowercase all keywords, no punctuation, no duplicates. "
+                    "For normalized_title, describe the bundle as a single package, include '{bundle_quantity}-Item Bundle'."
+                )
+                user_prompt = f"""MARKETPLACE: {marketplace_id}
+                RAW_TEXT:
+                {raw_text_in}
+
+                OUTPUT RULES:
+                - category_keywords: 1–5 short phrases (2–3 words) for product category.
+                - search_keywords: 3–12 search terms, lowercase, ≤ 30 chars.
+                - normalized_title: <=80 chars, clean, factual, includes '{bundle_quantity}-Item Bundle'.
+                - brand: only if in RAW_TEXT.
+                - identifiers: only if present (isbn/ean/gtin/mpn)."""
+                try:
+                    s1 = call_llm_json(system_prompt, user_prompt)
+                    s1["search_keywords"] = clean_keywords(s1.get("search_keywords", []))
+                    normalized_title = s1.get("normalized_title") or _fallback_title(raw_text_in)
+                    category_keywords = s1.get("category_keywords", [])
+                    brand = s1.get("brand")
+                except Exception as e:
+                    print(f"[AI Keywords Error] {e}")
+                    normalized_title = smart_titlecase(raw_text_in[:80]) or _fallback_title(raw_text_in)
+                    category_keywords = []
+                    brand = None
+
+            access = ensure_access_token(request.user)
+            tree_id = get_category_tree_id(access)
+            query = (" ".join(category_keywords)).strip() or normalized_title
+            try:
+                cat_id, cat_name = suggest_leaf_category(tree_id, query, access)
+            except Exception:
+                cat_id, cat_name = browse_majority_category(query, access)
+                if not cat_id:
+                    return Response({"error": "No category found", "query": query}, status=status.HTTP_404_NOT_FOUND)
+
+            aspects_info = get_required_and_recommended_aspects(tree_id, cat_id, access)
+            req_names = [_aspect_name(x) for x in aspects_info.get("required", []) if _aspect_name(x)]
+            rec_names = [_aspect_name(x) for x in aspects_info.get("recommended", []) if _aspect_name(x)]
+            filled_aspects = {name: ["Does not apply"] for name in req_names}
+            single_value_aspects = [
+                _aspect_name(aspect) for aspect in aspects_info.get("raw", [])
+                if _aspect_name(aspect) and aspect.get("aspectConstraint", {}).get("aspectMode") in ["FREE_TEXT", "SELECTION_ONLY"]
+            ]
+
+            if OPENAI_API_KEY and (req_names or rec_names):
+                system_prompt2 = (
+                    f"Fill eBay item aspects for a bundle listing of {bundle_quantity} different items. NEVER leave required aspects empty; "
+                    "extract when explicit, infer when reasonable, otherwise use 'Does not apply'. "
+                    "For aspects that define unique item variations, select ONLY the first value mentioned in the text to describe the bundle as a single package."
+                )
+                user_prompt2 = f"""
+                INPUT TEXT:
+                {normalized_title}
+                RAW TEXT:
+                {raw_text_in}
+                ASPECTS:
+                - REQUIRED: {req_names}
+                - RECOMMENDED: {rec_names}
+                OUTPUT RULES:
+                {{
+                "filled": {{"AspectName": ["value1"]}},
+                "missing_required": ["AspectName"],
+                "notes": "optional"
+                }}
+                """
+                try:
+                    s3 = call_llm_json(system_prompt2, user_prompt2)
+                    allowed = set(req_names + rec_names)
+                    for k, vals in (s3.get("filled") or {}).items():
+                        if k in allowed and isinstance(vals, list):
+                            clean_vals = list(dict.fromkeys([str(v).strip() for v in vals if str(v).strip()]))
+                            if k in single_value_aspects and clean_vals:
+                                clean_vals = [clean_vals[0]]
+                            if clean_vals:
+                                filled_aspects[k] = clean_vals
+                    filled_aspects = apply_aspect_constraints(filled_aspects, aspects_info.get("raw"))
+                    if "Book Title" in filled_aspects:
+                        filled_aspects["Book Title"] = [v[:65] for v in filled_aspects["Book Title"]]
+                except Exception as e:
+                    print(f"[AI Aspects Error] {e}")
+
+            try:
+                desc_bundle = build_description_simple_from_raw(raw_text_in, html_mode=True)
+                description_text = desc_bundle["text"]
+                description_html = desc_bundle["html"]
+            except Exception as e:
+                print(f"[AI Description Error] {e}")
+                description_text = raw_text_in[:2000]
+                description_html = f"<p>{description_text}</p>"
+
+            title = smart_titlecase(normalized_title)[:80]
+            category_id = cat_id
+            category_name = cat_name
+            aspects = filled_aspects
+
+        if action == "preview":
+            return Response({
+                "title": title,
+                "description": {"text": description_text, "html": description_html, "used_html": True},
+                "aspects": aspects,
+                "sku": sku,
+                "price": price,
+                "quantity": quantity,
+                "condition": condition,
+                "category_id": category_id,
+                "category_name": category_name,
+                "marketplace_id": marketplace_id,
+                "images": images,
+                "single_value_aspects": single_value_aspects,
+                "vat_rate": vat_rate,
+                "remove_background": remove_background,
+                "bundle_quantity": bundle_quantity
+            })
+
+        try:
+            lang = "en-GB" if marketplace_id == "EBAY_GB" else "en-US"
+            headers = {
+                "Authorization": f"Bearer {access}",
+                "Content-Type": "application/json",
+                "Content-Language": lang,
+                "Accept-Language": lang,
+                "X-EBAY-C-MARKETPLACE-ID": marketplace_id,
+            }
+            max_attempts = 3
+            for _ in range(max_attempts):
+                check_url = f"{BASE}/sell/inventory/v1/inventory_item/{sku}"
+                r = requests.get(check_url, headers=headers)
+                if r.status_code != 200:
+                    break
+                sku = _gen_sku_multi("BUNDLE")
+            else:
+                return Response({"error": f"Failed to generate unique SKU"}, status=status.HTTP_400_BAD_REQUEST)
+
+            inv_url = f"{BASE}/sell/inventory/v1/inventory_item/{sku}"
+            inv_payload = {
+                "product": {
+                    "title": title,
+                    "description": description_text,
+                    "aspects": aspects,
+                    "imageUrls": images
+                },
+                "condition": condition,
+                "availability": {"shipToLocationAvailability": {"quantity": quantity}},
+                "tax": {"vatPercentage": vat_rate} if vat_rate > 0 else {}
+            }
+            r = requests.put(inv_url, headers=headers, json=inv_payload)
+            if r.status_code not in (200, 201, 204):
+                return Response({"error": parse_ebay_error(r.text), "step": "inventory_item"}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                fulfillment_policy_id = get_first_policy_id("fulfillment", access, marketplace_id)
+                payment_policy_id = get_first_policy_id("payment", access, marketplace_id)
+                return_policy_id = get_first_policy_id("return", access, marketplace_id)
+            except RuntimeError as e:
+                return Response({"error": f"Missing eBay policies: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+            merchant_location_key = get_or_create_location(access, marketplace_id, profile)
+            offer_payload = {
+                "sku": sku,
+                "marketplaceId": marketplace_id,
+                "format": "FIXED_PRICE",
+                "availableQuantity": quantity,
+                "categoryId": category_id,
+                "listingDescription": description_html,
+                "pricingSummary": {
+                    "price": {
+                        "value": str(price["value"]),
+                        "currency": price["currency"]
+                    }
+                },
+                "listingPolicies": {
+                    "fulfillmentPolicyId": fulfillment_policy_id,
+                    "paymentPolicyId": payment_policy_id,
+                    "returnPolicyId": return_policy_id
+                },
+                "merchantLocationKey": merchant_location_key,
+                "tax": {"vatPercentage": vat_rate} if vat_rate > 0 else {}
+            }
+            offer_url = f"{BASE}/sell/inventory/v1/offer"
+            r = requests.post(offer_url, headers=headers, json=offer_payload)
+            if r.status_code not in (200, 201):
+                return Response({"error": parse_ebay_error(r.text), "step": "create_offer"}, status=status.HTTP_400_BAD_REQUEST)
+
+            offer_id = r.json().get("offerId")
+            pub_url = f"{BASE}/sell/inventory/v1/offer/{offer_id}/publish"
+            r = requests.post(pub_url, headers=headers)
+            if r.status_code not in (200, 201):
+                return Response({"error": parse_ebay_error(r.text), "step": "publish"}, status=status.HTTP_400_BAD_REQUEST)
+
+            pub = r.json()
+            listing_id = pub.get("listingId") or (pub.get("listingIds") or [None])[0]
+            view_url = f"https://www.ebay.co.uk/itm/{listing_id}" if marketplace_id == "EBAY_GB" else None
+            listing_count, _ = ListingCount.objects.get_or_create(id=1, defaults={"total_count": 0})
+            listing_count.total_count += 1
+            listing_count.save()
+
+            UserListing.objects.create(
+                user=request.user,
+                listing_id=listing_id,
+                offer_id=offer_id,
+                sku=sku,
+                title=title,
+                price_value=price["value"],
+                price_currency=price["currency"],
+                quantity=quantity,
+                condition=condition,
+                category_id=category_id,
+                category_name=category_name,
+                marketplace_id=marketplace_id,
+                view_url=view_url,
+                vat_rate=vat_rate,
+                listing_type='Bundle',
+            )
+
+            return Response({
+                "status": "published",
+                "offerId": offer_id,
+                "listingId": listing_id,
+                "viewItemUrl": view_url,
+                "sku": sku,
+                "marketplaceId": marketplace_id,
+                "categoryId": category_id,
+                "categoryName": category_name,
+                "title": title,
+                "aspects": aspects,
+                "vat_rate": vat_rate,
+                "bundle_quantity": bundle_quantity
             })
         except requests.exceptions.RequestException as e:
             return Response({"error": f"Network error with eBay: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

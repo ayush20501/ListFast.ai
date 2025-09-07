@@ -31,4 +31,6 @@ urlpatterns = [
     path('item/', views.ItemView.as_view(), name='item'),
     path('multi-item-listing/', views.MultipleItemListingView.as_view(), name='multi-item-listing'),
     path('multipack-listing/', views.MultipackListingView.as_view(), name='multipack-listing'),
+    path('bundle-item-listing/', views.BundleItemListingView.as_view(), name='bundle-item-listing'),
+    path('bundle-listing/', views.BundleListingView.as_view(), name='bundle-listing'),
 ]
