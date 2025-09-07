@@ -748,7 +748,7 @@
 
         window.addEventListener('load', async () => {
             try {
-                const response = await fetch('/auth-status/');
+                const response = await fetch('/api/auth-status/');
                 const data = await response.json();
                 if (!data.is_logged_in) {
                     window.location.href = '/login/';
@@ -790,10 +790,24 @@
             }
         });
 
-        // Logout functionality
         document.getElementById('logout-btn').addEventListener('click', async () => {
-            try {
-                await fetch('/logout/', { method: 'POST' });
+            try {   
+                const getCookie = (name) => {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                };
+                const csrftoken = getCookie('csrftoken');
+                await fetch('/logout/', { method: 'POST' , headers: { 'X-CSRFToken': csrftoken }});
                 window.location.href = '/';
             } catch (error) {
                 console.error('Logout failed:', error);
@@ -802,7 +816,22 @@
 
         document.getElementById('mobile-logout-btn').addEventListener('click', async () => {
             try {
-                await fetch('/logout/', { method: 'POST' });
+                const getCookie = (name) => {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                };
+                const csrftoken = getCookie('csrftoken');
+                await fetch('/logout/', { method: 'POST' , headers: { 'X-CSRFToken': csrftoken }});
                 window.location.href = '/';
             } catch (error) {
                 console.error('Logout failed:', error);
@@ -811,7 +840,7 @@
 
         async function loadProfileData() {
             try {
-                const statsResponse = await fetch('/user-stats/');
+                const statsResponse = await fetch('/api/user-stats/');
                 const statsData = await statsResponse.json();
                 if (statsResponse.ok) {
                     document.getElementById('total-listings-stat').textContent = statsData.total_listings;
@@ -824,7 +853,7 @@
 
                 // Load profile pictures in navbar
                 try {
-                    const profileResponse = await fetch('/fetch-address-imageprofile/');
+                    const profileResponse = await fetch('/api/fetch-address-imageprofile/');
                     const profileData = await profileResponse.json();
                     if (profileResponse.ok && profileData.profile_pic_url) {
                         document.getElementById('user-profile-pic').src = profileData.profile_pic_url;
@@ -840,7 +869,7 @@
 
         async function loadUserProfile() {
             try {
-                const response = await fetch('/fetch-address-imageprofile/');
+                const response = await fetch('/api/fetch-address-imageprofile/');
                 const data = await response.json();
                 if (response.ok && data) {
                     currentUserProfile = data;
@@ -938,7 +967,7 @@
                     return cookieValue;
                 };
                 const csrftoken = getCookie('csrftoken');
-                const response = await fetch('/send-password-otp/', {
+                const response = await fetch('/api/send-password-otp/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken }
                 });
@@ -1004,7 +1033,7 @@
                     return cookieValue;
                 };
                 const csrftoken = getCookie('csrftoken');
-                const response = await fetch('/change-password/', {
+                const response = await fetch('/api/change-password/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
                     body: JSON.stringify({
@@ -1090,7 +1119,7 @@
                     return cookieValue;
                 };
                 const csrftoken = getCookie('csrftoken');
-                const response = await fetch('/profile/', {
+                const response = await fetch('/api/profile/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
                     body: JSON.stringify(formData),
@@ -1191,7 +1220,7 @@
                 const csrftoken = getCookie('csrftoken');
                 const formData = new FormData();
                 formData.append('image', file);
-                const response = await fetch('/upload-profile-image/', {
+                const response = await fetch('/api/upload-profile-image/', {
                     method: 'POST',
                     body: formData,
                     headers: {
@@ -1200,7 +1229,7 @@
                 });
                 const data = await response.json();
                 if (response.ok && data.status === 'success') {
-                    const profileResponse = await fetch('/profile/', {
+                    const profileResponse = await fetch('/api/profile/', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
                         body: JSON.stringify({
@@ -1239,7 +1268,7 @@
 
         async function loadRecentListings() {
             try {
-                const response = await fetch('/my-listings/?page=1');
+                const response = await fetch('/api/my-listings/?page=1');
                 const data = await response.json();
                 const container = document.getElementById('recent-listings');
                 if (response.ok && data.listings.length > 0) {
@@ -1282,7 +1311,7 @@
 
         async function loadAllListings(page = 1) {
             try {
-                const response = await fetch(`/my-listings/?page=${page}`);
+                const response = await fetch(`/api/my-listings/?page=${page}`);
                 const data = await response.json();
                 const container = document.getElementById('all-listings');
                 if (response.ok) {
@@ -1362,7 +1391,7 @@
                     return cookieValue;
                 };
                 const csrftoken = getCookie('csrftoken');
-                const response = await fetch('/revoke-ebay-auth/', {
+                const response = await fetch('/api/revoke-ebay-auth/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

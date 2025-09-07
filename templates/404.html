@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>404 - Page Not Found | ListFast.ai</title>
+    <meta name="description" content="The page you're looking for doesn't exist. Return to ListFast.ai to create eBay listings 10× faster with AI.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .hero-gradient {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 8s ease-in-out infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { 
+                background-position: 0% 50%; 
+            }
+            50% { 
+                background-position: 100% 50%; 
+            }
+        }
+
+        .hover-lift {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .hover-lift:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.2);
+        }
+
+        .floating-elements {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .floating-element {
+            position: absolute;
+            opacity: 0.1;
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+            }
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+            }
+        }
+
+        .pulse-animation {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { 
+                opacity: 1; 
+            }
+            50% { 
+                opacity: .8; 
+            }
+        }
+
+        .error-illustration {
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            border-radius: 50%;
+            width: 200px;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 2rem;
+            position: relative;
+        }
+
+        .error-illustration::before {
+            content: '🔍';
+            font-size: 4rem;
+            opacity: 0.3;
+        }
+
+        .error-code {
+            font-size: clamp(4rem, 15vw, 12rem);
+            font-weight: 900;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .error-illustration {
+                width: 150px;
+                height: 150px;
+            }
+            
+            .error-illustration::before {
+                font-size: 3rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-white">
+    <main class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 relative">
+        <div class="floating-elements">
+            <div class="floating-element" style="left: 10%; animation-delay: 0s;">🔧</div>
+            <div class="floating-element" style="left: 80%; animation-delay: 2s;">⚙️</div>
+            <div class="floating-element" style="left: 20%; animation-delay: 4s;">🔍</div>
+            <div class="floating-element" style="left: 90%; animation-delay: 6s;">📄</div>
+        </div>
+
+        <div class="flex items-center justify-center min-h-screen px-4 sm:px-6 lg:px-8">
+            <div class="max-w-2xl mx-auto text-center">
+                <div class="error-illustration"></div>
+                
+                <div class="error-code">404</div>
+                
+                <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+                    Page Not Found
+                </h1>
+                
+                <p class="text-lg sm:text-xl text-gray-600 mb-8 max-w-lg mx-auto leading-relaxed">
+                    Oops! The page you're looking for has wandered off into the digital wilderness. 
+                    Let's get you back to creating amazing eBay listings.
+                </p>
+                
+                <div class="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center mb-12">
+                    <a href="/" class="w-full sm:w-auto bg-blue-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-blue-700 transition-all hover-lift pulse-animation">
+                        Return Home
+                    </a>
+                    <button onclick="history.back()" class="w-full sm:w-auto inline-flex items-center justify-center rounded-xl border-2 border-gray-300 px-8 py-4 text-lg font-semibold text-gray-800 hover:bg-gray-50 hover-lift transition-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Go Back
+                    </button>
+                </div>
+                
+                <div class="mt-8 text-sm text-gray-500">
+                    <p>If you believe this is an error, please <a href="mailto:support@listfast.ai" class="text-blue-600 hover:text-blue-700 font-medium">contact our support team</a>.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

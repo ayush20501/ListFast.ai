@@ -848,7 +848,7 @@
 
         window.addEventListener('load', async () => {
             try {
-                const response = await fetch('/auth-status');
+                const response = await fetch('/api/auth-status');
                 const data = await response.json();
                 if (!data.is_logged_in) {
                     window.location.href = '/login/';
@@ -863,7 +863,7 @@
                 document.getElementById('user-email').textContent = data.email;
                 document.getElementById('mobile-user-email').textContent = data.email;
                 try {
-                    const profileResponse = await fetch('/fetch-address-imageprofile/');
+                    const profileResponse = await fetch('/api/fetch-address-imageprofile/');
                     const profileData = await profileResponse.json();
                     if (profileResponse.ok && profileData.profile_pic_url) {
                         document.getElementById('user-profile-pic').src = profileData.profile_pic_url;
@@ -1106,7 +1106,7 @@
                 };
                 const csrftoken = getCookie('csrftoken');
 
-                const response = await fetch('/upload-profile-image/', {
+                const response = await fetch('/api/upload-profile-image/', {
                     method: 'POST',
                     headers: { 'X-CSRFToken': csrftoken },
                     body: formData
@@ -1145,16 +1145,13 @@
                 document.getElementById('error-message').classList.remove('hidden');
             }
 
-            // FIXED: Restore button state properly
             uploadBtn.style.pointerEvents = 'auto';
             uploadBtn.style.opacity = '1';
             uploadBtn.innerHTML = `Upload Image<input type="file" id="upload-image-input" accept="image/*" class="hidden">`;
 
-            // Re-attach the event listener to the new input element
             const newInput = uploadBtn.querySelector('#upload-image-input');
             newInput.addEventListener('change', () => uploadFile(newInput));
 
-            // Clear the file input
             fileInput.value = '';
         }
 
@@ -1179,11 +1176,9 @@
                 "https://images.unsplash.com/photo-1504198266287-8ae7b9366a7e?w=400"
             ];
 
-            // Update image fields based on bundle_quantity
             const bundleQuantity = parseInt(document.getElementById('bundle_quantity').value) || 2;
             updateImageFields(bundleQuantity);
 
-            // Populate image inputs
             const imageInputs = imagesContainer.querySelectorAll('input[name="image_url"]');
             imageInputs.forEach((input, index) => {
                 if (sampleImages[index]) {
@@ -1268,7 +1263,7 @@
 
                 formData.action = action;
 
-                const response = await fetch('/bundle-listing/', {
+                const response = await fetch('/api/bundle-listing/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1471,7 +1466,7 @@
 
                 previewData.action = 'publish';
 
-                const response = await fetch('/bundle-listing/', {
+                const response = await fetch('/api/bundle-listing/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

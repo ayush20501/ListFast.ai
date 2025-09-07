@@ -253,14 +253,14 @@
     </main>
     <script>
         let uploadedImageUrl = null;
-        fetch('/auth-status')
+        fetch('/api/auth-status')
             .then(response => response.json())
             .then(data => {
                 if (!data.is_logged_in) {
                     window.location.href = '/login/';
                 } else if (data.has_profile) {
                     if (data.has_ebay_auth) {
-                        window.location.href = '/dashboard/';
+                        window.location.href = '/services/';
                     } else {
                         window.location.href = '/ebay-auth/';
                     }
@@ -334,7 +334,7 @@
                 progressBar.style.width = `${progress}%`;
             }, 100);
             try {
-                const response = await fetch('/upload-profile-image/', {
+                const response = await fetch('/api/upload-profile-image/', {
                     method: 'POST',
                     body: formData,
                     headers: {
@@ -402,7 +402,7 @@
             button.disabled = true;
             button.textContent = 'Saving Profile...';
             try {
-                const response = await fetch('/profile/', {
+                const response = await fetch('/api/profile/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

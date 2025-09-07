@@ -838,7 +838,7 @@
 
         window.addEventListener('load', async () => {
             try {
-                const response = await fetch('/auth-status');
+                const response = await fetch('/api/auth-status');
                 const data = await response.json();
                 if (!data.is_logged_in) {
                     window.location.href = '/login/';
@@ -853,7 +853,7 @@
                 document.getElementById('user-email').textContent = data.email;
                 document.getElementById('mobile-user-email').textContent = data.email;
                 try {
-                    const profileResponse = await fetch('/fetch-address-imageprofile/');
+                    const profileResponse = await fetch('/api/fetch-address-imageprofile/');
                     const profileData = await profileResponse.json();
                     if (profileResponse.ok && profileData.profile_pic_url) {
                         document.getElementById('user-profile-pic').src = profileData.profile_pic_url;
@@ -1017,7 +1017,7 @@
                 };
                 const csrftoken = getCookie('csrftoken');
 
-                const response = await fetch('/upload-profile-image/', {
+                const response = await fetch('/api/upload-profile-image/', {
                     method: 'POST',
                     headers: { 'X-CSRFToken': csrftoken },
                     body: formData
@@ -1142,7 +1142,7 @@
 
                 formData.action = action;
 
-                const response = await fetch('/multipack-listing/', {
+                const response = await fetch('/api/multipack-listing/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1371,7 +1371,7 @@
                 };
                 const csrftoken = getCookie('csrftoken');
 
-                const response = await fetch('/multipack-listing/', {
+                const response = await fetch('/api/multipack-listing/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1422,7 +1422,7 @@
             };
             const csrftoken = getCookie('csrftoken');
 
-            const response = await fetch('/format-description/', {
+            const response = await fetch('/api/format-description/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

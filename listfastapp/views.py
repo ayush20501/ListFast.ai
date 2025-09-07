@@ -6,18 +6,13 @@ import time
 import json
 import re
 import random
-import hashlib
 from datetime import datetime, timedelta
 from urllib.parse import quote
-from io import BytesIO
-from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
-from rest_framework.fields import SerializerMethodField
 from rest_framework.response import Response
 import requests
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.mail import EmailMultiAlternatives
 from django.http import HttpResponseRedirect, JsonResponse, HttpResponse
@@ -27,18 +22,18 @@ from django.utils import timezone
 from django.views import View
 from rest_framework import status
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.serializers import Serializer, CharField, EmailField, DecimalField, IntegerField, ChoiceField, ListField, URLField
+from rest_framework.serializers import Serializer, CharField, DecimalField, IntegerField, ChoiceField, ListField, URLField
 from decouple import config
 from openai import OpenAI
 from .models import UserProfile, eBayToken, OTP, ListingCount, UserListing
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
 from werkzeug.utils import secure_filename
-from django.contrib.auth.mixins import LoginRequiredMixin
 import uuid
 from typing import Tuple, Optional
 from PIL import Image, ImageDraw, ImageFont, ImageFile, ImageFilter
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import SessionAuthentication
+from django.contrib.auth.decorators import login_required
+
 
 # Configuration
 DB_URL = config("DB_URL")
@@ -85,6 +80,7 @@ SMALL_WORDS = {
     "per", "via", "vs", "vs."
 }
 MAX_LEN = 30
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # Serializers
 class ProfileSerializer(Serializer):
@@ -106,7 +102,9 @@ class ListingSerializer(Serializer):
     quantity = IntegerField(min_value=1, max_value=999)
     condition = ChoiceField(choices=["NEW", "USED", "REFURBISHED"], required=False)
 
-# Helper Functions
+
+# ----------------------------------Helper Functions----------------------------------
+
 def _b64_basic():
     return "Basic " + base64.b64encode(f"{CLIENT_ID}:{CLIENT_SECRET}".encode()).decode()
 
@@ -405,67 +403,134 @@ def parse_ebay_error(response_text):
     except (json.JSONDecodeError, KeyError, TypeError):
         return f"Unknown eBay error: {response_text}"
 
-# Views
-class IndexView(View):
-    def get(self, request):
-        return render(request, 'index.html')
+def upload_to_imgbb(image_path: str) -> str:
+    if not IMGBB_API_KEY:
+        raise RuntimeError("IMGBB_API_KEY is not set in the environment")
+    with open(image_path, "rb") as file:
+        files = {"image": (os.path.basename(image_path), file, "image/jpeg")}
+        params = {"key": IMGBB_API_KEY}
+        resp = requests.post("https://api.imgbb.com/1/upload", files=files, params=params, timeout=60)
+    if resp.status_code != 200 or not resp.json().get("data", {}).get("url"):
+        raise RuntimeError(f"ImgBB upload failed: {resp.status_code} {resp.text[:200]}")
+    return resp.json()["data"]["url"]
 
-class ProfileView(APIView):
-    def get(self, request):
-        return render(request, 'profile.html')
 
-    def post(self, request):
-        try:
-            serializer = ProfileSerializer(data=request.data)
-            if not serializer.is_valid():
-                return Response({"error": "Invalid profile data", "details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-            
-            UserProfile.objects.update_or_create(
-                user=request.user,
-                defaults={
-                    "address_line1": serializer.validated_data["address_line1"],
-                    "city": serializer.validated_data["city"],
-                    "postal_code": serializer.validated_data["postal_code"].upper(),
-                    "country": serializer.validated_data["country"],
-                    "profile_pic_url": serializer.validated_data.get("profile_pic_url", "")
-                }
-            )
-            return Response({"status": "success", "message": "Profile saved successfully"}, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({"error": f"Failed to save profile: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-class ImageEnhancementView(View):
-    def get(self, request):
-        return render(request, 'image-enhancement.html')
+# ----------------------------------Views----------------------------------
 
-class DisplayProfileView(View):
-    def get(self, request):
-        return render(request, 'display-profile.html')
+def index_view(request):
+    return render(request, 'index.html')
 
-class eBayAuthView(View):
-    def get(self, request):
-        return render(request, 'ebay-auth.html')
+@login_required
+def profile_view(request):
+    return render(request, 'profile.html')
 
-class SingleItemListingView(View):
-    def get(self, request):
-        return render(request, 'single-item-listing.html')
+@login_required
+def image_enhancement_view(request):
+    return render(request, 'image-enhancement.html')
 
-class MultipleItemListingView(View):
-    def get(self, request):
-        return render(request, 'multi-item-listing.html')
+@login_required
+def display_profile_view(request):
+    return render(request, 'display-profile.html')
 
-class SuccessView(View):
-    def get(self, request):
-        return render(request, 'success.html')
+@login_required
+def ebay_auth_view(request):
+    return render(request, 'ebay-auth.html')
 
-class ServicesView(View):
-    def get(self, request):
-        return render(request, 'services.html')
+@login_required
+def single_item_listing_view(request):
+    return render(request, 'single-item-listing.html')
 
-class LoginView(APIView):
-    def get(self, request):
-        return render(request, 'index.html')
+@login_required
+def multiple_item_listing_view(request):
+    return render(request, 'multi-item-listing.html')
 
+@login_required
+def success_view(request):
+    return render(request, 'success.html')
+
+@login_required
+def services_view(request):
+    return render(request, 'services.html')
+
+@login_required
+def multi_item_listing_view(request):
+    return render(request, 'multi-item-listing.html')
+
+@login_required
+def bundle_listing_view(request):
+    return render(request, 'bundle-listing.html')
+
+def custom_404_view(request, invalid_path):
+    return render(request, '404.html', status=404)
+
+def logout_view(request):
+    print(request)
+    logout(request) 
+    return redirect('index') 
+
+def ebay_callback_view(request):
+    code = request.GET.get("code")
+    if not code:
+        return HttpResponse("Missing authorization code", status=400)
+
+    try:
+        r = requests.post(
+            TOKEN,
+            headers={
+                "Authorization": _b64_basic(),
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            data={
+                "grant_type": "authorization_code",
+                "code": code,
+                "redirect_uri": RU_NAME,
+            },
+        )
+        r.raise_for_status()
+        data = r.json()
+
+        eBayToken.objects.update_or_create(
+            user=request.user,
+            defaults={
+                "access_token": data["access_token"],
+                "refresh_token": data.get("refresh_token"),
+                "expires_at": _now() + data["expires_in"],
+                "updated_at": timezone.now(),
+            },
+        )
+        return HttpResponseRedirect("/ebay-auth/?ebay_auth=success")
+
+    except Exception as e:
+        print(f"eBay auth error: {e}")
+        return HttpResponseRedirect("/ebay-auth/?error=auth_failed")
+
+def ebay_login_view(request):
+    try:
+        profile = request.user.userprofile
+    except UserProfile.DoesNotExist:
+        return JsonResponse({"error": "Please create your profile first"}, status=400)
+
+    scope_enc = quote(SCOPES, safe="")
+    ru_enc = quote(RU_NAME, safe="")
+
+    url = (
+        f"{AUTH}/oauth2/authorize"
+        f"?client_id={CLIENT_ID}"
+        f"&response_type=code"
+        f"&redirect_uri={ru_enc}"
+        f"&scope={scope_enc}"
+        f"&state=xyz123"
+    )
+
+    if request.session.get("force_ebay_login"):
+        url += "&prompt=login"
+
+    print(url)
+    return redirect(url)
+# ---------------------------------------APIViews---------------------------------------
+
+class LoginAPIView(APIView):
     def post(self, request):
         email = request.data.get("email", "").strip().lower()
         password = request.data.get("password", "")
@@ -508,14 +573,8 @@ class LoginView(APIView):
             "redirect": reverse('services')
         })
 
-class LogoutView(APIView):
-    def post(self, request):
-        logout(request)
-        return Response({"status": "success", "message": "Logged out successfully"})
 
 class ProfileAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-
     def get(self, request):
         try:
             profile = UserProfile.objects.get(user=request.user)
@@ -553,65 +612,7 @@ class ProfileAPIView(APIView):
         except Exception as e:
             return Response({"error": "Failed to save profile"}, status=500)
 
-class eBayLoginView(LoginRequiredMixin, View):
-    login_url = '/login/' 
-
-    def get(self, request):
-        try:
-            profile = request.user.userprofile
-        except UserProfile.DoesNotExist:
-            return JsonResponse({"error": "Please create your profile first"}, status=400)
-
-        scope_enc = quote(SCOPES, safe="")
-        ru_enc = quote(RU_NAME, safe="")
-
-        url = f"{AUTH}/oauth2/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={ru_enc}&scope={scope_enc}&state=xyz123"
-
-        if request.session.get("force_ebay_login"):
-            url += "&prompt=login"
-
-        print(url)
-        return redirect(url)
-        
-class eBayCallbackView(LoginRequiredMixin, View):
-
-    def get(self, request):
-        code = request.GET.get("code")
-        if not code:
-            return HttpResponse("Missing authorization code", status=400)
-
-        try:
-            r = requests.post(
-                TOKEN,
-                headers={
-                    "Authorization": _b64_basic(),
-                    "Content-Type": "application/x-www-form-urlencoded"
-                },
-                data={
-                    "grant_type": "authorization_code",
-                    "code": code,
-                    "redirect_uri": RU_NAME
-                },
-            )
-            r.raise_for_status()
-            data = r.json()
-
-            eBayToken.objects.update_or_create(
-                user=request.user,
-                defaults={
-                    "access_token": data["access_token"],
-                    "refresh_token": data.get("refresh_token"),
-                    "expires_at": _now() + data["expires_in"],
-                    "updated_at": timezone.now()
-                }
-            )
-            return HttpResponseRedirect("/ebay-auth/?ebay_auth=success")
-
-        except Exception as e:
-            print(f"eBay auth error: {e}") 
-            return HttpResponseRedirect("/ebay-auth/?error=auth_failed")
-
-class AuthStatusView(APIView):
+class AuthStatusAPIView(APIView):
     def get(self, request):
         if not request.user.is_authenticated:
             return Response({
@@ -640,51 +641,31 @@ class AuthStatusView(APIView):
             "access_exp_in": access_exp_in
         })
 
-class TotalListingsView(APIView):
-    permission_classes = [IsAuthenticated]
-
+class TotalListingsAPIView(APIView):
     def get(self, request):
         listing_count, _ = ListingCount.objects.get_or_create(id=1, defaults={"total_count": 0})
         return Response({"total_listings": listing_count.total_count})
 
-class UserStatsView(APIView):
-    permission_classes = [IsAuthenticated]
-
+class UserStatsAPIView(APIView):
     def get(self, request):
         try:
             UserProfile.objects.get(user=request.user)
         except UserProfile.DoesNotExist:
-            return Response(
-                {"error": "Please create your profile first", "redirect": "/profile.html"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Please create your profile first", "redirect": "profile"},status=status.HTTP_400_BAD_REQUEST)
 
         try:
             token = eBayToken.objects.get(user=request.user)
             if not token.refresh_token:
-                return Response(
-                    {"error": "Please authenticate with eBay first", "redirect": "/ebay-auth.html"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+                return Response({"error": "Please authenticate with eBay first", "redirect": "ebay-auth"},status=status.HTTP_400_BAD_REQUEST)
         except eBayToken.DoesNotExist:
-            return Response(
-                {"error": "Please authenticate with eBay first", "redirect": "/ebay-auth.html"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Please authenticate with eBay first", "redirect": "ebay-auth"},status=status.HTTP_400_BAD_REQUEST)
 
         listings = UserListing.objects.filter(user=request.user)
         total_value = sum((l.price_value or 0) * (l.quantity or 0) for l in listings)
         active_count = listings.filter(status='ACTIVE').count()
-        return Response({
-            "total_listings": listings.count(),
-            "active_listings": active_count,
-            "total_inventory_value": float(total_value),
-            "email": request.user.email
-        })
+        return Response({"total_listings": listings.count(),"active_listings": active_count,"total_inventory_value": float(total_value),"email": request.user.email})
 
-class MyListingsView(APIView):
-    permission_classes = [IsAuthenticated]
-
+class MyListingsAPIView(APIView):
     def get(self, request):
         page = int(request.query_params.get('page', 1))
         limit = 20
@@ -709,9 +690,7 @@ class MyListingsView(APIView):
             "has_more": len(listings) == limit
         })
 
-class FetchAddressImageProfileView(APIView):
-    permission_classes = [IsAuthenticated]
-
+class FetchAddressImageProfileAPIView(APIView):
     def get(self, request):
         try:
             profile = UserProfile.objects.get(user=request.user)
@@ -724,14 +703,9 @@ class FetchAddressImageProfileView(APIView):
             }
             return Response(profile_data, status=status.HTTP_200_OK)
         except UserProfile.DoesNotExist:
-            return Response(
-                {'error': 'User profile not found'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({'error': 'User profile not found'},status=status.HTTP_404_NOT_FOUND)
 
-class UploadProfileImageView(APIView):
-    permission_classes = [IsAuthenticated]
-
+class UploadProfileImageAPIView(APIView):
     def post(self, request):
         file = request.FILES.get("image")
         if not file:
@@ -753,9 +727,7 @@ class UploadProfileImageView(APIView):
         except Exception as e:
             return Response({"error": "Upload failed. Please try again later."}, status=500)
 
-class SendPasswordChangeOTPView(APIView):
-    permission_classes = [IsAuthenticated]
-
+class SendPasswordChangeOTPAPIView(APIView):
     def post(self, request):
         otp = str(random.randint(100000, 999999))
         expires_at = timezone.now() + timedelta(seconds=600)
@@ -805,9 +777,7 @@ class SendPasswordChangeOTPView(APIView):
         except Exception as e:
             return Response({"error": "Failed to send verification code"}, status=500)
 
-class ChangePasswordView(APIView):
-    permission_classes = [IsAuthenticated]
-
+class ChangePasswordAPIView(APIView):
     def post(self, request):
         otp = request.data.get("otp", "").strip()
         new_password = request.data.get("new_password", "").strip()
@@ -826,7 +796,7 @@ class ChangePasswordView(APIView):
         except OTP.DoesNotExist:
             return Response({"error": "Invalid or expired verification code"}, status=400)
 
-class SignupView(APIView):
+class SignupAPIView(APIView):
     def post(self, request):
         email = request.data.get("email", "").strip().lower()
         password = request.data.get("password", "")
@@ -882,7 +852,7 @@ class SignupView(APIView):
         except Exception:
             return Response({"error": "Failed to send verification email. Please try again later."}, status=500)
 
-class VerifyOTPView(APIView):
+class VerifyOTPAPIView(APIView):
     def post(self, request):
         email = request.data.get('email', '').strip().lower()
         submitted_otp = request.data.get('otp', '')
@@ -918,7 +888,7 @@ class VerifyOTPView(APIView):
         except Exception as e:
             return Response({'error': 'Account creation failed'}, status=500)
 
-class ResendOTPView(APIView):
+class ResendOTPAPIView(APIView):
     def post(self, request):
         email = request.data.get('email', '').strip().lower()
         signup_data = request.session.get('signup_data', {})
@@ -977,18 +947,14 @@ class ResendOTPView(APIView):
         except Exception:
             return Response({"error": "Failed to send verification email"}, status=500)
 
-class RevokeeBayAuthView(APIView):
-    permission_classes = [IsAuthenticated]
-
+class RevokeeBayAuthAPIView(APIView):
     def post(self, request):
         print("Revoking eBay authentication")
         eBayToken.objects.filter(user=request.user).delete()
         request.session['force_ebay_login'] = True
         return Response({"status": "success", "message": "eBay authentication revoked"})
 
-class FormatDescriptionView(APIView):
-    permission_classes = [IsAuthenticated]
-
+class FormatDescriptionAPIView(APIView):
     def post(self, request):
         text = request.data.get('text', '').strip()
         if not text:
@@ -1004,18 +970,7 @@ class FormatDescriptionView(APIView):
         except Exception as e:
             return Response({"error": f"Failed to format description: {str(e)}"}, status=500)
 
-def upload_to_imgbb(image_path: str) -> str:
-    if not IMGBB_API_KEY:
-        raise RuntimeError("IMGBB_API_KEY is not set in the environment")
-    with open(image_path, "rb") as file:
-        files = {"image": (os.path.basename(image_path), file, "image/jpeg")}
-        params = {"key": IMGBB_API_KEY}
-        resp = requests.post("https://api.imgbb.com/1/upload", files=files, params=params, timeout=60)
-    if resp.status_code != 200 or not resp.json().get("data", {}).get("url"):
-        raise RuntimeError(f"ImgBB upload failed: {resp.status_code} {resp.text[:200]}")
-    return resp.json()["data"]["url"]
 
-ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # --------------------------------------------------------------Enhance Image--------------------------------------------------------------
 
@@ -1100,9 +1055,7 @@ def paste_with_shadow(canvas: Image.Image, tile: Image.Image, x: int, y: int, sh
         canvas.paste(shadow, (sx, sy), shadow)
     canvas.paste(tile, (x, y), tile)
 
-class EnhanceImageView(APIView):
-    permission_classes = [IsAuthenticated]
-
+class EnhanceImageAPIView(APIView):
     def post(self, request):
         image_url = request.data.get("image_url", "").strip()
         title = request.data.get("title", "").strip() or None
@@ -1218,9 +1171,7 @@ def create_single_image(image_url: str, output_path: str = "single_item.jpg", ou
     canvas.convert("RGB").save(output_path, quality=95, optimize=True, subsampling=2)
     return output_path
 
-class ItemView(APIView):
-    permission_classes = [IsAuthenticated]
-
+class SingleItemListingAPIView(APIView):
     def post(self, request):
         action = request.data.get("action", "publish")
         if action not in ["preview", "publish"]:
@@ -1607,9 +1558,7 @@ def compose_multipack(image_url: str, pack_size: int = 4, output_path: str = "mu
     return output_path
 
 
-class MultipackListingView(APIView):
-    permission_classes = [IsAuthenticated]
-
+class MultipackListingAPIView(APIView):
     def post(self, request):
         action = request.data.get("action", "publish")
         if action not in ["preview", "publish"]:
@@ -1922,11 +1871,6 @@ class MultipackListingView(APIView):
 
 # --------------------------------------------------------------Bundle View--------------------------------------------------------------
 
-class BundleItemListingView(View):
-    def get(self, request):
-        return render(request, 'bundle-listing.html')
-
-
 def fetch_image_rgba(url: str) -> Image.Image:
     r = requests.get(url, timeout=20)
     r.raise_for_status()
@@ -2026,9 +1970,7 @@ def compose_bundle(
     print(f"[*] Saving -> {output_path}")
     canvas.convert("RGB").save(output_path, quality=95, optimize=True, subsampling=2)
     
-class BundleListingView(APIView):
-    permission_classes = [IsAuthenticated]
-
+class BundleListingAPIView(APIView):
     def post(self, request):
         action = request.data.get("action", "publish")
         if action not in ["preview", "publish"]:

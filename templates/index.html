@@ -332,7 +332,6 @@
     </style>
 </head>
 <body class="bg-white">
-    <!-- Header -->
     <nav class="navbar-backdrop fixed w-full top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
@@ -352,12 +351,36 @@
                 </div>
 
                 <div class="hidden lg:flex items-center space-x-4">
-                    <button onclick="showLoginModal()" class="text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors">
-                        Sign in
-                    </button>
-                    <button onclick="showSignupModal()" class="hero-gradient text-white px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity hover-lift">
-                        Start free
-                    </button>
+                    <div id="unauthenticated-nav" style="display: none;">
+                        <button onclick="showLoginModal()" class="text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors">
+                            Sign in
+                        </button>
+                        <button onclick="showSignupModal()" class="hero-gradient text-white px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity hover-lift">
+                            Start free
+                        </button>
+                    </div>
+
+                    <div id="authenticated-nav" style="display: none;">
+                        <!-- <a href="/services/" class="text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors">
+                            Services
+                        </a> -->
+                        <div class="relative">
+                            <button id="profile-dropdown-btn" class="flex items-center space-x-2 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors">
+                                <span id="user-email">Profile</span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div id="profile-dropdown" class="profile-dropdown absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                                <a href="/display-profile/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile Settings</a>
+                                <a href="/services/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Services</a>
+                                <hr class="my-1">
+                                <button onclick="handleLogout()" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    Sign Out
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="lg:hidden">
@@ -377,16 +400,22 @@
                     <a href="#pricing" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Pricing</a>
                     <a href="#faq" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">FAQ</a>
                     <hr class="my-2">
-                    <div class="flex flex-col space-y-2">
+                    
+                    <div id="mobile-unauthenticated-nav" style="display: none;" class="flex flex-col space-y-2">
                         <button onclick="showLoginModal()" class="text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors text-left">Sign in</button>
                         <button onclick="showSignupModal()" class="hero-gradient text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity text-left">Start free</button>
+                    </div>
+                    
+                    <div id="mobile-authenticated-nav" style="display: none;" class="flex flex-col space-y-2">
+                        <a href="/profile/" class="text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Profile</a>
+                        <a href="/services/" class="text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Services</a>
+                        <button onclick="handleLogout()" class="text-left text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Sign Out</button>
                     </div>
                 </div>
             </div>
         </div>
     </nav>
 
-    <!-- Hero -->
     <section class="relative overflow-hidden pt-20 sm:pt-24 pb-12 sm:pb-16">
         <div class="floating-elements">
             <div class="floating-element" style="left: 10%; animation-delay: 0s;">⚡</div>
@@ -476,7 +505,6 @@
         </div>
     </section>
 
-    <!-- Metrics Strip -->
     <section class="bg-gray-50 border-y border-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 text-center text-sm">
@@ -500,7 +528,6 @@
         </div>
     </section>
 
-    <!-- USP Grid -->
     <section id="features" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div class="max-w-3xl mx-auto text-center mb-10 sm:mb-12">
             <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900">Why Sellers Choose ListFast.ai</h2>
@@ -546,7 +573,6 @@
         </div>
     </section>
 
-    <!-- How it works -->
     <section id="how" class="bg-gray-50 border-y border-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
             <div class="max-w-3xl mx-auto text-center mb-10 sm:mb-12">
@@ -575,7 +601,6 @@
         </div>
     </section>
 
-    <!-- Demo Video Section -->
     <section id="demo" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div class="max-w-3xl mx-auto text-center mb-8 sm:mb-10">
             <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900">See ListFast.ai in Action</h2>
@@ -597,7 +622,6 @@
                         </button>
                     </div>
                 </div>
-                <!-- <p class="mt-3 text-xs text-gray-500">Tip: export a crisp 1280×720 MP4/WebM. Keep captions on for silent autoplay in social reposts.</p> -->
             </div>
             
             <div class="space-y-4">
@@ -628,7 +652,6 @@
         </div>
     </section>
 
-    <!-- Feature Highlights -->
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div class="grid lg:grid-cols-2 gap-8 sm:gap-12 items-center">
             <div>
@@ -687,7 +710,6 @@
         </div>
     </section>
 
-    <!-- Social Proof -->
     <section class="bg-gray-50 border-y border-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
             <div class="max-w-3xl mx-auto text-center mb-10 sm:mb-12">
@@ -716,7 +738,6 @@
         </div>
     </section>
 
-    <!-- Pricing -->
     <section id="pricing" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div class="max-w-3xl mx-auto text-center mb-10 sm:mb-12">
             <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900">Simple Pricing</h2>
@@ -765,7 +786,6 @@
         </div>
     </section>
 
-    <!-- FAQ -->
     <section id="faq" class="bg-gray-50 border-y border-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
             <div class="max-w-3xl mx-auto text-center mb-8 sm:mb-10">
@@ -796,7 +816,6 @@
         </div>
     </section>
 
-    <!-- Final CTA -->
     <section id="cta" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div class="rounded-3xl gradient-bg p-8 sm:p-10 text-white">
             <div class="grid md:grid-cols-2 gap-6 sm:gap-8 items-center">
@@ -816,7 +835,6 @@
         </div>
     </section>
 
-    <!-- Footer -->
     <footer class="bg-gray-900 text-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
@@ -877,7 +895,6 @@
         </div>
     </footer>
 
-    <!-- Login Modal -->
     <div id="loginModal" class="modal">
         <div class="modal-content">
             <div class="flex justify-between items-center mb-6">
@@ -911,7 +928,6 @@
         </div>
     </div>
 
-    <!-- Signup Modal -->
     <div id="signupModal" class="modal">
         <div class="modal-content">
             <div class="flex justify-between items-center mb-6">
@@ -949,7 +965,6 @@
         </div>
     </div>
 
-    <!-- OTP Verification Modal -->
     <div id="otpModal" class="modal">
         <div class="modal-content">
             <div class="flex justify-between items-center mb-6">
@@ -991,7 +1006,6 @@
         </div>
     </div>
 
-    <!-- Demo Modal -->
     <div id="demoModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 p-4">
         <div class="relative w-full max-w-4xl">
             <button onclick="closeDemoModal()" class="absolute -top-3 -right-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-gray-900 shadow" aria-label="Close">
@@ -1007,6 +1021,8 @@
         let otpTimer;
         let otpTimeLeft = 600;
         let pendingSignupData = null;
+        let isAuthenticated = false;
+        let userEmail = '';
 
         const hamburgerBtn = document.getElementById('hamburger-btn');
         const mobileMenu = document.getElementById('mobile-menu');
@@ -1015,6 +1031,99 @@
             hamburgerBtn.classList.toggle('open');
             mobileMenu.classList.toggle('active');
         });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuthenticationStatus();
+            
+            const profileDropdownBtn = document.getElementById('profile-dropdown-btn');
+            const profileDropdown = document.getElementById('profile-dropdown');
+            
+            if (profileDropdownBtn && profileDropdown) {
+                profileDropdownBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    profileDropdown.classList.toggle('active');
+                });
+                
+                document.addEventListener('click', function() {
+                    profileDropdown.classList.remove('active');
+                });
+            }
+        });
+
+        async function checkAuthenticationStatus() {
+            try {
+                const response = await fetch('/api/auth-status/', {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.is_logged_in) {
+                    isAuthenticated = true;
+                    userEmail = data.email || '';
+                    updateNavigationForAuthenticated();
+                } else {
+                    isAuthenticated = false;
+                    updateNavigationForUnauthenticated();
+                }
+            } catch (error) {
+                console.error('Error checking authentication status:', error);
+                updateNavigationForUnauthenticated();
+            }
+        }
+
+        function updateNavigationForAuthenticated() {
+            const unauthNav = document.getElementById('unauthenticated-nav');
+            const authNav = document.getElementById('authenticated-nav');
+            const userEmailSpan = document.getElementById('user-email');
+            
+            if (unauthNav) unauthNav.style.display = 'none';
+            if (authNav) authNav.style.display = 'flex';
+            if (userEmailSpan && userEmail) userEmailSpan.textContent = userEmail;
+            
+            const mobileUnauthNav = document.getElementById('mobile-unauthenticated-nav');
+            const mobileAuthNav = document.getElementById('mobile-authenticated-nav');
+            
+            if (mobileUnauthNav) mobileUnauthNav.style.display = 'none';
+            if (mobileAuthNav) mobileAuthNav.style.display = 'flex';
+        }
+
+        function updateNavigationForUnauthenticated() {
+            const unauthNav = document.getElementById('unauthenticated-nav');
+            const authNav = document.getElementById('authenticated-nav');
+            
+            if (unauthNav) unauthNav.style.display = 'flex';
+            if (authNav) authNav.style.display = 'none';
+            
+            const mobileUnauthNav = document.getElementById('mobile-unauthenticated-nav');
+            const mobileAuthNav = document.getElementById('mobile-authenticated-nav');
+            
+            if (mobileUnauthNav) mobileUnauthNav.style.display = 'flex';
+            if (mobileAuthNav) mobileAuthNav.style.display = 'none';
+        }
+
+        async function handleLogout() {
+            try {
+                const response = await fetch('/logout/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                });
+                
+                if (response.ok) {
+                    isAuthenticated = false;
+                    userEmail = '';
+                    updateNavigationForUnauthenticated();
+                    window.location.href = '/';
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        }
 
         document.getElementById('year').textContent = new Date().getFullYear();
 
@@ -1119,7 +1228,7 @@
             resendButton.textContent = 'Sending...';
             
             try {
-                const response = await fetch('/resend-otp/', {
+                const response = await fetch('/api/resend-otp/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1175,7 +1284,7 @@
             submitBtn.textContent = 'Signing in...';
             
             try {
-                const response = await fetch('/login/', {
+                const response = await fetch('/api/login/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1187,9 +1296,13 @@
                 const data = await response.json();
                 if (response.ok) {
                     document.getElementById('loginSuccess').style.display = 'block';
+                    closeModal('loginModal');
+                    
+                    checkAuthenticationStatus();
+                    
                     setTimeout(() => {
-                        window.location.href = data.redirect || '/dashboard/';
-                    }, 1500);
+                        window.location.href = data.redirect || '/services/';
+                    }, 1000);
                 } else {
                     document.getElementById('loginError').textContent = data.error || 'Login failed';
                     document.getElementById('loginError').style.display = 'block';
@@ -1224,7 +1337,7 @@
             submitBtn.textContent = 'Sending verification...';
             
             try {
-                const response = await fetch('/signup/', {
+                const response = await fetch('/api/signup/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1273,7 +1386,7 @@
             submitBtn.textContent = 'Verifying...';
             
             try {
-                const response = await fetch('/verify-otp/', {
+                const response = await fetch('/api/verify-otp/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1338,7 +1451,6 @@
             }
         });
 
-        // Smooth scrolling for anchor links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
                 e.preventDefault();
@@ -1356,7 +1468,6 @@
             });
         });
 
-        // Intersection Observer for animations
         const observerOptions = {
             threshold: 0.1,
             rootMargin: '0px 0px -50px 0px'
