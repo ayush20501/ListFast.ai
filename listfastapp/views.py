@@ -439,11 +439,25 @@ def ebay_auth_view(request):
 
 @login_required
 def single_item_listing_view(request):
+    try:
+        UserProfile.objects.get(user=request.user)
+        has_profile = True
+    except UserProfile.DoesNotExist:
+            has_profile = False
+        
+    try:
+        token = eBayToken.objects.get(user=request.user)
+        has_ebay_auth = bool(token.refresh_token)
+    except eBayToken.DoesNotExist:
+        has_ebay_auth = False
+    
+    if not has_profile:
+        return redirect('profile')
+    
+    if not has_ebay_auth:
+        return redirect('ebay-auth')
+    
     return render(request, 'single-item-listing.html')
-
-@login_required
-def multiple_item_listing_view(request):
-    return render(request, 'multi-item-listing.html')
 
 @login_required
 def success_view(request):
@@ -455,10 +469,46 @@ def services_view(request):
 
 @login_required
 def multi_item_listing_view(request):
+    try:
+        UserProfile.objects.get(user=request.user)
+        has_profile = True
+    except UserProfile.DoesNotExist:
+        has_profile = False
+        
+    try:
+        token = eBayToken.objects.get(user=request.user)
+        has_ebay_auth = bool(token.refresh_token)
+    except eBayToken.DoesNotExist:
+        has_ebay_auth = False
+    
+    if not has_profile:
+        return redirect('profile')
+    
+    if not has_ebay_auth:
+        return redirect('ebay-auth')
+    
     return render(request, 'multi-item-listing.html')
 
 @login_required
 def bundle_listing_view(request):
+    try:
+        UserProfile.objects.get(user=request.user)
+        has_profile = True
+    except UserProfile.DoesNotExist:
+        has_profile = False
+        
+    try:
+        token = eBayToken.objects.get(user=request.user)
+        has_ebay_auth = bool(token.refresh_token)
+    except eBayToken.DoesNotExist:
+        has_ebay_auth = False
+    
+    if not has_profile:
+        return redirect('profile')
+    
+    if not has_ebay_auth:
+        return redirect('ebay-auth')
+    
     return render(request, 'bundle-listing.html')
 
 def custom_404_view(request, invalid_path):
@@ -542,30 +592,6 @@ class LoginAPIView(APIView):
         if not user.is_active:
             return Response({"error": "Account is inactive"}, status=403)
         login(request, user)
-        
-        try:
-            UserProfile.objects.get(user=user)
-            has_profile = True
-        except UserProfile.DoesNotExist:
-            has_profile = False
-        
-        try:
-            token = eBayToken.objects.get(user=user)
-            has_ebay_auth = bool(token.refresh_token)
-        except eBayToken.DoesNotExist:
-            has_ebay_auth = False
-        if not has_profile:
-            return Response({
-                "status": "success",
-                "message": "Logged in successfully, please create your profile",
-                "redirect": reverse('profile')
-            })
-        if not has_ebay_auth:
-            return Response({
-                "status": "success",
-                "message": "Logged in successfully, please authenticate with eBay",
-                "redirect": reverse('ebay-auth')
-            })
         
         return Response({
             "status": "success",
