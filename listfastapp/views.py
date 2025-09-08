@@ -1173,9 +1173,8 @@ def create_single_image(image_url: str, output_path: str = "single_item.jpg", ou
 
 class SingleItemListingAPIView(APIView):
     def post(self, request):
-        action = request.data.get("action", "publish")
-        if action not in ["preview", "publish"]:
-            return Response({"error": "Invalid action. Use 'preview' or 'publish'"}, status=status.HTTP_400_BAD_REQUEST)
+        if request.data.get("action", "publish") != "publish":
+            return Response({"error": "Only 'publish' action is supported"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             profile = UserProfile.objects.get(user=request.user)
@@ -1188,170 +1187,130 @@ class SingleItemListingAPIView(APIView):
                 return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
         except eBayToken.DoesNotExist:
             return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
+        
         access = ensure_access_token(request.user)
-        if action == "publish" and all(field in request.data for field in ["title", "description", "aspects", "sku", "price", "quantity", "condition", "category_id", "marketplace_id", "images"]):
-            title = _clean_text(request.data.get("title"), limit=80)
-            description = request.data.get("description", {})
-            description_text = _clean_text(description.get("text"), limit=2000)
-            description_html = description.get("html") if description.get("used_html") else f"<p>{description_text}</p>"
-            aspects = request.data.get("aspects", {})
-            sku = request.data.get("sku")
-            price = request.data.get("price")
-            quantity = int(request.data.get("quantity", 1))
-            condition = request.data.get("condition").upper()
-            category_id = request.data.get("category_id")
-            marketplace_id = request.data.get("marketplace_id")
-            images = _https_only(request.data.get("images"))
-            category_name = request.data.get("category_name")
-            remove_background = request.data.get("remove_background", False)
-        else:
-            serializer = ListingSerializer(data=request.data)
-            if not serializer.is_valid():
-                return Response({"error": "Invalid input", "details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        
+        raw_text_in = _clean_text(request.data.get("raw_text", ""), limit=8000)
+        images = _https_only(request.data.get("images", []))
+        marketplace_id = MARKETPLACE_ID
+        price = request.data.get("price")
+        quantity = int(request.data.get("quantity", 1))
+        condition = request.data.get("condition", "NEW").upper()
+        sku = request.data.get("sku") or _gen_sku("RAW")
+        remove_background = request.data.get("remove_bg", False)
 
-            raw_text_in = _clean_text(serializer.validated_data.get("raw_text"), limit=8000)
-            images = _https_only(serializer.validated_data.get("images", []))
-            marketplace_id = MARKETPLACE_ID
-            price = serializer.validated_data["price"]
-            quantity = serializer.validated_data["quantity"]
-            condition = serializer.validated_data.get("condition", "NEW").upper()
-            sku = request.data.get("sku") or _gen_sku("RAW")
-            remove_background = request.data.get("remove_bg", False)
+        if not raw_text_in and not images:
+            return Response({"error": "Raw text or images required"}, status=status.HTTP_400_BAD_REQUEST)
 
-            if not raw_text_in and not images:
-                return Response({"error": "Raw text or images required"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            output_path = f"media/single_{uuid.uuid4().hex}.jpg"
+            os.makedirs("media", exist_ok=True)
+            create_single_image(image_url=images[0], output_path=output_path, do_remove_bg=remove_background)
+            processed_image_url = upload_to_imgbb(output_path)
+            images[0] = processed_image_url
+            os.remove(output_path)
+        except Exception as e:
+            print(f"[Image Processing Error] {e}")
+            return Response({"error": f"Failed to process or upload image: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+        system_prompt = (
+            "Extract concise keywords for eBay category selection and search. "
+            "Return STRICT JSON. Use ONLY facts from input. "
+            "Lowercase all keywords, no punctuation, no duplicates. "
+            "For normalized_title, describe ONE specific item, selecting the first mentioned variant for any attribute that defines a unique item (e.g., color, size, model)."
+        )
+        user_prompt = f"""MARKETPLACE: {marketplace_id}
+        RAW_TEXT:
+        {raw_text_in}
+        
+        OUTPUT RULES:
+        - category_keywords: 1–5 short phrases (2–3 words) for product category.
+        - search_keywords: 3–12 search terms, lowercase, ≤ 30 chars.
+        - normalized_title: <=80 chars, clean, factual, describes ONE item.
+        - brand: only if in RAW_TEXT.
+        - identifiers: only if present (isbn/ean/gtin/mpn)."""
+        try:
+            s1 = call_llm_json(system_prompt, user_prompt)
+            s1["search_keywords"] = clean_keywords(s1.get("search_keywords", []))
+            normalized_title = s1.get("normalized_title") or _fallback_title(raw_text_in)
+            category_keywords = s1.get("category_keywords", [])
+            brand = s1.get("brand")
+        except Exception as e:
+            print(f"[AI Keywords Error] {e}")
+            normalized_title = smart_titlecase(raw_text_in[:80]) or _fallback_title(raw_text_in)
+            category_keywords = []
+            brand = None
+
+        access = ensure_access_token(request.user)
+        tree_id = get_category_tree_id(access)
+        query = (" ".join(category_keywords)).strip() or normalized_title
+        try:
+            cat_id, cat_name = suggest_leaf_category(tree_id, query, access)
+        except Exception:
+            cat_id, cat_name = browse_majority_category(query, access)
+            if not cat_id:
+                return Response({"error": "No category found", "query": query}, status=status.HTTP_404_NOT_FOUND)
+
+        aspects_info = get_required_and_recommended_aspects(tree_id, cat_id, access)
+        req_names = [_aspect_name(x) for x in aspects_info.get("required", []) if _aspect_name(x)]
+        rec_names = [_aspect_name(x) for x in aspects_info.get("recommended", []) if _aspect_name(x)]
+        filled_aspects = {name: ["Does not apply"] for name in req_names}
+
+        single_value_aspects = [
+            _aspect_name(aspect) for aspect in aspects_info.get("raw", [])
+            if _aspect_name(aspect) and aspect.get("aspectConstraint", {}).get("aspectMode") in ["FREE_TEXT", "SELECTION_ONLY"]
+        ]
+
+        if req_names or rec_names:
+            system_prompt2 = (
+                "Fill eBay item aspects from text/images. NEVER leave required aspects empty; "
+                "extract when explicit, infer when reasonable, otherwise use 'Does not apply'. "
+                "For aspects that define unique item variations (e.g., color, size, model), select ONLY the first value mentioned in the text to describe a single item."
+            )
+            user_prompt2 = f"""
+            INPUT TEXT:
+            {normalized_title}
+            RAW TEXT:
+            {raw_text_in}
+            ASPECTS:
+            - REQUIRED: {req_names}
+            - RECOMMENDED: {rec_names}
+            OUTPUT RULES:
+            {{
+            "filled": {{"AspectName": ["value1"]}},
+            "missing_required": ["AspectName"],
+            "notes": "optional"
+            }}
+            """
             try:
-                output_path = f"media/single_{uuid.uuid4().hex}.jpg"
-                os.makedirs("media", exist_ok=True)
-                create_single_image(image_url=images[0], output_path=output_path, do_remove_bg=remove_background)
-                processed_image_url = upload_to_imgbb(output_path)
-                images[0] = processed_image_url
-                os.remove(output_path)
+                s3 = call_llm_json(system_prompt2, user_prompt2)
+                allowed = set(req_names + rec_names)
+                for k, vals in (s3.get("filled") or {}).items():
+                    if k in allowed and isinstance(vals, list):
+                        clean_vals = list(dict.fromkeys([str(v).strip() for v in vals if str(v).strip()]))
+                        if k in single_value_aspects and clean_vals:
+                            clean_vals = [clean_vals[0]]
+                        if clean_vals:
+                            filled_aspects[k] = clean_vals
+                filled_aspects = apply_aspect_constraints(filled_aspects, aspects_info.get("raw"))
+                if "Book Title" in filled_aspects:
+                    filled_aspects["Book Title"] = [v[:65] for v in filled_aspects["Book Title"]]
             except Exception as e:
-                print(f"[Image Processing Error] {e}")
-                return Response({"error": f"Failed to process or upload multipack image: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                print(f"[AI Aspects Error] {e}")
 
-            if not OPENAI_API_KEY:
-                normalized_title = smart_titlecase(raw_text_in[:80]) or _fallback_title(raw_text_in)
-                category_keywords = []
-                brand = None
-            else:
-                system_prompt = (
-                    "Extract concise keywords for eBay category selection and search. "
-                    "Return STRICT JSON. Use ONLY facts from input. "
-                    "Lowercase all keywords, no punctuation, no duplicates. "
-                    "For normalized_title, describe ONE specific item, selecting the first mentioned variant for any attribute that defines a unique item (e.g., color, size, model)."
-                )
-                user_prompt = f"""MARKETPLACE: {marketplace_id}
-                RAW_TEXT:
-                {raw_text_in}
-                
-                OUTPUT RULES:
-                - category_keywords: 1–5 short phrases (2–3 words) for product category.
-                - search_keywords: 3–12 search terms, lowercase, ≤ 30 chars.
-                - normalized_title: <=80 chars, clean, factual, describes ONE item.
-                - brand: only if in RAW_TEXT.
-                - identifiers: only if present (isbn/ean/gtin/mpn)."""
-                try:
-                    s1 = call_llm_json(system_prompt, user_prompt)
-                    s1["search_keywords"] = clean_keywords(s1.get("search_keywords", []))
-                    normalized_title = s1.get("normalized_title") or _fallback_title(raw_text_in)
-                    category_keywords = s1.get("category_keywords", [])
-                    brand = s1.get("brand")
-                except Exception as e:
-                    print(f"[AI Keywords Error] {e}")
-                    normalized_title = smart_titlecase(raw_text_in[:80]) or _fallback_title(raw_text_in)
-                    category_keywords = []
-                    brand = None
+        try:
+            desc_bundle = build_description_simple_from_raw(raw_text_in, html_mode=True)
+            description_text = desc_bundle["text"]
+            description_html = desc_bundle["html"]
+        except Exception as e:
+            print(f"[AI Description Error] {e}")
+            description_text = raw_text_in[:2000]
+            description_html = f"<p>{description_text}</p>"
 
-            access = ensure_access_token(request.user)
-            tree_id = get_category_tree_id(access)
-            query = (" ".join(category_keywords)).strip() or normalized_title
-            try:
-                cat_id, cat_name = suggest_leaf_category(tree_id, query, access)
-            except Exception:
-                cat_id, cat_name = browse_majority_category(query, access)
-                if not cat_id:
-                    return Response({"error": "No category found", "query": query}, status=status.HTTP_404_NOT_FOUND)
-
-            aspects_info = get_required_and_recommended_aspects(tree_id, cat_id, access)
-            req_names = [_aspect_name(x) for x in aspects_info.get("required", []) if _aspect_name(x)]
-            rec_names = [_aspect_name(x) for x in aspects_info.get("recommended", []) if _aspect_name(x)]
-            filled_aspects = {name: ["Does not apply"] for name in req_names}
-
-            single_value_aspects = [
-                _aspect_name(aspect) for aspect in aspects_info.get("raw", [])
-                if _aspect_name(aspect) and aspect.get("aspectConstraint", {}).get("aspectMode") in ["FREE_TEXT", "SELECTION_ONLY"]
-            ]
-
-            if OPENAI_API_KEY and (req_names or rec_names):
-                system_prompt2 = (
-                    "Fill eBay item aspects from text/images. NEVER leave required aspects empty; "
-                    "extract when explicit, infer when reasonable, otherwise use 'Does not apply'. "
-                    "For aspects that define unique item variations (e.g., color, size, model), select ONLY the first value mentioned in the text to describe a single item."
-                )
-                user_prompt2 = f"""
-                INPUT TEXT:
-                {normalized_title}
-                RAW TEXT:
-                {raw_text_in}
-                ASPECTS:
-                - REQUIRED: {req_names}
-                - RECOMMENDED: {rec_names}
-                OUTPUT RULES:
-                {{
-                "filled": {{"AspectName": ["value1"]}},
-                "missing_required": ["AspectName"],
-                "notes": "optional"
-                }}
-                """
-                try:
-                    s3 = call_llm_json(system_prompt2, user_prompt2)
-                    allowed = set(req_names + rec_names)
-                    for k, vals in (s3.get("filled") or {}).items():
-                        if k in allowed and isinstance(vals, list):
-                            clean_vals = list(dict.fromkeys([str(v).strip() for v in vals if str(v).strip()]))
-                            if k in single_value_aspects and clean_vals:
-                                clean_vals = [clean_vals[0]]
-                            if clean_vals:
-                                filled_aspects[k] = clean_vals
-                    filled_aspects = apply_aspect_constraints(filled_aspects, aspects_info.get("raw"))
-                    if "Book Title" in filled_aspects:
-                        filled_aspects["Book Title"] = [v[:65] for v in filled_aspects["Book Title"]]
-                except Exception as e:
-                    print(f"[AI Aspects Error] {e}")
-
-            try:
-                desc_bundle = build_description_simple_from_raw(raw_text_in, html_mode=True)
-                description_text = desc_bundle["text"]
-                description_html = desc_bundle["html"]
-            except Exception as e:
-                print(f"[AI Description Error] {e}")
-                description_text = raw_text_in[:2000]
-                description_html = f"<p>{description_text}</p>"
-
-            title = smart_titlecase(normalized_title)[:80]
-            category_id = cat_id
-            category_name = cat_name
-            aspects = filled_aspects
-
-        if action == "preview":
-            return Response({
-                "title": title,
-                "description": {"text": description_text, "html": description_html, "used_html": True},
-                "aspects": aspects,
-                "sku": sku,
-                "price": price,
-                "quantity": quantity,
-                "condition": condition,
-                "category_id": category_id,
-                "category_name": category_name,
-                "marketplace_id": marketplace_id,
-                "images": images,
-                "single_value_aspects": single_value_aspects,
-                "remove_background": remove_background
-            })
+        title = smart_titlecase(normalized_title)[:80]
+        category_id = cat_id
+        category_name = cat_name
+        aspects = filled_aspects
 
         try:
             lang = "en-GB" if marketplace_id == "EBAY_GB" else "en-US"
@@ -1371,7 +1330,7 @@ class SingleItemListingAPIView(APIView):
                     break
                 sku = _gen_sku("RAW")
             else:
-                return Response({"error": f"Failed to generate unique SKU"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": "Failed to generate unique SKU"}, status=status.HTTP_400_BAD_REQUEST)
 
             inv_url = f"{BASE}/sell/inventory/v1/inventory_item/{sku}"
             inv_payload = {
@@ -1486,8 +1445,6 @@ def download_rgba(url: str) -> Image.Image:
     return Image.open(io.BytesIO(r.content)).convert("RGBA")
 
 def remove_bg_via_rembg(img: Image.Image) -> Image.Image:
-    if not REMBG_API_KEY:
-        raise RuntimeError("REMBG_API_KEY is not set in the environment")
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     buf.seek(0)
@@ -1557,12 +1514,11 @@ def compose_multipack(image_url: str, pack_size: int = 4, output_path: str = "mu
     canvas.convert("RGB").save(output_path, quality=95, optimize=True, subsampling=2)
     return output_path
 
-
 class MultipackListingAPIView(APIView):
     def post(self, request):
         action = request.data.get("action", "publish")
-        if action not in ["preview", "publish"]:
-            return Response({"error": "Invalid action. Use 'preview' or 'publish'"}, status=status.HTTP_400_BAD_REQUEST)
+        if action != "publish":
+            return Response({"error": "Invalid action. Only 'publish' is supported"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             profile = UserProfile.objects.get(user=request.user)
@@ -1577,177 +1533,136 @@ class MultipackListingAPIView(APIView):
             return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
 
         access = ensure_access_token(request.user)
-        if action == "publish" and all(field in request.data for field in ["title", "description", "aspects", "sku", "price", "quantity", "condition", "category_id", "marketplace_id", "images"]):
-            title = _clean_text(request.data.get("title"), limit=80)
-            description = request.data.get("description", {})
-            description_text = _clean_text(description.get("text"), limit=2000)
-            description_html = description.get("html") if description.get("used_html") else f"<p>{description_text}</p>"
-            aspects = request.data.get("aspects", {})
-            sku = request.data.get("sku")
-            price = request.data.get("price")
-            quantity = int(request.data.get("quantity", 2))
-            condition = request.data.get("condition").upper()
-            category_id = request.data.get("category_id")
-            marketplace_id = request.data.get("marketplace_id")
-            images = _https_only(request.data.get("images"))
-            category_name = request.data.get("category_name")
-            vat_rate = float(request.data.get("vat_rate", 0))
-            remove_background = request.data.get("remove_background", False)
-        else:
-            raw_text_in = _clean_text(request.data.get("raw_text"), limit=8000)
-            images = _https_only(request.data.get("images", []))
-            marketplace_id = MARKETPLACE_ID
-            price = request.data["price"]
-            quantity = request.data["quantity"]
-            condition = request.data.get("condition", "NEW").upper()
-            vat_rate = float(request.data.get("vat_rate", 0))
-            sku = request.data.get("sku") or _gen_sku_multi("MULTI")
-            remove_background = request.data.get("remove_background", False)
-            multipack_quantity = request.data.get("multipack_quantity", 2)
+        raw_text_in = _clean_text(request.data.get("raw_text"), limit=8000)
+        images = _https_only(request.data.get("images", []))
+        marketplace_id = MARKETPLACE_ID
+        price = request.data["price"]
+        quantity = request.data["quantity"]
+        condition = request.data.get("condition", "NEW").upper()
+        vat_rate = float(request.data.get("vat_rate", 0))
+        sku = request.data.get("sku") or _gen_sku_multi("MULTI")
+        remove_background = request.data.get("remove_background", False)
+        multipack_quantity = request.data.get("multipack_quantity", 2)
 
-            if not raw_text_in and not images:
-                return Response({"error": "Raw text or images required"}, status=status.HTTP_400_BAD_REQUEST)
+        if not raw_text_in and not images:
+            return Response({"error": "Raw text or images required"}, status=status.HTTP_400_BAD_REQUEST)
 
-            if multipack_quantity < 1 or multipack_quantity > 6:
-                return Response({"error": "Multipack quantity must be between 1 and 6"}, status=status.HTTP_400_BAD_REQUEST)
+        if multipack_quantity < 1 or multipack_quantity > 6:
+            return Response({"error": "Multipack quantity must be between 1 and 6"}, status=status.HTTP_400_BAD_REQUEST)
 
-            if multipack_quantity > 1 and images:
-                try:
-                    output_path = f"media/multipack_{uuid.uuid4().hex}.jpg"
-                    os.makedirs("media", exist_ok=True)
-                    compose_multipack(
-                        image_url=images[0],
-                        pack_size=multipack_quantity,
-                        output_path=output_path,
-                        do_remove_bg=remove_background
-                    )
-                    processed_image_url = upload_to_imgbb(output_path)
-                    images[0] = processed_image_url
-                    os.remove(output_path)
-                except Exception as e:
-                    print(f"[Image Processing Error] {e}")
-                    return Response({"error": f"Failed to process or upload multipack image: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-            if not OPENAI_API_KEY:
-                normalized_title = smart_titlecase(raw_text_in[:80]) or _fallback_title(raw_text_in)
-                category_keywords = []
-                brand = None
-            else:
-                system_prompt = (
-                    f"Extract concise keywords for eBay category selection and search for a multipack listing of {multipack_quantity} items. "
-                    "Return STRICT JSON. Use ONLY facts from input. "
-                    "Lowercase all keywords, no punctuation, no duplicates. "
-                    "For normalized_title, describe ONE specific multipack item, selecting the first mentioned variant for any attribute that defines a unique item (e.g., color, size, model), and include the pack size (e.g., '{quantity}-Pack')."
-                )
-                user_prompt = f"""MARKETPLACE: {marketplace_id}
-                RAW_TEXT:
-                {raw_text_in}
-
-                OUTPUT RULES:
-                - category_keywords: 1–5 short phrases (2–3 words) for product category.
-                - search_keywords: 3–12 search terms, lowercase, ≤ 30 chars.
-                - normalized_title: <=80 chars, clean, factual, includes '{multipack_quantity}-Pack', describes ONE item.
-                - brand: only if in RAW_TEXT.
-                - identifiers: only if present (isbn/ean/gtin/mpn)."""
-                try:
-                    s1 = call_llm_json(system_prompt, user_prompt)
-                    s1["search_keywords"] = clean_keywords(s1.get("search_keywords", []))
-                    normalized_title = s1.get("normalized_title") or _fallback_title(raw_text_in)
-                    category_keywords = s1.get("category_keywords", [])
-                    brand = s1.get("brand")
-                except Exception as e:
-                    print(f"[AI Keywords Error] {e}")
-                    normalized_title = smart_titlecase(raw_text_in[:80]) or _fallback_title(raw_text_in)
-                    category_keywords = []
-                    brand = None
-
-            access = ensure_access_token(request.user)
-            tree_id = get_category_tree_id(access)
-            query = (" ".join(category_keywords)).strip() or normalized_title
+        if multipack_quantity > 1 and images:
             try:
-                cat_id, cat_name = suggest_leaf_category(tree_id, query, access)
-            except Exception:
-                cat_id, cat_name = browse_majority_category(query, access)
-                if not cat_id:
-                    return Response({"error": "No category found", "query": query}, status=status.HTTP_404_NOT_FOUND)
-
-            aspects_info = get_required_and_recommended_aspects(tree_id, cat_id, access)
-            req_names = [_aspect_name(x) for x in aspects_info.get("required", []) if _aspect_name(x)]
-            rec_names = [_aspect_name(x) for x in aspects_info.get("recommended", []) if _aspect_name(x)]
-            filled_aspects = {name: ["Does not apply"] for name in req_names}
-            single_value_aspects = [
-                _aspect_name(aspect) for aspect in aspects_info.get("raw", [])
-                if _aspect_name(aspect) and aspect.get("aspectConstraint", {}).get("aspectMode") in ["FREE_TEXT", "SELECTION_ONLY"]
-            ]
-
-            if OPENAI_API_KEY and (req_names or rec_names):
-                system_prompt2 = (
-                    f"Fill eBay item aspects for a multipack listing of {multipack_quantity} items. NEVER leave required aspects empty; "
-                    "extract when explicit, infer when reasonable, otherwise use 'Does not apply'. "
-                    "For aspects that define unique item variations, select ONLY the first value mentioned in the text to describe a single item."
+                output_path = f"media/multipack_{uuid.uuid4().hex}.jpg"
+                os.makedirs("media", exist_ok=True)
+                compose_multipack(
+                    image_url=images[0],
+                    pack_size=multipack_quantity,
+                    output_path=output_path,
+                    do_remove_bg=remove_background
                 )
-                user_prompt2 = f"""
-                INPUT TEXT:
-                {normalized_title}
-                RAW TEXT:
-                {raw_text_in}
-                ASPECTS:
-                - REQUIRED: {req_names}
-                - RECOMMENDED: {rec_names}
-                OUTPUT RULES:
-                {{
-                "filled": {{"AspectName": ["value1"]}},
-                "missing_required": ["AspectName"],
-                "notes": "optional"
-                }}
-                """
-                try:
-                    s3 = call_llm_json(system_prompt2, user_prompt2)
-                    allowed = set(req_names + rec_names)
-                    for k, vals in (s3.get("filled") or {}).items():
-                        if k in allowed and isinstance(vals, list):
-                            clean_vals = list(dict.fromkeys([str(v).strip() for v in vals if str(v).strip()]))
-                            if k in single_value_aspects and clean_vals:
-                                clean_vals = [clean_vals[0]]
-                            if clean_vals:
-                                filled_aspects[k] = clean_vals
-                    filled_aspects = apply_aspect_constraints(filled_aspects, aspects_info.get("raw"))
-                    if "Book Title" in filled_aspects:
-                        filled_aspects["Book Title"] = [v[:65] for v in filled_aspects["Book Title"]]
-                except Exception as e:
-                    print(f"[AI Aspects Error] {e}")
-
-            try:
-                desc_bundle = build_description_simple_from_raw(raw_text_in, html_mode=True)
-                description_text = desc_bundle["text"]
-                description_html = desc_bundle["html"]
+                processed_image_url = upload_to_imgbb(output_path)
+                images[0] = processed_image_url
+                os.remove(output_path)
             except Exception as e:
-                print(f"[AI Description Error] {e}")
-                description_text = raw_text_in[:2000]
-                description_html = f"<p>{description_text}</p>"
+                print(f"[Image Processing Error] {e}")
+                return Response({"error": f"Failed to process or upload multipack image: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            title = smart_titlecase(normalized_title)[:80]
-            category_id = cat_id
-            category_name = cat_name
-            aspects = filled_aspects
+        system_prompt = (
+            f"Extract concise keywords for eBay category selection and search for a multipack listing of {multipack_quantity} items. "
+            "Return STRICT JSON. Use ONLY facts from input. "
+            "Lowercase all keywords, no punctuation, no duplicates. "
+            "For normalized_title, describe ONE specific multipack item, selecting the first mentioned variant for any attribute that defines a unique item (e.g., color, size, model), and include the pack size (e.g., '{multipack_quantity}-Pack')."
+        )
+        user_prompt = f"""MARKETPLACE: {marketplace_id}
+        RAW_TEXT:
+        {raw_text_in}
 
-        if action == "preview":
-            return Response({
-                "title": title,
-                "description": {"text": description_text, "html": description_html, "used_html": True},
-                "aspects": aspects,
-                "sku": sku,
-                "price": price,
-                "quantity": quantity,
-                "condition": condition,
-                "category_id": category_id,
-                "category_name": category_name,
-                "marketplace_id": marketplace_id,
-                "images": images,
-                "single_value_aspects": single_value_aspects,
-                "vat_rate": vat_rate,
-                "remove_background": remove_background
-            })
+        OUTPUT RULES:
+        - category_keywords: 1–5 short phrases (2–3 words) for product category.
+        - search_keywords: 3–12 search terms, lowercase, ≤ 30 chars.
+        - normalized_title: <=80 chars, clean, factual, includes '{multipack_quantity}-Pack', describes ONE item.
+        - brand: only if in RAW_TEXT.
+        - identifiers: only if present (isbn/ean/gtin/mpn)."""
+        try:
+            s1 = call_llm_json(system_prompt, user_prompt)
+            s1["search_keywords"] = clean_keywords(s1.get("search_keywords", []))
+            normalized_title = s1.get("normalized_title") or _fallback_title(raw_text_in)
+            category_keywords = s1.get("category_keywords", [])
+            brand = s1.get("brand")
+        except Exception as e:
+            print(f"[AI Keywords Error] {e}")
+            normalized_title = smart_titlecase(raw_text_in[:80]) or _fallback_title(raw_text_in)
+            category_keywords = []
+            brand = None
+
+        access = ensure_access_token(request.user)
+        tree_id = get_category_tree_id(access)
+        query = (" ".join(category_keywords)).strip() or normalized_title
+        try:
+            cat_id, cat_name = suggest_leaf_category(tree_id, query, access)
+        except Exception:
+            cat_id, cat_name = browse_majority_category(query, access)
+            if not cat_id:
+                return Response({"error": "No category found", "query": query}, status=status.HTTP_404_NOT_FOUND)
+
+        aspects_info = get_required_and_recommended_aspects(tree_id, cat_id, access)
+        req_names = [_aspect_name(x) for x in aspects_info.get("required", []) if _aspect_name(x)]
+        rec_names = [_aspect_name(x) for x in aspects_info.get("recommended", []) if _aspect_name(x)]
+        filled_aspects = {name: ["Does not apply"] for name in req_names}
+        single_value_aspects = [
+            _aspect_name(aspect) for aspect in aspects_info.get("raw", [])
+            if _aspect_name(aspect) and aspect.get("aspectConstraint", {}).get("aspectMode") in ["FREE_TEXT", "SELECTION_ONLY"]
+        ]
+
+        system_prompt2 = (
+            f"Fill eBay item aspects for a multipack listing of {multipack_quantity} items. NEVER leave required aspects empty; "
+            "extract when explicit, infer when reasonable, otherwise use 'Does not apply'. "
+            "For aspects that define unique item variations, select ONLY the first value mentioned in the text to describe a single item."
+        )
+        user_prompt2 = f"""
+        INPUT TEXT:
+        {normalized_title}
+        RAW TEXT:
+        {raw_text_in}
+        ASPECTS:
+        - REQUIRED: {req_names}
+        - RECOMMENDED: {rec_names}
+        OUTPUT RULES:
+        {{
+        "filled": {{"AspectName": ["value1"]}},
+        "missing_required": ["AspectName"],
+        "notes": "optional"
+        }}
+        """
+        try:
+            s3 = call_llm_json(system_prompt2, user_prompt2)
+            allowed = set(req_names + rec_names)
+            for k, vals in (s3.get("filled") or {}).items():
+                if k in allowed and isinstance(vals, list):
+                    clean_vals = list(dict.fromkeys([str(v).strip() for v in vals if str(v).strip()]))
+                    if k in single_value_aspects and clean_vals:
+                        clean_vals = [clean_vals[0]]
+                    if clean_vals:
+                        filled_aspects[k] = clean_vals
+            filled_aspects = apply_aspect_constraints(filled_aspects, aspects_info.get("raw"))
+            if "Book Title" in filled_aspects:
+                filled_aspects["Book Title"] = [v[:65] for v in filled_aspects["Book Title"]]
+        except Exception as e:
+            print(f"[AI Aspects Error] {e}")
+
+        try:
+            desc_bundle = build_description_simple_from_raw(raw_text_in, html_mode=True)
+            description_text = desc_bundle["text"]
+            description_html = desc_bundle["html"]
+        except Exception as e:
+            print(f"[AI Description Error] {e}")
+            description_text = raw_text_in[:2000]
+            description_html = f"<p>{description_text}</p>"
+
+        title = smart_titlecase(normalized_title)[:80]
+        category_id = cat_id
+        category_name = cat_name
+        aspects = filled_aspects
 
         try:
             lang = "en-GB" if marketplace_id == "EBAY_GB" else "en-US"
@@ -1972,10 +1887,6 @@ def compose_bundle(
     
 class BundleListingAPIView(APIView):
     def post(self, request):
-        action = request.data.get("action", "publish")
-        if action not in ["preview", "publish"]:
-            return Response({"error": "Invalid action. Use 'preview' or 'publish'"}, status=status.HTTP_400_BAD_REQUEST)
-
         try:
             profile = UserProfile.objects.get(user=request.user)
         except UserProfile.DoesNotExist:
@@ -1989,184 +1900,142 @@ class BundleListingAPIView(APIView):
             return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
 
         access = ensure_access_token(request.user)
-        if action == "publish" and all(field in request.data for field in ["title", "description", "aspects", "sku", "price", "quantity", "condition", "category_id", "marketplace_id", "images", "bundle_quantity"]):
-            title = _clean_text(request.data.get("title"), limit=80)
-            description = request.data.get("description", {})
-            description_text = _clean_text(description.get("text"), limit=2000)
-            description_html = description.get("html") if description.get("used_html") else f"<p>{description_text}</p>"
-            aspects = request.data.get("aspects", {})
-            sku = request.data.get("sku")
-            price = request.data.get("price")
-            quantity = int(request.data.get("quantity", 1))
-            condition = request.data.get("condition").upper()
-            category_id = request.data.get("category_id")
-            marketplace_id = request.data.get("marketplace_id")
-            images = _https_only(request.data.get("images"))
-            category_name = request.data.get("category_name")
-            vat_rate = float(request.data.get("vat_rate", 0))
-            remove_background = request.data.get("remove_background", False)
-            bundle_quantity = int(request.data.get("bundle_quantity", 2))
-        else:
-            raw_text_in = _clean_text(request.data.get("raw_text"), limit=8000)
-            images = _https_only(request.data.get("images", []))
-            marketplace_id = MARKETPLACE_ID
-            price = request.data.get("price")
-            quantity = int(request.data.get("quantity", 1))
-            condition = request.data.get("condition", "NEW").upper()
-            vat_rate = float(request.data.get("vat_rate", 0))
-            sku = request.data.get("sku") or _gen_sku_multi("BUNDLE")
-            remove_background = request.data.get("remove_background", False)
-            bundle_quantity = int(request.data.get("bundle_quantity", 2))
+        raw_text_in = _clean_text(request.data.get("raw_text"), limit=8000)
+        images = _https_only(request.data.get("images", []))
+        marketplace_id = MARKETPLACE_ID
+        price = request.data.get("price")
+        quantity = int(request.data.get("quantity", 1))
+        condition = request.data.get("condition", "NEW").upper()
+        vat_rate = float(request.data.get("vat_rate", 0))
+        sku = request.data.get("sku") or _gen_sku_multi("BUNDLE")
+        remove_background = request.data.get("remove_background", False)
+        bundle_quantity = int(request.data.get("bundle_quantity", 2))
 
-            if not raw_text_in or not images:
-                return Response({"error": "Raw text and images required"}, status=status.HTTP_400_BAD_REQUEST)
+        if not raw_text_in or not images:
+            return Response({"error": "Raw text and images required"}, status=status.HTTP_400_BAD_REQUEST)
 
-            if bundle_quantity < 2 or bundle_quantity > 6:
-                return Response({"error": "Bundle quantity must be between 2 and 6"}, status=status.HTTP_400_BAD_REQUEST)
+        if bundle_quantity < 2 or bundle_quantity > 6:
+            return Response({"error": "Bundle quantity must be between 2 and 6"}, status=status.HTTP_400_BAD_REQUEST)
 
-            if len(images) < bundle_quantity:
-                return Response({"error": f"Bundle listings require at least {bundle_quantity} images"}, status=status.HTTP_400_BAD_REQUEST)
+        if len(images) < bundle_quantity:
+            return Response({"error": f"Bundle listings require at least {bundle_quantity} images"}, status=status.HTTP_400_BAD_REQUEST)
 
-            if remove_background:
-                try:
-                    output_path = f"media/bundle_{uuid.uuid4().hex}.jpg"
-                    os.makedirs("media", exist_ok=True)
-                    compose_bundle(
-                        image_urls=images[:bundle_quantity],
-                        output_path=output_path,
-                        output_size=1600,
-                        padding=0,
-                        do_remove_bg=True,
-                        margin_ratio=0.94
-                    )
-                    processed_image_url = upload_to_imgbb(output_path)
-                    images = [processed_image_url] + images[bundle_quantity:]
-                    os.remove(output_path)
-                except Exception as e:
-                    print(f"[Image Processing Error] {e}")
-                    return Response({"error": f"Failed to process or upload bundle image: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-            if not OPENAI_API_KEY:
-                normalized_title = smart_titlecase(raw_text_in[:80]) or _fallback_title(raw_text_in)
-                category_keywords = []
-                brand = None
-            else:
-                system_prompt = (
-                    f"Extract concise keywords for eBay category selection and search for a bundle listing of {bundle_quantity} different items. "
-                    "Return STRICT JSON. Use ONLY facts from input. "
-                    "Lowercase all keywords, no punctuation, no duplicates. "
-                    "For normalized_title, describe the bundle as a single package, include '{bundle_quantity}-Item Bundle'."
-                )
-                user_prompt = f"""MARKETPLACE: {marketplace_id}
-                RAW_TEXT:
-                {raw_text_in}
-
-                OUTPUT RULES:
-                - category_keywords: 1–5 short phrases (2–3 words) for product category.
-                - search_keywords: 3–12 search terms, lowercase, ≤ 30 chars.
-                - normalized_title: <=80 chars, clean, factual, includes '{bundle_quantity}-Item Bundle'.
-                - brand: only if in RAW_TEXT.
-                - identifiers: only if present (isbn/ean/gtin/mpn)."""
-                try:
-                    s1 = call_llm_json(system_prompt, user_prompt)
-                    s1["search_keywords"] = clean_keywords(s1.get("search_keywords", []))
-                    normalized_title = s1.get("normalized_title") or _fallback_title(raw_text_in)
-                    category_keywords = s1.get("category_keywords", [])
-                    brand = s1.get("brand")
-                except Exception as e:
-                    print(f"[AI Keywords Error] {e}")
-                    normalized_title = smart_titlecase(raw_text_in[:80]) or _fallback_title(raw_text_in)
-                    category_keywords = []
-                    brand = None
-
-            access = ensure_access_token(request.user)
-            tree_id = get_category_tree_id(access)
-            query = (" ".join(category_keywords)).strip() or normalized_title
+        if remove_background:
             try:
-                cat_id, cat_name = suggest_leaf_category(tree_id, query, access)
-            except Exception:
-                cat_id, cat_name = browse_majority_category(query, access)
-                if not cat_id:
-                    return Response({"error": "No category found", "query": query}, status=status.HTTP_404_NOT_FOUND)
-
-            aspects_info = get_required_and_recommended_aspects(tree_id, cat_id, access)
-            req_names = [_aspect_name(x) for x in aspects_info.get("required", []) if _aspect_name(x)]
-            rec_names = [_aspect_name(x) for x in aspects_info.get("recommended", []) if _aspect_name(x)]
-            filled_aspects = {name: ["Does not apply"] for name in req_names}
-            single_value_aspects = [
-                _aspect_name(aspect) for aspect in aspects_info.get("raw", [])
-                if _aspect_name(aspect) and aspect.get("aspectConstraint", {}).get("aspectMode") in ["FREE_TEXT", "SELECTION_ONLY"]
-            ]
-
-            if OPENAI_API_KEY and (req_names or rec_names):
-                system_prompt2 = (
-                    f"Fill eBay item aspects for a bundle listing of {bundle_quantity} different items. NEVER leave required aspects empty; "
-                    "extract when explicit, infer when reasonable, otherwise use 'Does not apply'. "
-                    "For aspects that define unique item variations, select ONLY the first value mentioned in the text to describe the bundle as a single package."
+                output_path = f"media/bundle_{uuid.uuid4().hex}.jpg"
+                os.makedirs("media", exist_ok=True)
+                compose_bundle(
+                    image_urls=images[:bundle_quantity],
+                    output_path=output_path,
+                    output_size=1600,
+                    padding=0,
+                    do_remove_bg=True,
+                    margin_ratio=0.94
                 )
-                user_prompt2 = f"""
-                INPUT TEXT:
-                {normalized_title}
-                RAW TEXT:
-                {raw_text_in}
-                ASPECTS:
-                - REQUIRED: {req_names}
-                - RECOMMENDED: {rec_names}
-                OUTPUT RULES:
-                {{
-                "filled": {{"AspectName": ["value1"]}},
-                "missing_required": ["AspectName"],
-                "notes": "optional"
-                }}
-                """
-                try:
-                    s3 = call_llm_json(system_prompt2, user_prompt2)
-                    allowed = set(req_names + rec_names)
-                    for k, vals in (s3.get("filled") or {}).items():
-                        if k in allowed and isinstance(vals, list):
-                            clean_vals = list(dict.fromkeys([str(v).strip() for v in vals if str(v).strip()]))
-                            if k in single_value_aspects and clean_vals:
-                                clean_vals = [clean_vals[0]]
-                            if clean_vals:
-                                filled_aspects[k] = clean_vals
-                    filled_aspects = apply_aspect_constraints(filled_aspects, aspects_info.get("raw"))
-                    if "Book Title" in filled_aspects:
-                        filled_aspects["Book Title"] = [v[:65] for v in filled_aspects["Book Title"]]
-                except Exception as e:
-                    print(f"[AI Aspects Error] {e}")
-
-            try:
-                desc_bundle = build_description_simple_from_raw(raw_text_in, html_mode=True)
-                description_text = desc_bundle["text"]
-                description_html = desc_bundle["html"]
+                processed_image_url = upload_to_imgbb(output_path)
+                images = [processed_image_url] + images[bundle_quantity:]
+                os.remove(output_path)
             except Exception as e:
-                print(f"[AI Description Error] {e}")
-                description_text = raw_text_in[:2000]
-                description_html = f"<p>{description_text}</p>"
+                print(f"[Image Processing Error] {e}")
+                return Response({"error": f"Failed to process or upload bundle image: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            title = smart_titlecase(normalized_title)[:80]
-            category_id = cat_id
-            category_name = cat_name
-            aspects = filled_aspects
+        system_prompt = (
+            f"Extract concise keywords for eBay category selection and search for a bundle listing of {bundle_quantity} different items. "
+            "Return STRICT JSON. Use ONLY facts from input. "
+            "Lowercase all keywords, no punctuation, no duplicates. "
+            "For normalized_title, describe the bundle as a single package, include '{bundle_quantity}-Item Bundle'."
+        )
+        user_prompt = f"""MARKETPLACE: {marketplace_id}
+        RAW_TEXT:
+        {raw_text_in}
 
-        if action == "preview":
-            return Response({
-                "title": title,
-                "description": {"text": description_text, "html": description_html, "used_html": True},
-                "aspects": aspects,
-                "sku": sku,
-                "price": price,
-                "quantity": quantity,
-                "condition": condition,
-                "category_id": category_id,
-                "category_name": category_name,
-                "marketplace_id": marketplace_id,
-                "images": images,
-                "single_value_aspects": single_value_aspects,
-                "vat_rate": vat_rate,
-                "remove_background": remove_background,
-                "bundle_quantity": bundle_quantity
-            })
+        OUTPUT RULES:
+        - category_keywords: 1–5 short phrases (2–3 words) for product category.
+        - search_keywords: 3–12 search terms, lowercase, ≤ 30 chars.
+        - normalized_title: <=80 chars, clean, factual, includes '{bundle_quantity}-Item Bundle'.
+        - brand: only if in RAW_TEXT.
+        - identifiers: only if present (isbn/ean/gtin/mpn)."""
+        try:
+            s1 = call_llm_json(system_prompt, user_prompt)
+            s1["search_keywords"] = clean_keywords(s1.get("search_keywords", []))
+            normalized_title = s1.get("normalized_title") or _fallback_title(raw_text_in)
+            category_keywords = s1.get("category_keywords", [])
+            brand = s1.get("brand")
+        except Exception as e:
+            print(f"[AI Keywords Error] {e}")
+            normalized_title = _fallback_title(raw_text_in)
+            category_keywords = []
+            brand = None
+
+        access = ensure_access_token(request.user)
+        tree_id = get_category_tree_id(access)
+        query = (" ".join(category_keywords)).strip() or normalized_title
+        try:
+            cat_id, cat_name = suggest_leaf_category(tree_id, query, access)
+        except Exception:
+            cat_id, cat_name = browse_majority_category(query, access)
+            if not cat_id:
+                return Response({"error": "No category found", "query": query}, status=status.HTTP_404_NOT_FOUND)
+
+        aspects_info = get_required_and_recommended_aspects(tree_id, cat_id, access)
+        req_names = [_aspect_name(x) for x in aspects_info.get("required", []) if _aspect_name(x)]
+        rec_names = [_aspect_name(x) for x in aspects_info.get("recommended", []) if _aspect_name(x)]
+        filled_aspects = {name: ["Does not apply"] for name in req_names}
+        single_value_aspects = [
+            _aspect_name(aspect) for aspect in aspects_info.get("raw", [])
+            if _aspect_name(aspect) and aspect.get("aspectConstraint", {}).get("aspectMode") in ["FREE_TEXT", "SELECTION_ONLY"]
+        ]
+
+        if req_names or rec_names:
+            system_prompt2 = (
+                f"Fill eBay item aspects for a bundle listing of {bundle_quantity} different items. NEVER leave required aspects empty; "
+                "extract when explicit, infer when reasonable, otherwise use 'Does not apply'. "
+                "For aspects that define unique item variations, select ONLY the first value mentioned in the text to describe the bundle as a single package."
+            )
+            user_prompt2 = f"""
+            INPUT TEXT:
+            {normalized_title}
+            RAW TEXT:
+            {raw_text_in}
+            ASPECTS:
+            - REQUIRED: {req_names}
+            - RECOMMENDED: {rec_names}
+            OUTPUT RULES:
+            {{
+            "filled": {{"AspectName": ["value1"]}},
+            "missing_required": ["AspectName"],
+            "notes": "optional"
+            }}
+            """
+            try:
+                s3 = call_llm_json(system_prompt2, user_prompt2)
+                allowed = set(req_names + rec_names)
+                for k, vals in (s3.get("filled") or {}).items():
+                    if k in allowed and isinstance(vals, list):
+                        clean_vals = list(dict.fromkeys([str(v).strip() for v in vals if str(v).strip()]))
+                        if k in single_value_aspects and clean_vals:
+                            clean_vals = [clean_vals[0]]
+                        if clean_vals:
+                            filled_aspects[k] = clean_vals
+                filled_aspects = apply_aspect_constraints(filled_aspects, aspects_info.get("raw"))
+                if "Book Title" in filled_aspects:
+                    filled_aspects["Book Title"] = [v[:65] for v in filled_aspects["Book Title"]]
+            except Exception as e:
+                print(f"[AI Aspects Error] {e}")
+
+        try:
+            desc_bundle = build_description_simple_from_raw(raw_text_in, html_mode=True)
+            description_text = desc_bundle["text"]
+            description_html = desc_bundle["html"]
+        except Exception as e:
+            print(f"[AI Description Error] {e}")
+            description_text = raw_text_in[:2000]
+            description_html = f"<p>{description_text}</p>"
+
+        title = smart_titlecase(normalized_title)[:80]
+        category_id = cat_id
+        category_name = cat_name
+        aspects = filled_aspects
 
         try:
             lang = "en-GB" if marketplace_id == "EBAY_GB" else "en-US"

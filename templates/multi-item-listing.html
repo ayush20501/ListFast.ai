@@ -159,11 +159,6 @@
             border-color: #10b981;
         }
 
-        .preview-modal {
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(5px);
-        }
-
         .image-modal {
             background: rgba(0, 0, 0, 0.75);
         }
@@ -268,12 +263,6 @@
                 padding: 1rem;
             }
 
-            .preview-modal-content {
-                width: 98%;
-                margin: 1%;
-                padding: 1rem;
-            }
-
             .navbar-backdrop .max-w-7xl {
                 padding-left: 1rem;
                 padding-right: 1rem;
@@ -281,11 +270,6 @@
         }
 
         @media (max-width: 640px) {
-            .preview-modal-content {
-                width: 95%;
-                margin: 2.5%;
-            }
-
             .grid.lg\\:grid-cols-3 {
                 gap: 1.5rem;
             }
@@ -403,84 +387,6 @@
 
     <main class="pt-16">
         <div class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-8 sm:py-12 lg:py-16">
-            <div id="preview-modal"
-                class="hidden fixed inset-0 preview-modal z-50 flex items-center justify-center p-2 sm:p-4">
-                <div
-                    class="preview-modal-content bg-white p-4 sm:p-6 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
-                    <div class="flex items-start justify-between mb-6 sm:mb-8">
-                        <div class="flex-1">
-                            <h3 class="text-xl sm:text-2xl font-bold text-gray-900">Preview Multipack Listing</h3>
-                            <p class="text-gray-600 mt-1 text-sm sm:text-base">Review and edit your multipack listing
-                                before publishing to eBay</p>
-                        </div>
-                        <button id="close-preview" class="popup-close">&times;</button>
-                    </div>
-                    <form id="preview-form" class="space-y-4 sm:space-y-6">
-                        <div class="input-group">
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Title</label>
-                            <input type="text" id="preview-title" maxlength="80"
-                                class="input-field w-full px-3 sm:px-4 py-3 sm:py-4 rounded-xl text-base">
-                            <p class="text-sm text-gray-500 mt-2">Max 80 characters</p>
-                        </div>
-                        <div class="input-group">
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
-                            <textarea id="preview-description" rows="6"
-                                class="input-field w-full px-3 sm:px-4 py-3 sm:py-4 rounded-xl text-base resize-none"
-                                placeholder="Enter description text here..."></textarea>
-                            <p class="text-sm text-gray-500 mt-2">Edit the generated description if needed. HTML tags
-                                will be preserved in the final listing.</p>
-                        </div>
-                        <div class="input-group">
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Item Aspects</label>
-                            <div id="preview-aspects" class="space-y-3"></div>
-                            <p class="text-sm text-gray-500 mt-2">Edit or add aspect values as needed</p>
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Price</label>
-                                <p id="preview-price-currency" class="text-base text-gray-900"></p>
-                                <p class="text-sm text-gray-500 mt-2">Price and currency (non-editable)</p>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Pack Size</label>
-                                <p id="preview-multipack-quantity" class="text-base text-gray-900"></p>
-                                <p class="text-sm text-gray-500 mt-2">Items per pack (non-editable)</p>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Condition</label>
-                            <p id="preview-condition" class="text-base text-gray-900"></p>
-                            <p class="text-sm text-gray-500 mt-2">Item condition (non-editable)</p>
-                        </div>
-                        <div class="input-group">
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Quantity</label>
-                            <input type="number" id="preview-quantity" min="1" value="1"
-                                class="input-field w-full px-3 sm:px-4 py-3 rounded-lg text-base">
-                            <p class="text-sm text-gray-500 mt-2">Total quantity available for sale</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Images</label>
-                            <div id="preview-images"
-                                class="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 mb-4">
-                            </div>
-                        </div>
-                        <div id="preview-error"
-                            class="hidden bg-red-50 border border-red-200 text-red-800 px-4 sm:px-6 py-3 sm:py-4 rounded-xl font-medium text-sm">
-                        </div>
-                        <div id="preview-success"
-                            class="hidden bg-green-50 border border-green-200 text-green-800 px-4 sm:px-6 py-3 sm:py-4 rounded-xl font-medium text-sm">
-                        </div>
-                        <div class="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:space-x-3 gap-0 sm:gap-4 pt-2">
-                            <button type="submit"
-                                class="w-full sm:flex-1 multipack-gradient text-white px-4 sm:px-6 py-3 rounded-lg text-base sm:text-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 order-1">Publish
-                                to eBay</button>
-                            <button type="button" id="cancel-preview"
-                                class="w-full sm:flex-1 bg-gray-200 text-gray-700 px-4 sm:px-6 py-3 rounded-lg text-base sm:text-lg font-medium hover:bg-gray-300 order-2">Cancel</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
             <div id="image-modal"
                 class="hidden fixed inset-0 image-modal z-50 flex items-center justify-center p-2 sm:p-4">
                 <div class="relative max-w-4xl max-h-full">
@@ -639,16 +545,8 @@
                             </div>
 
                             <div class="pt-4">
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                                    <button type="button" id="preview-btn"
-                                        class="bg-green-600 text-white py-4 px-6 rounded-xl text-lg font-semibold hover:bg-green-700 transition-all disabled:bg-gray-400 disabled:cursor-not-allowed hover-lift order-2 md:order-1">Preview,
-                                        Edit & Publish</button>
-                                    <button type="submit" id="publish-btn"
-                                        class="w-full multipack-gradient text-white py-3 sm:py-4 px-4 sm:px-6 rounded-xl text-base sm:text-lg font-semibold hover:opacity-90 transition-opacity disabled:bg-gray-400 disabled:cursor-not-allowed hover-lift pulse-animation order-1 md:order-2">Publish
-                                        to eBay</button>
-                                </div>
-                                <p class="text-sm text-gray-500 text-center mt-3">💡 Use "Preview" to review and edit
-                                    your listing before publishing, or "Publish" to go live immediately</p>
+                                <button type="submit" id="publish-btn"
+                                    class="w-full multipack-gradient text-white py-3 sm:py-4 px-4 sm:px-6 rounded-xl text-base sm:text-lg font-semibold hover:opacity-90 transition-opacity disabled:bg-gray-400 disabled:cursor-not-allowed hover-lift pulse-animation">Publish to eBay</button>
                             </div>
                         </div>
                     </form>
@@ -1105,19 +1003,14 @@
             return images;
         }
 
-        async function submitToItemEndpoint(formData, button, action) {
+        async function submitToItemEndpoint(formData, button) {
             button.disabled = true;
-            button.textContent = action === 'preview' ? 'Generating Preview...' : 'Publishing...';
+            button.textContent = 'Publishing...';
 
             document.getElementById('error-message').classList.add('hidden');
             document.getElementById('success-message').classList.add('hidden');
 
-            if (action === 'preview') {
-                document.getElementById('preview-error').classList.add('hidden');
-                document.getElementById('preview-success').classList.add('hidden');
-            }
-
-            showAIStatus(`🤖 ${action === 'preview' ? 'Generating preview...' : 'Analyzing multipack description...'}`, 10);
+            showAIStatus('🤖 Analyzing multipack description...', 10);
             setTimeout(() => updateAIProgress('🔍 Extracting keywords and metadata...', 25), 500);
             setTimeout(() => updateAIProgress('📂 Finding optimal eBay category...', 50), 1500);
             setTimeout(() => updateAIProgress('📋 Filling multipack specifications...', 75), 2500);
@@ -1140,7 +1033,7 @@
                 };
                 const csrftoken = getCookie('csrftoken');
 
-                formData.action = action;
+                formData.action = 'publish';
 
                 const response = await fetch('/api/multipack-listing/', {
                     method: 'POST',
@@ -1154,83 +1047,25 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    updateAIProgress(`✅ ${action === 'preview' ? 'Preview Generated!' : 'Published to eBay!'}`, 100);
-                    if (action === 'preview') {
-                        setTimeout(() => {
-                            hideAIStatus();
-                            displayPreview(data);
-                            document.getElementById('preview-modal').classList.remove('hidden');
-                        }, 1000);
-                    } else {
-                        setTimeout(() => {
-                            hideAIStatus();
-                            localStorage.setItem('listing-success', JSON.stringify(data));
-                            window.location.href = '/success/';
-                        }, 1000);
-                    }
+                    updateAIProgress('✅ Published to eBay!', 100);
+                    setTimeout(() => {
+                        hideAIStatus();
+                        localStorage.setItem('listing-success', JSON.stringify(data));
+                        window.location.href = '/success/';
+                    }, 1000);
                 } else {
                     hideAIStatus();
-                    const errorEl = action === 'preview' ? document.getElementById('preview-error') : document.getElementById('error-message');
-                    errorEl.textContent = data.error || `Failed to ${action} listing`;
-                    errorEl.classList.remove('hidden');
+                    document.getElementById('error-message').textContent = data.error || 'Failed to publish listing';
+                    document.getElementById('error-message').classList.remove('hidden');
                 }
             } catch (error) {
                 hideAIStatus();
-                const errorEl = action === 'preview' ? document.getElementById('preview-error') : document.getElementById('error-message');
-                errorEl.textContent = 'Network error. Please try again.';
-                errorEl.classList.remove('hidden');
+                document.getElementById('error-message').textContent = 'Network error. Please try again.';
+                document.getElementById('error-message').classList.remove('hidden');
             }
 
             button.disabled = false;
-            button.textContent = action === 'preview' ? 'Preview, Edit & Publish' : 'Publish to eBay';
-        }
-
-        function displayPreview(data) {
-            document.getElementById('preview-title').value = data.title || '';
-            document.getElementById('preview-description').value = data.description.text || '';
-
-            const aspectsContainer = document.getElementById('preview-aspects');
-            aspectsContainer.innerHTML = '';
-            const singleValueAspects = data.single_value_aspects || [];
-
-            Object.entries(data.aspects || {}).forEach(([key, values]) => {
-                const aspectDiv = document.createElement('div');
-                const isSingleValue = singleValueAspects.includes(key) || values.length === 1;
-                const inputValue = isSingleValue ? values[0] : values.join(', ');
-
-                aspectDiv.innerHTML = `
-                    <label class="block text-sm font-medium text-gray-700 mb-2">${key}</label>
-                    <input type="text" value="${inputValue}" data-aspect="${key}" data-single-value="${isSingleValue}" class="input-field w-full px-3 sm:px-4 py-3 rounded-lg mb-2">
-                    ${isSingleValue ? '<p class="text-sm text-gray-500">Enter a single value for this aspect</p>' : '<p class="text-sm text-gray-500">Enter multiple values separated by commas</p>'}
-                `;
-                aspectsContainer.appendChild(aspectDiv);
-            });
-
-            const currencySymbols = { GBP: '£', USD: '$', EUR: '€' };
-            document.getElementById('preview-price-currency').textContent =
-                `${currencySymbols[data.price?.currency] || data.price?.currency || 'GBP'} ${data.price?.value || '0.00'} ${data.price?.currency || 'GBP'}`;
-            document.getElementById('preview-multipack-quantity').textContent = data.multipack_quantity || '1';
-            document.getElementById('preview-quantity').value = data.quantity || '1';
-            document.getElementById('preview-condition').textContent = data.condition || 'NEW';
-
-            const imagesContainer = document.getElementById('preview-images');
-            imagesContainer.innerHTML = '';
-            (data.images || []).forEach((url, index) => {
-                const imgDiv = document.createElement('div');
-                imgDiv.className = 'relative group';
-                imgDiv.innerHTML = `
-                    <img src="${url}" alt="Listing Image ${index + 1}" class="w-full h-24 sm:h-32 object-cover rounded-lg border-2 border-gray-200 hover:border-green-400 transition-colors cursor-pointer" onclick="openImageModal('${url}')" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMiA5VjEzTTEyIDE3SDE2TTggMTdIMTJNOCAxM0gxMk04IDlIMTZNNCAxN1Y3QTIgMiAwIDAgMSA2IDVIMThBMiAyIDAgMCExIDIwIDdWMTdBMiAyIDAgMCExIDE4IDE5SDZBMiAyIDAgMCExIDQgMTdaIiBzdHJva2U9IiM2QjczODAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+Cjwvc3ZnPgo='; this.className += ' opacity-50'">
-                    <div class="absolute top-1 sm:top-2 left-1 sm:left-2 bg-black bg-opacity-50 text-white text-xs px-1 sm:px-2 py-1 rounded">${index + 1}</div>
-                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded-lg flex items-center justify-center">
-                        <svg class="w-6 sm:w-8 h-6 sm:h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                    </div>
-                `;
-                imagesContainer.appendChild(imgDiv);
-            });
-
-            document.getElementById('preview-form').dataset.preview = JSON.stringify(data);
+            button.textContent = 'Publish to eBay';
         }
 
         document.getElementById('listing-form').addEventListener('submit', async (e) => {
@@ -1261,195 +1096,7 @@
             };
 
             const button = document.getElementById('publish-btn');
-            await submitToItemEndpoint(formData, button, 'publish');
-        });
-
-        document.getElementById('preview-btn').addEventListener('click', async () => {
-            const images = collectImages();
-            if (images.length === 0) {
-                document.getElementById('error-message').textContent = 'At least one valid HTTPS image URL is required.';
-                document.getElementById('error-message').classList.remove('hidden');
-                document.getElementById('success-message').classList.add('hidden');
-                return;
-            }
-
-            const formData = {
-                raw_text: document.getElementById('raw_text').value.trim(),
-                price: {
-                    value: parseFloat(document.getElementById('price_value').value),
-                    currency: document.getElementById('currency').value
-                },
-                multipack_quantity: parseInt(document.getElementById('multipack_quantity').value),
-                quantity: parseInt(document.getElementById('quantity').value),
-                condition: document.getElementById('condition').value,
-                vat_rate: parseFloat(document.getElementById('vat_rate').value),
-                sku: document.getElementById('sku').value.trim() || null,
-                remove_background: document.getElementById('remove_background').checked,
-                images: images,
-                action: 'preview'
-            };
-
-            const button = document.getElementById('preview-btn');
-            await submitToItemEndpoint(formData, button, 'preview');
-        });
-
-        document.getElementById('preview-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const previewData = JSON.parse(document.getElementById('preview-form').dataset.preview || '{}');
-            const button = document.getElementById('preview-form').querySelector('button[type="submit"]');
-            button.disabled = true;
-            button.textContent = 'Publishing...';
-
-            previewData.title = document.getElementById('preview-title').value.trim();
-            previewData.description.text = document.getElementById('preview-description').value.trim();
-            previewData.quantity = parseInt(document.getElementById('preview-quantity').value);
-
-            try {
-                const formattedDescription = await formatDescriptionWithLLM(previewData.description.text);
-                previewData.description.html = formattedDescription.html;
-                previewData.description.used_html = true;
-            } catch (error) {
-                console.error("Failed to format description:", error);
-                const editedText = previewData.description.text;
-                previewData.description.html = editedText
-                    .split('\n\n')
-                    .filter(p => p.trim())
-                    .map(p => `<p>${p.trim().replace(/\n/g, '<br>')}</p>`)
-                    .join('');
-                previewData.description.used_html = true;
-            }
-
-            const aspectInputs = document.getElementById('preview-aspects').querySelectorAll('input[data-aspect]');
-            const editedAspects = {};
-
-            for (let input of aspectInputs) {
-                const aspect = input.dataset.aspect;
-                const isSingleValue = input.dataset.singleValue === 'true';
-                const values = input.value.split(',').map(v => v.trim()).filter(v => v);
-
-                if (isSingleValue && values.length > 1) {
-                    document.getElementById('preview-error').textContent = `Aspect "${aspect}" must have only one value.`;
-                    document.getElementById('preview-error').classList.remove('hidden');
-                    document.getElementById('preview-success').classList.add('hidden');
-                    button.disabled = false;
-                    button.textContent = 'Publish to eBay';
-                    return;
-                }
-
-                if (values.length) {
-                    editedAspects[aspect] = values;
-                }
-            }
-            previewData.aspects = editedAspects;
-
-            if (!previewData.title) {
-                document.getElementById('preview-error').textContent = 'Title is required.';
-                document.getElementById('preview-error').classList.remove('hidden');
-                document.getElementById('preview-success').classList.add('hidden');
-                button.disabled = false;
-                button.textContent = 'Publish to eBay';
-                return;
-            }
-
-            previewData.action = 'publish';
-
-            try {
-                const getCookie = (name) => {
-                    let cookieValue = null;
-                    if (document.cookie && document.cookie !== '') {
-                        const cookies = document.cookie.split(';');
-                        for (let i = 0; i < cookies.length; i++) {
-                            const cookie = cookies[i].trim();
-                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                                break;
-                            }
-                        }
-                    }
-                    return cookieValue;
-                };
-                const csrftoken = getCookie('csrftoken');
-
-                const response = await fetch('/api/multipack-listing/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrftoken
-                    },
-                    body: JSON.stringify(previewData),
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    document.getElementById('preview-success').textContent = 'Published to eBay!';
-                    document.getElementById('preview-success').classList.remove('hidden');
-                    document.getElementById('preview-error').classList.add('hidden');
-                    setTimeout(() => {
-                        localStorage.setItem('listing-success', JSON.stringify(data));
-                        window.location.href = '/success/';
-                    }, 1500);
-                } else {
-                    document.getElementById('preview-error').textContent = data.error || 'Failed to publish listing';
-                    document.getElementById('preview-error').classList.remove('hidden');
-                    document.getElementById('preview-success').classList.add('hidden');
-                }
-            } catch (error) {
-                document.getElementById('preview-error').textContent = 'Network error. Please try again.';
-                document.getElementById('preview-error').classList.remove('hidden');
-                document.getElementById('preview-success').classList.add('hidden');
-            }
-
-            button.disabled = false;
-            button.textContent = 'Publish to eBay';
-        });
-
-        async function formatDescriptionWithLLM(plainText) {
-            const getCookie = (name) => {
-                let cookieValue = null;
-                if (document.cookie && document.cookie !== '') {
-                    const cookies = document.cookie.split(';');
-                    for (let i = 0; i < cookies.length; i++) {
-                        const cookie = cookies[i].trim();
-                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                            break;
-                        }
-                    }
-                }
-                return cookieValue;
-            };
-            const csrftoken = getCookie('csrftoken');
-
-            const response = await fetch('/api/format-description/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrftoken
-                },
-                body: JSON.stringify({ text: plainText }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to format description');
-            }
-
-            return await response.json();
-        }
-
-        document.getElementById('close-preview').addEventListener('click', () => {
-            document.getElementById('preview-modal').classList.add('hidden');
-        });
-
-        document.getElementById('cancel-preview').addEventListener('click', () => {
-            document.getElementById('preview-modal').classList.add('hidden');
-        });
-
-        document.getElementById('preview-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'preview-modal') {
-                document.getElementById('preview-modal').classList.add('hidden');
-            }
+            await submitToItemEndpoint(formData, button);
         });
     </script>
 </body>
