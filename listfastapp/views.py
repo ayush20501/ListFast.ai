@@ -1026,13 +1026,13 @@ def remove_bg_via_api(img: Image.Image, *, api_url: Optional[str] = None, api_ke
         print(f"[rembg] Exception: {e}")
     return img
 
-def safe_remove_bg(img: Image.Image) -> Image.Image:
-    cut = remove_bg_via_api(img)
-    try:
-        white = Image.new("RGBA", cut.size, (255, 255, 255, 255))
-        return Image.alpha_composite(white, cut)
-    except Exception:
-        return img
+# def safe_remove_bg(img: Image.Image) -> Image.Image:
+#     cut = remove_bg_via_api(img)
+#     try:
+#         white = Image.new("RGBA", cut.size, (255, 255, 255, 255))
+#         return Image.alpha_composite(white, cut)
+#     except Exception:
+#         return img
 
 def get_text_size(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont) -> Tuple[int, int]:
     try:
@@ -1481,14 +1481,91 @@ def remove_bg_via_rembg(img: Image.Image) -> Image.Image:
         raise RuntimeError(f"rembg API error: {resp.status_code} {resp.text[:200]}")
     return Image.open(io.BytesIO(resp.content)).convert("RGBA")
 
-def safe_remove_bg(img: Image.Image) -> Image.Image:
-    try:
-        cut = remove_bg_via_rembg(img)
-        white = Image.new("RGBA", cut.size, (255, 255, 255, 255))
-        return Image.alpha_composite(white, cut)
-    except Exception as e:
-        print(f"[rembg] background removal failed, using original image: {e}")
+def is_white_background(img: Image.Image,border_frac: float = 0.01,v_thresh: float = 0.92,chroma_thresh: float = 0.12,min_ratio: float = 0.85,std_thresh: float = 18.0):
+    arr = np.asarray(img.convert("RGB"), dtype=np.float32) / 255.0
+    h, w, _ = arr.shape
+    b = max(1, int(min(h, w) * border_frac))
+
+    mask = np.zeros((h, w), dtype=bool)
+    mask[:b, :] = True
+    mask[-b:, :] = True
+    mask[:, :b] = True
+    mask[:, -b:] = True
+
+    border = arr[mask]
+    mx = border.max(axis=1)
+    mn = border.min(axis=1)
+    bright = mx >= v_thresh
+    low_chroma = (mx - mn) <= chroma_thresh
+    whiteish = bright & low_chroma
+    ratio = float(whiteish.mean())
+    border_std = float(np.mean(border.std(axis=0) * 255.0))
+
+    return (ratio >= min_ratio and border_std <= std_thresh)
+
+
+def crop_to_subject_white_bg(img: Image.Image,v_thresh: float = 0.5,chroma_thresh: float = 0.12,margin: float = 0.04,min_fg_ratio: float = 0.02,use_edge_help: bool = True) -> Image.Image:
+    arr = np.asarray(img.convert("RGB"), dtype=np.float32) / 255.0
+    mx = arr.max(axis=2)
+    mn = arr.min(axis=2)
+    whiteish = (mx >= v_thresh) & ((mx - mn) <= chroma_thresh)
+    fg = ~whiteish
+
+    if use_edge_help:
+        gray = (0.299 * arr[..., 0] + 0.587 * arr[..., 1] + 0.114 * arr[..., 2])
+        gx = np.abs(np.diff(gray, axis=1, prepend=gray[:, :1]))
+        gy = np.abs(np.diff(gray, axis=0, prepend=gray[:1, :]))
+        edge = (gx + gy) * 255.0
+        edge_mask = edge > 20
+        fg = fg | edge_mask
+
+    m = Image.fromarray(np.uint8(fg) * 255, mode="L")
+    m = m.filter(ImageFilter.MinFilter(3))
+    m = m.filter(ImageFilter.MaxFilter(5))
+
+    bbox = m.getbbox()
+    if not bbox:
         return img
+
+    x0, y0, x1, y1 = bbox
+    h, w = arr.shape[:2]
+    area = (x1 - x0) * (y1 - y0)
+    if area < min_fg_ratio * (w * h):
+        return img
+
+    dx = int((x1 - x0) * margin)
+    dy = int((y1 - y0) * margin)
+    x0 = max(0, x0 - dx)
+    y0 = max(0, y0 - dy)
+    x1 = min(w, x1 + dx)
+    y1 = min(h, y1 + dy)
+
+    return img.crop((x0, y0, x1, y1))
+    
+def safe_remove_bg(img: Image.Image) -> Image.Image:
+    is_white = is_white_background(img)
+    if is_white:
+        cut = crop_to_subject_white_bg(img)
+        try:
+            white = Image.new("RGBA", cut.size, (255, 255, 255, 255))
+            return Image.alpha_composite(white, cut)
+        except Exception:
+            return img
+    else:
+        cut = remove_bg_via_api(img)
+        try:
+            white = Image.new("RGBA", cut.size, (255, 255, 255, 255))
+            return Image.alpha_composite(white, cut)
+        except Exception:
+            return img
+# def safe_remove_bg(img: Image.Image) -> Image.Image:
+#     try:
+#         cut = remove_bg_via_rembg(img)
+#         white = Image.new("RGBA", cut.size, (255, 255, 255, 255))
+#         return Image.alpha_composite(white, cut)
+#     except Exception as e:
+#         print(f"[rembg] background removal failed, using original image: {e}")
+#         return img
 
 def fit_within(img: Image.Image, box_w: int, box_h: int, margin_ratio: float = 0.94) -> Image.Image:
     target_w = int(box_w * margin_ratio)
