@@ -12,3 +12,4 @@ django-rest-framework
 gunicorn
 whitenoise
 dj_database_url
+numpy
