@@ -33,6 +33,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageFile, ImageFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
 from django.contrib.auth.decorators import login_required
+import numpy as np
 
 
 # Configuration
