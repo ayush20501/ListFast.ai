@@ -22,19 +22,20 @@ from django.utils import timezone
 from django.views import View
 from rest_framework import status
 from rest_framework.views import APIView
-from rest_framework.serializers import Serializer, CharField, DecimalField, IntegerField, ChoiceField, ListField, URLField
+from rest_framework.serializers import Serializer, CharField, DecimalField, IntegerField, ChoiceField, ListField, \
+    URLField
 from decouple import config
 from openai import OpenAI
 from .models import UserProfile, eBayToken, OTP, ListingCount, UserListing
 from werkzeug.utils import secure_filename
 import uuid
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Dict, Any, List
 from PIL import Image, ImageDraw, ImageFont, ImageFile, ImageFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
 from django.contrib.auth.decorators import login_required
 import numpy as np
-
+from flask import jsonify, redirect, Response
 
 # Configuration
 DB_URL = config("DB_URL")
@@ -66,7 +67,6 @@ REMBG_API_URL = config("REMBG_API_URL", default="")
 # Django
 SECRET_KEY = config("SECRET_KEY")
 
-
 SCOPES = " ".join([
     "https://api.ebay.com/oauth/api_scope",
     "https://api.ebay.com/oauth/api_scope/sell.inventory",
@@ -83,6 +83,7 @@ SMALL_WORDS = {
 MAX_LEN = 30
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
+
 # Serializers
 class ProfileSerializer(Serializer):
     address_line1 = CharField(max_length=200, min_length=1)
@@ -90,6 +91,7 @@ class ProfileSerializer(Serializer):
     postal_code = CharField(max_length=20, min_length=1)
     country = CharField(max_length=2, default="GB")
     profile_pic_url = URLField(required=False, allow_blank=True)
+
 
 class PriceSerializer(Serializer):
     value = DecimalField(max_digits=10, decimal_places=2, min_value=Decimal("0.01"))
@@ -99,7 +101,7 @@ class PriceSerializer(Serializer):
 class ListingSerializer(Serializer):
     raw_text = CharField(max_length=8000, min_length=1)
     images = ListField(child=URLField(), max_length=12, required=False)
-    price = PriceSerializer() 
+    price = PriceSerializer()
     quantity = IntegerField(min_value=1, max_value=999)
     condition = ChoiceField(choices=["NEW", "USED", "REFURBISHED"], required=False)
 
@@ -109,8 +111,10 @@ class ListingSerializer(Serializer):
 def _b64_basic():
     return "Basic " + base64.b64encode(f"{CLIENT_ID}:{CLIENT_SECRET}".encode()).decode()
 
+
 def _now():
     return time.time()
+
 
 def clean_keywords(keywords):
     cleaned = []
@@ -120,6 +124,7 @@ def clean_keywords(keywords):
             kw = kw[:MAX_LEN].rsplit(" ", 1)[0]
         cleaned.append(kw)
     return cleaned
+
 
 def call_llm_json(system_prompt: str, user_prompt: str) -> dict:
     if not OPENAI_API_KEY:
@@ -139,6 +144,7 @@ def call_llm_json(system_prompt: str, user_prompt: str) -> dict:
     except Exception as e:
         raise RuntimeError(f"LLM JSON call failed: {e}")
 
+
 def call_llm_text_simple(user_prompt: str, system_prompt: str = None) -> str:
     if not OPENAI_API_KEY:
         raise NotImplementedError("OPENAI_API_KEY not set")
@@ -152,6 +158,7 @@ def call_llm_text_simple(user_prompt: str, system_prompt: str = None) -> str:
         temperature=0.2,
     )
     return resp.choices[0].message.content.strip()
+
 
 def build_description_simple_from_raw(raw_text: str, html_mode: bool = True) -> dict:
     prompt = (
@@ -167,16 +174,19 @@ def build_description_simple_from_raw(raw_text: str, html_mode: bool = True) -> 
         fallback = _clean_text(raw_text, limit=2000)
         return {"html": f"<p>{fallback}</p>" if html_mode else fallback, "text": fallback}
 
+
 def _strip_html(s: str) -> str:
     s = re.sub(r"<br\s*/?>", "\n", s, flags=re.I)
     s = re.sub(r"</(p|li|h[1-6])>", "\n", s, flags=re.I)
     s = re.sub(r"<[^>]+>", "", s)
     return re.sub(r"\n{3,}", "\n\n", s).strip()
 
+
 def _aspect_name(x):
     if isinstance(x, str):
         return x
     return x.get("aspectName") or x.get("localizedAspectName") or x.get("name") or (x.get("aspect") or {}).get("name")
+
 
 def apply_aspect_constraints(filled: dict, aspects_raw: list):
     cmap = {a.get("localizedAspectName") or (a.get("aspect") or {}).get("name"): {
@@ -187,14 +197,17 @@ def apply_aspect_constraints(filled: dict, aspects_raw: list):
     for k, vals in filled.items():
         max_len = cmap.get(k, {}).get("max_len")
         mode = cmap.get(k, {}).get("mode")
-        vlist = [str(v).strip()[:max_len] if mode == "FREE_TEXT" and isinstance(max_len, int) and max_len > 0 else str(v).strip() for v in vals or []]
+        vlist = [str(v).strip()[:max_len] if mode == "FREE_TEXT" and isinstance(max_len, int) and max_len > 0 else str(
+            v).strip() for v in vals or []]
         if vlist:
             adjusted[k] = vlist
     return adjusted
 
+
 def _fallback_title(raw_text: str) -> str:
     t = re.sub(r"\s+", " ", raw_text.strip())
     return t[:80] or "Untitled Item"
+
 
 def smart_titlecase(s: str) -> str:
     if not s:
@@ -205,14 +218,17 @@ def smart_titlecase(s: str) -> str:
         if re.search(r"[A-Z]{2,}", w) or re.search(r"\d[A-Za-z]|[A-Za-z]\d", w):
             out.append(w)
             continue
+
         def cap_core(token: str) -> str:
             if "'" in token:
                 head, *rest = token.split("'")
                 return head[:1].upper() + head[1:].lower() + "".join("'" + r.lower() for r in rest)
             return token[:1].upper() + token[1:].lower()
+
         def cap_compound(token: str) -> str:
             parts = re.split(r"(-|/)", token)
             return "".join(cap_core(p) if p not in ("-", "/") else p for p in parts)
+
         lower = w.lower()
         if 0 < i < len(words) - 1 and lower in SMALL_WORDS and not re.search(r"[:–—-]$", out[-1] if out else ""):
             out.append(lower)
@@ -223,16 +239,20 @@ def smart_titlecase(s: str) -> str:
         out[-1] = out[-1][:1].upper() + out[-1][1:]
     return " ".join(out)
 
+
 def _clean_text(t: str, limit=6000) -> str:
     return re.sub(r"\s+", " ", t or "").strip()[:limit]
 
+
 def _https_only(urls):
     return [u for u in urls or [] if isinstance(u, str) and u.startswith("https://")]
+
 
 def _gen_sku(prefix="ITEM"):
     ts = str(int(time.time() * 1000))
     unique_id = str(uuid.uuid4())[:8].upper()
     return f"{prefix}-{ts[-6:]}-{unique_id}"
+
 
 def get_first_policy_id(kind: str, access: str, marketplace: str) -> str:
     url = f"{BASE}/sell/account/v1/{kind}_policy"
@@ -249,6 +269,7 @@ def get_first_policy_id(kind: str, access: str, marketplace: str) -> str:
     if not items:
         raise RuntimeError(f"No {kind} policies found in {marketplace}.")
     return items[0][f"{kind}PolicyId"]
+
 
 def get_or_create_location(access: str, marketplace: str, profile: UserProfile) -> str:
     url = f"{BASE}/sell/inventory/v1/location"
@@ -282,6 +303,7 @@ def get_or_create_location(access: str, marketplace: str, profile: UserProfile) 
     r.raise_for_status()
     return merchant_location_key
 
+
 def get_category_tree_id(access_token):
     r = requests.get(
         f"{API}/commerce/taxonomy/v1/get_default_category_tree_id",
@@ -290,6 +312,7 @@ def get_category_tree_id(access_token):
     )
     r.raise_for_status()
     return r.json()["categoryTreeId"]
+
 
 def suggest_leaf_category(tree_id: str, query: str, access_token):
     r = requests.get(
@@ -309,6 +332,7 @@ def suggest_leaf_category(tree_id: str, query: str, access_token):
         return cat["categoryId"], cat["categoryName"]
     raise RuntimeError("No category suggestions found")
 
+
 def browse_majority_category(query: str, access_token):
     from collections import Counter
     r = requests.get(
@@ -326,6 +350,7 @@ def browse_majority_category(query: str, access_token):
         return None, None
     top_id, _ = Counter(cats).most_common(1)[0]
     return top_id, None
+
 
 def get_required_and_recommended_aspects(tree_id: str, category_id: str, access_token):
     url = f"{API}/commerce/taxonomy/v1/category_tree/{tree_id}/get_item_aspects_for_category"
@@ -351,6 +376,7 @@ def get_required_and_recommended_aspects(tree_id: str, category_id: str, access_
         elif cons.get("aspectUsage") == "RECOMMENDED":
             recommended.append({"aspect": {"name": name}})
     return {"required": required, "recommended": recommended, "raw": aspects}
+
 
 def ensure_access_token(user: User):
     try:
@@ -382,6 +408,7 @@ def ensure_access_token(user: User):
     except eBayToken.DoesNotExist:
         raise RuntimeError("No eBay tokens found. Please authenticate.")
 
+
 def parse_ebay_error(response_text):
     try:
         error_data = json.loads(response_text)
@@ -404,6 +431,7 @@ def parse_ebay_error(response_text):
     except (json.JSONDecodeError, KeyError, TypeError):
         return f"Unknown eBay error: {response_text}"
 
+
 def upload_to_imgbb(image_path: str) -> str:
     if not IMGBB_API_KEY:
         raise RuntimeError("IMGBB_API_KEY is not set in the environment")
@@ -416,27 +444,31 @@ def upload_to_imgbb(image_path: str) -> str:
     return resp.json()["data"]["url"]
 
 
-
 # ----------------------------------Views----------------------------------
 
 def index_view(request):
     return render(request, 'index.html')
 
+
 @login_required
 def profile_view(request):
     return render(request, 'profile.html')
+
 
 @login_required
 def image_enhancement_view(request):
     return render(request, 'image-enhancement.html')
 
+
 @login_required
 def display_profile_view(request):
     return render(request, 'display-profile.html')
 
+
 @login_required
 def ebay_auth_view(request):
     return render(request, 'ebay-auth.html')
+
 
 @login_required
 def single_item_listing_view(request):
@@ -444,29 +476,32 @@ def single_item_listing_view(request):
         UserProfile.objects.get(user=request.user)
         has_profile = True
     except UserProfile.DoesNotExist:
-            has_profile = False
-        
+        has_profile = False
+
     try:
         token = eBayToken.objects.get(user=request.user)
         has_ebay_auth = bool(token.refresh_token)
     except eBayToken.DoesNotExist:
         has_ebay_auth = False
-    
+
     if not has_profile:
         return redirect('profile')
-    
+
     if not has_ebay_auth:
         return redirect('ebay-auth')
-    
+
     return render(request, 'single-item-listing.html')
+
 
 @login_required
 def success_view(request):
     return render(request, 'success.html')
 
+
 @login_required
 def services_view(request):
     return render(request, 'services.html')
+
 
 @login_required
 def multi_item_listing_view(request):
@@ -475,20 +510,21 @@ def multi_item_listing_view(request):
         has_profile = True
     except UserProfile.DoesNotExist:
         has_profile = False
-        
+
     try:
         token = eBayToken.objects.get(user=request.user)
         has_ebay_auth = bool(token.refresh_token)
     except eBayToken.DoesNotExist:
         has_ebay_auth = False
-    
+
     if not has_profile:
         return redirect('profile')
-    
+
     if not has_ebay_auth:
         return redirect('ebay-auth')
-    
+
     return render(request, 'multi-item-listing.html')
+
 
 @login_required
 def bundle_listing_view(request):
@@ -497,28 +533,31 @@ def bundle_listing_view(request):
         has_profile = True
     except UserProfile.DoesNotExist:
         has_profile = False
-        
+
     try:
         token = eBayToken.objects.get(user=request.user)
         has_ebay_auth = bool(token.refresh_token)
     except eBayToken.DoesNotExist:
         has_ebay_auth = False
-    
+
     if not has_profile:
         return redirect('profile')
-    
+
     if not has_ebay_auth:
         return redirect('ebay-auth')
-    
+
     return render(request, 'bundle-listing.html')
+
 
 def custom_404_view(request, invalid_path):
     return render(request, '404.html', status=404)
 
+
 def logout_view(request):
     print(request)
-    logout(request) 
-    return redirect('index') 
+    logout(request)
+    return redirect('index')
+
 
 def ebay_callback_view(request):
     code = request.GET.get("code")
@@ -556,6 +595,7 @@ def ebay_callback_view(request):
         print(f"eBay auth error: {e}")
         return HttpResponseRedirect("/ebay-auth/?error=auth_failed")
 
+
 def ebay_login_view(request):
     try:
         profile = request.user.userprofile
@@ -579,6 +619,8 @@ def ebay_login_view(request):
 
     print(url)
     return redirect(url)
+
+
 # ---------------------------------------APIViews---------------------------------------
 
 class LoginAPIView(APIView):
@@ -593,7 +635,7 @@ class LoginAPIView(APIView):
         if not user.is_active:
             return Response({"error": "Account is inactive"}, status=403)
         login(request, user)
-        
+
         return Response({
             "status": "success",
             "message": "Logged in successfully",
@@ -639,6 +681,7 @@ class ProfileAPIView(APIView):
         except Exception as e:
             return Response({"error": "Failed to save profile"}, status=500)
 
+
 class AuthStatusAPIView(APIView):
     def get(self, request):
         if not request.user.is_authenticated:
@@ -668,29 +711,36 @@ class AuthStatusAPIView(APIView):
             "access_exp_in": access_exp_in
         })
 
+
 class TotalListingsAPIView(APIView):
     def get(self, request):
         listing_count, _ = ListingCount.objects.get_or_create(id=1, defaults={"total_count": 0})
         return Response({"total_listings": listing_count.total_count})
+
 
 class UserStatsAPIView(APIView):
     def get(self, request):
         try:
             UserProfile.objects.get(user=request.user)
         except UserProfile.DoesNotExist:
-            return Response({"error": "Please create your profile first", "redirect": "profile"},status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Please create your profile first", "redirect": "profile"},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         try:
             token = eBayToken.objects.get(user=request.user)
             if not token.refresh_token:
-                return Response({"error": "Please authenticate with eBay first", "redirect": "ebay-auth"},status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": "Please authenticate with eBay first", "redirect": "ebay-auth"},
+                                status=status.HTTP_400_BAD_REQUEST)
         except eBayToken.DoesNotExist:
-            return Response({"error": "Please authenticate with eBay first", "redirect": "ebay-auth"},status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Please authenticate with eBay first", "redirect": "ebay-auth"},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         listings = UserListing.objects.filter(user=request.user)
         total_value = sum((l.price_value or 0) * (l.quantity or 0) for l in listings)
         active_count = listings.filter(status='ACTIVE').count()
-        return Response({"total_listings": listings.count(),"active_listings": active_count,"total_inventory_value": float(total_value),"email": request.user.email})
+        return Response({"total_listings": listings.count(), "active_listings": active_count,
+                         "total_inventory_value": float(total_value), "email": request.user.email})
+
 
 class MyListingsAPIView(APIView):
     def get(self, request):
@@ -717,6 +767,7 @@ class MyListingsAPIView(APIView):
             "has_more": len(listings) == limit
         })
 
+
 class FetchAddressImageProfileAPIView(APIView):
     def get(self, request):
         try:
@@ -730,7 +781,8 @@ class FetchAddressImageProfileAPIView(APIView):
             }
             return Response(profile_data, status=status.HTTP_200_OK)
         except UserProfile.DoesNotExist:
-            return Response({'error': 'User profile not found'},status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'User profile not found'}, status=status.HTTP_404_NOT_FOUND)
+
 
 class UploadProfileImageAPIView(APIView):
     def post(self, request):
@@ -753,6 +805,7 @@ class UploadProfileImageAPIView(APIView):
             return Response({"error": "Upload failed. Please try again later."}, status=500)
         except Exception as e:
             return Response({"error": "Upload failed. Please try again later."}, status=500)
+
 
 class SendPasswordChangeOTPAPIView(APIView):
     def post(self, request):
@@ -804,6 +857,7 @@ class SendPasswordChangeOTPAPIView(APIView):
         except Exception as e:
             return Response({"error": "Failed to send verification code"}, status=500)
 
+
 class ChangePasswordAPIView(APIView):
     def post(self, request):
         otp = request.data.get("otp", "").strip()
@@ -823,6 +877,7 @@ class ChangePasswordAPIView(APIView):
         except OTP.DoesNotExist:
             return Response({"error": "Invalid or expired verification code"}, status=400)
 
+
 class SignupAPIView(APIView):
     def post(self, request):
         email = request.data.get("email", "").strip().lower()
@@ -834,7 +889,8 @@ class SignupAPIView(APIView):
         if User.objects.filter(email=email).exists():
             return Response({"error": "User with this email already exists"}, status=400)
         otp = str(random.randint(100000, 999999))
-        request.session['signup_data'] = {'email': email, 'password': password, 'otp': otp, 'timestamp': timezone.now().isoformat(), 'attempts': 0}
+        request.session['signup_data'] = {'email': email, 'password': password, 'otp': otp,
+                                          'timestamp': timezone.now().isoformat(), 'attempts': 0}
         body = f"""
         <html>
             <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -879,6 +935,7 @@ class SignupAPIView(APIView):
         except Exception:
             return Response({"error": "Failed to send verification email. Please try again later."}, status=500)
 
+
 class VerifyOTPAPIView(APIView):
     def post(self, request):
         email = request.data.get('email', '').strip().lower()
@@ -914,6 +971,7 @@ class VerifyOTPAPIView(APIView):
             })
         except Exception as e:
             return Response({'error': 'Account creation failed'}, status=500)
+
 
 class ResendOTPAPIView(APIView):
     def post(self, request):
@@ -974,12 +1032,14 @@ class ResendOTPAPIView(APIView):
         except Exception:
             return Response({"error": "Failed to send verification email"}, status=500)
 
+
 class RevokeeBayAuthAPIView(APIView):
     def post(self, request):
         print("Revoking eBay authentication")
         eBayToken.objects.filter(user=request.user).delete()
         request.session['force_ebay_login'] = True
         return Response({"status": "success", "message": "eBay authentication revoked"})
+
 
 class FormatDescriptionAPIView(APIView):
     def post(self, request):
@@ -998,13 +1058,13 @@ class FormatDescriptionAPIView(APIView):
             return Response({"error": f"Failed to format description: {str(e)}"}, status=500)
 
 
-
 # --------------------------------------------------------------Enhance Image--------------------------------------------------------------
 
 def download_rgba(url: str) -> Image.Image:
     r = requests.get(url, timeout=20)
     r.raise_for_status()
     return Image.open(io.BytesIO(r.content)).convert("RGBA")
+
 
 def remove_bg_via_api(img: Image.Image, *, api_url: Optional[str] = None, api_key: Optional[str] = None) -> Image.Image:
     api_url = api_url or REMBG_API_URL
@@ -1027,6 +1087,7 @@ def remove_bg_via_api(img: Image.Image, *, api_url: Optional[str] = None, api_ke
         print(f"[rembg] Exception: {e}")
     return img
 
+
 # def safe_remove_bg(img: Image.Image) -> Image.Image:
 #     cut = remove_bg_via_api(img)
 #     try:
@@ -1035,7 +1096,7 @@ def remove_bg_via_api(img: Image.Image, *, api_url: Optional[str] = None, api_ke
 #     except Exception:
 #         return img
 
-########### Helper Functions added 11 September 2025 
+########### Helper Functions added 11 September 2025
 def call_llm_json_vision(system_prompt: str, text_prompt: str, image_urls: list[str]) -> dict:
     """
     Call OpenAI gpt-4o with vision inputs and force a JSON object response.
@@ -1065,6 +1126,8 @@ def call_llm_json_vision(system_prompt: str, text_prompt: str, image_urls: list[
         # Fallback: try to find a JSON object in the text
         m = re.search(r'\{.*\}', txt, re.DOTALL)
         return json.loads(m.group(0)) if m else {"_raw": txt}
+
+
 def extract_product_from_images_gpt4o(image_urls: list[str], marketplace_id: str, pack_ctx: str = "") -> dict:
     """
     Use GPT‑4o (vision) to extract product facts, a normalized title, and keyword sets from images only.
@@ -1091,7 +1154,7 @@ def extract_product_from_images_gpt4o(image_urls: list[str], marketplace_id: str
     )
     text_prompt = f"""MARKETPLACE: {marketplace_id}
     PACK CONTEXT: {pack_ctx or "SINGLE ITEM"}
-    
+
     Return a JSON object only.
     """
     result = call_llm_json_vision(sys_prompt, text_prompt, image_urls)
@@ -1138,9 +1201,24 @@ def build_pack_context(body: dict) -> tuple[dict, str]:
 
     return pack, ctx
 
+def pack_label(pack: dict) -> str:
+    t = (pack or {}).get("type", "single")
+    if t == "multipack":
+        q = int((pack or {}).get("quantity") or 1)
+        u = (pack or {}).get("unit") or ""
+        return f"Pack of {q}" + (f" {u}" if u else "")
+    if t == "bundle":
+        comps = (pack or {}).get("components") or []
+        if comps:
+            return "Bundle (" + " + ".join(map(str, comps[:4])) + (", …" if len(comps) > 4 else "") + ")"
+        size = (pack or {}).get("bundle_size")
+        return f"Bundle ({size} pcs)" if size and size >= 2 else "Bundle"
+    return ""  # single
 
-def build_description_simple_from_raw(raw_text: str, *,html_mode: bool = True,pack_ctx: str = "",pack: Optional[dict] = None,s0: Optional[dict] = None,          # ← NEW: structured facts from vision (dict)
-) -> Dict[str, str]:
+def build_description_simple_from_raw(raw_text: str, *, html_mode: bool = True, pack_ctx: str = "",
+                                      pack: Optional[dict] = None, s0: Optional[dict] = None,
+                                      # ← NEW: structured facts from vision (dict)
+                                      ) -> Dict[str, str]:
     """
     Generate a short product description. If PACK CONTEXT is given, the LLM must reflect it.
     Also append a buyer-style 'Search keywords' section (SEO) at the end.
@@ -1160,30 +1238,30 @@ def build_description_simple_from_raw(raw_text: str, *,html_mode: bool = True,pa
     if html_mode:
         # Ask for description + SEO list, restricted tags; include s0 JSON to ground facts
         prompt = (
-            "Return HTML only. Use ONLY <p>, <ul>, <li>, <br>, <strong>, <em>. "
-            "No headings, no tables, no images, no scripts.\n"
-            + guidance
-            + ctx_block +
-            "Write an eBay product description for this item. "
-            "If MULTIPACK, clearly state the pack size (e.g., 'Pack of 6') and describe what a buyer receives. "
-            "If BUNDLE, include a concise 'What's included' bullet list.\n"
-            "At the end, add a <p><strong>Search keywords</strong></p> followed by a <ul> with 6–12 buyer-style search terms. "
-            "Rules for keywords: 3–12 search terms buyers would type (mix of unigrams/bigrams/trigrams), all lowercase; "
-            "each ≤ 30 characters; include relevant pack/bundle phrasing when applicable.\n\n"
-            f"VISION EXTRACTION (JSON):\n{s0_json}\n\n"
-            f"PRODUCT TEXT:\n{str(raw_text)}"
+                "Return HTML only. Use ONLY <p>, <ul>, <li>, <br>, <strong>, <em>. "
+                "No headings, no tables, no images, no scripts.\n"
+                + guidance
+                + ctx_block +
+                "Write an eBay product description for this item. "
+                "If MULTIPACK, clearly state the pack size (e.g., 'Pack of 6') and describe what a buyer receives. "
+                "If BUNDLE, include a concise 'What's included' bullet list.\n"
+                "At the end, add a <p><strong>Search keywords</strong></p> followed by a <ul> with 6–12 buyer-style search terms. "
+                "Rules for keywords: 3–12 search terms buyers would type (mix of unigrams/bigrams/trigrams), all lowercase; "
+                "each ≤ 30 characters; include relevant pack/bundle phrasing when applicable.\n\n"
+                f"VISION EXTRACTION (JSON):\n{s0_json}\n\n"
+                f"PRODUCT TEXT:\n{str(raw_text)}"
         )
     else:
         # Plain text version; include s0 JSON and then a single 'Search keywords:' line
         prompt = (
-            guidance
-            + ctx_block +
-            "Write a concise plain-text eBay product description (no bullets, no headings). "
-            "Reflect the packaging context if any. "
-            "After the description, add a line starting with 'Search keywords:' followed by 6–12 lowercase, comma-separated terms "
-            "(each ≤ 30 characters).\n\n"
-            f"VISION EXTRACTION (JSON):\n{s0_json}\n\n"
-            f"PRODUCT TEXT:\n{str(raw_text)}"
+                guidance
+                + ctx_block +
+                "Write a concise plain-text eBay product description (no bullets, no headings). "
+                "Reflect the packaging context if any. "
+                "After the description, add a line starting with 'Search keywords:' followed by 6–12 lowercase, comma-separated terms "
+                "(each ≤ 30 characters).\n\n"
+                f"VISION EXTRACTION (JSON):\n{s0_json}\n\n"
+                f"PRODUCT TEXT:\n{str(raw_text)}"
         )
 
     try:
@@ -1216,6 +1294,443 @@ def build_description_simple_from_raw(raw_text: str, *,html_mode: bool = True,pa
             return {"html": txt, "text": txt}
 
 
+def pick_category_with_llm(tree_id: str, query: str, normalized_title: str, raw_text: str):
+    access = ensure_access_token()
+    r = requests.get(
+        f"{API}/commerce/taxonomy/v1/category_tree/{tree_id}/get_category_suggestions",
+        params={"q": query},
+        headers={"Authorization": f"Bearer {access}"},
+        timeout=30,
+    )
+    r.raise_for_status()
+    suggestions = (r.json() or {}).get("categorySuggestions") or []
+    if not suggestions:
+        raise RuntimeError("No category suggestions found")
+
+    # Pre-trim inputs to keep token usage sane
+    sugg = _summarize_suggestions(suggestions, limit=12)
+    text = (raw_text or "")[:1500]  # cap long descriptions
+
+    system_prompt = (
+        "You are an assistant that chooses the BEST eBay UK (EBAY_GB) leaf category "
+        "for a product, given its title/description and eBay's own suggestions. "
+        "Rules:\n"
+        "1) Prefer a LEAF category. If multiple leaves fit, choose the most specific (deepest level).\n"
+        "2) The pick MUST come from the provided suggestions (do not invent IDs).\n"
+        "3) Match on domain cues in title/description (product type, audience, format), not just keywords.\n"
+        "4) If the text is clearly educational/revision/GCSE etc., bias toward textbooks/education within Books.\n"
+        "5) Return JSON only."
+    )
+
+    # Build a compact prompt with numbered options
+    opts_lines = []
+    for i, s in enumerate(sugg, 1):
+        leaf_flag = "leaf" if s["leaf"] else "non-leaf"
+        opts_lines.append(f"{i}. [{s['id']}] {s['path']}  ({leaf_flag}, level {s['level']})")
+    options_block = "\n".join(opts_lines)
+    # print("OPTIONS:", options_block)
+
+    user_prompt = f"""
+    TITLE:
+    {normalized_title}
+
+    DESCRIPTION (truncated):
+    {text}
+
+    SUGGESTIONS (choose exactly one from these):
+    {options_block}
+
+    OUTPUT JSON:
+    {{
+      "choice": {{"categoryId":"<id from list>", "categoryName":"<name>"}},
+      "ranking": [{{"categoryId":"<id>", "score":0.00, "why":"brief"}}],
+      "notes": "optional"
+    }}
+    """
+
+    result = call_llm_json(system_prompt, user_prompt)
+    validate(instance=result, schema=CATEGORY_PICK_SCHEMA)
+
+    # Guardrails: ensure the chosen id is actually in suggestions and prefer leaf
+    by_id = {s["id"]: s for s in sugg}
+    choice = result["choice"]
+    cid = str(choice["categoryId"])
+    picked = by_id.get(cid)
+
+    if not picked:
+        # If model somehow picked an unknown id, fall back to best leaf by depth
+        leaves = [s for s in sugg if s["leaf"]]
+        leaves.sort(key=lambda s: s["level"], reverse=True)
+        picked = leaves[0] if leaves else sugg[0]
+        choice = {"categoryId": picked["id"], "categoryName": picked["name"]}
+
+    # If model picked a non-leaf, upgrade to the deepest leaf among suggestions
+    if not picked["leaf"]:
+        leaves = [s for s in sugg if s["leaf"]]
+        if leaves:
+            leaves.sort(key=lambda s: s["level"], reverse=True)
+            picked = leaves[0]
+            choice = {"categoryId": picked["id"], "categoryName": picked["name"]}
+
+    return choice["categoryId"], choice["categoryName"], result.get("ranking"), result.get("notes")
+
+def build_aspect_catalog(aspects_info):
+    """
+    Returns dict:
+      name -> {
+        "mode": "FREE_TEXT" | "SELECTION_ONLY",
+        "cardinality": "SINGLE" | "MULTI",
+        "values": set([...])  # only for SELECTION_ONLY (or suggestions for FREE_TEXT)
+      }
+    Skips NOT_RECOMMENDED and aspects not applicable to PRODUCT.
+    """
+    cat = {}
+    for a in aspects_info.get("raw", []):
+        name = a.get("localizedAspectName")
+        if not name:
+            continue
+        c = a.get("aspectConstraint", {}) or {}
+        if c.get("aspectUsage") == "NOT_RECOMMENDED":
+            continue
+        appl = set(c.get("aspectApplicableTo") or ["PRODUCT"])
+        if "PRODUCT" not in appl:
+            continue
+
+        mode = c.get("aspectMode", "FREE_TEXT")
+        cardinality = c.get("itemToAspectCardinality", "SINGLE")
+        vals = {v.get("localizedValue") for v in (a.get("aspectValues") or []) if v.get("localizedValue")}
+        cat[name] = {
+            "mode": mode,
+            "cardinality": cardinality,
+            "values": vals if mode == "SELECTION_ONLY" else set()
+        }
+    return cat
+
+ASPECTS_FILL_SCHEMA = {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "AspectsFill",
+    "type": "object",
+    "required": ["filled", "missing_required"],
+    "properties": {
+        "filled": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "array",
+                "items": {"type": "string", "minLength": 1},
+                "minItems": 1
+            }
+        },
+        "missing_required": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 0
+        },
+        "notes": {"type": "string"}
+    },
+    "additionalProperties": False
+}
+KEYWORDS_SCHEMA = {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "KeywordExtraction",
+    "type": "object",
+    "required": ["category_keywords", "search_keywords"],
+    "properties": {
+        "category_keywords": {"type": "array", "minItems": 1, "maxItems": 5,
+                              "items": {"type": "string", "minLength": 1, "maxLength": 40}},
+        "search_keywords": {"type": "array", "minItems": 3, "maxItems": 12,
+                            "items": {"type": "string", "minLength": 1, "maxLength": 30}},
+        "brand": {"type": "string"},
+        "identifiers": {
+            "type": "object",
+            "properties": {
+                "isbn": {"type": "string"},
+                "ean": {"type": "string"},
+                "gtin": {"type": "string"},
+                "mpn": {"type": "string"}
+            },
+            "additionalProperties": False
+        },
+        "normalized_title": {"type": "string", "maxLength": 80}
+    },
+    "additionalProperties": False
+}
+def coerce_aspects_fill(s3: dict) -> dict:
+    # If notes came back as a dict, merge helpful keys into 'filled' and also make a readable notes string
+    notes = s3.get("notes")
+    if isinstance(notes, dict):
+        s3.setdefault("filled", {})
+        # Merge any array-valued entries into 'filled' if not already present
+        for k, v in notes.items():
+            if isinstance(v, list) and k not in s3["filled"]:
+                s3["filled"][k] = [str(x) for x in v]
+        # Create a human-readable string for notes to satisfy schema
+        s3["notes"] = "; ".join(
+            f"{k}: {', '.join(map(str, v if isinstance(v, list) else [v]))}"
+            for k, v in notes.items()
+        )
+    return s3
+
+def aspect_length_limits(aspects_info: dict,
+                         default_free_text: int = 65,
+                         default_selection: int = 65) -> dict:
+    """
+    Build {aspectName: max_len} using taxonomy metadata when available.
+    Robust to mixed shapes where 'aspect' can be a dict.
+    """
+    limits: dict[str, int] = {}
+
+    def _get_name_from_any(node: Dict[str, Any], hint: Optional[str] = None) -> Optional[str]:
+        # Prefer explicit string fields
+        for key in ("aspectName", "localizedAspectName", "name", "localizedName"):
+            val = node.get(key)
+            if isinstance(val, str) and val.strip():
+                return val.strip()
+        # Sometimes 'aspect' exists and can itself be a dict or string
+        a = node.get("aspect")
+        if isinstance(a, str) and a.strip():
+            return a.strip()
+        if isinstance(a, dict):
+            for key in ("aspectName", "localizedAspectName", "name", "localizedName"):
+                val = a.get(key)
+                if isinstance(val, str) and val.strip():
+                    return val.strip()
+        # Fall back to hint (when iterating meta.by_name)
+        return hint.strip() if isinstance(hint, str) and hint.strip() else None
+
+    def _harvest_node(node: Dict[str, Any], name_hint: Optional[str] = None):
+        nm = _get_name_from_any(node, hint=name_hint)
+        if not isinstance(nm, str) or not nm:
+            return  # skip unnamed/asymmetric entries
+
+        cons = (node.get("constraints") or node.get("aspectConstraints") or {})  # tolerate both shapes
+        # direct max length
+        L = (cons.get("aspectMaxLength")
+             or cons.get("maxLength")
+             or node.get("aspectMaxLength"))
+        if isinstance(L, int) and L > 0:
+            limits[nm] = L
+            return
+
+        # If we don't have a numeric max, choose a sensible default by mode
+        mode = (cons.get("aspectMode") or cons.get("mode") or "").lower()
+        if "free" in mode:     # FreeText
+            limits.setdefault(nm, default_free_text)
+        elif "select" in mode: # SelectionOnly
+            options = node.get("values") or node.get("aspectValues") or []
+            if isinstance(options, list) and options:
+                try:
+                    longest = max(
+                        len(str(o.get("value") if isinstance(o, dict) else o))
+                        for o in options
+                    )
+                    limits[nm] = min(max(longest, 32), default_selection)
+                except Exception:
+                    limits.setdefault(nm, default_selection)
+            else:
+                limits.setdefault(nm, default_selection)
+        else:
+            # Unknown mode → be conservative
+            limits.setdefault(nm, default_free_text)
+
+    ai = aspects_info or {}
+
+    # Shape A: meta.by_name
+    by_name = ((ai.get("meta") or {}).get("by_name")) or {}
+    if isinstance(by_name, dict):
+        for nm, node in by_name.items():
+            if isinstance(node, dict):
+                _harvest_node(node, name_hint=nm if isinstance(nm, str) else None)
+
+    # Shape B: arrays under common keys
+    for key in ("required", "recommended", "optional", "aspects"):
+        arr = ai.get(key)
+        if isinstance(arr, list):
+            for entry in arr:
+                if isinstance(entry, dict):
+                    _harvest_node(entry)
+
+    # Conservative defaults for frequent strict free-text fields (optional)
+    limits.setdefault("Main Purpose", 65)
+    limits.setdefault("Brand", 65)
+    limits.setdefault("MPN", 65)
+    limits.setdefault("Ingredients", 65)
+    limits.setdefault("Active Ingredients", 65)
+
+    return limits
+
+def _shrink_for_limit(aspect_name: str, value: str, max_len: int) -> str:
+    if not isinstance(max_len, int) or max_len <= 0:
+        return str(value)
+    s = str(value).strip()
+    if len(s) <= max_len:
+        return s
+
+    nm = (aspect_name or "").lower()
+    # Heuristic: list-like aspects vs claim-like vs generic
+    if any(k in nm for k in ("ingredient", "feature", "material", "component", "contents", "included")):
+        s = _compress_listy(s, max_len)
+    elif any(k in nm for k in ("purpose", "benefit", "direction", "dosage", "indication", "description")):
+        s = _compress_claim_text(s)
+        if len(s) > max_len:
+            s = _smart_truncate(s, max_len)
+    else:
+        s = _smart_truncate(s, max_len)
+    return s
+
+def _shrink_for_limit(aspect_name: str, value: str, max_len: int) -> str:
+    if not isinstance(max_len, int) or max_len <= 0:
+        return str(value)
+    s = str(value).strip()
+    if len(s) <= max_len:
+        return s
+
+    nm = (aspect_name or "").lower()
+    # Heuristic: list-like aspects vs claim-like vs generic
+    if any(k in nm for k in ("ingredient", "feature", "material", "component", "contents", "included")):
+        s = \
+            (s, max_len)
+    elif any(k in nm for k in ("purpose", "benefit", "direction", "dosage", "indication", "description")):
+        s = _compress_claim_text(s)
+        if len(s) > max_len:
+            s = _smart_truncate(s, max_len)
+    else:
+        s = _smart_truncate(s, max_len)
+    return s
+
+def sanitize_filled(filled_in: dict, catalog: dict) -> dict:
+    out = {}
+    for name, vals in (filled_in or {}).items():
+        if name not in catalog:
+            continue  # not in this category
+
+        # normalize to list[str]
+        if not isinstance(vals, (list, tuple)):
+            vals = [vals]
+        vals = [str(v).strip() for v in vals if isinstance(v, (str, int, float)) and str(v).strip()]
+        if not vals:
+            continue
+
+        spec = catalog[name]
+        mode = spec["mode"]
+        card = spec["cardinality"]
+
+        # If SELECTION_ONLY, keep only whitelisted values
+        if mode == "SELECTION_ONLY":
+            whitelist = spec["values"]
+            vals = [v for v in vals if v in whitelist]
+            if not vals:
+                continue
+
+        # Enforce SINGLE/MULTI
+        if card == "SINGLE":
+            vals = vals[:1]
+
+        # De-duplicate while preserving order
+        seen = set()
+        uniq = []
+        for v in vals:
+            if v not in seen:
+                uniq.append(v); seen.add(v)
+
+        if uniq:
+            out[name] = uniq
+    return out
+def _cat_path(node: dict) -> str:
+    # eBay returns ancestors oldest->newest; make a readable path
+    anc = node.get("categoryTreeNodeAncestors") or []
+    names = [a.get("categoryName") for a in anc if a.get("categoryName")]
+    names.append(node.get("category", {}).get("categoryName"))
+    return " > ".join([n for n in names if n])
+def _summarize_suggestions(suggestions: list[dict], limit: int = 12) -> list[dict]:
+    out = []
+    for n in suggestions[:limit]:
+        c = n.get("category") or {}
+        out.append({
+            "id": str(c.get("categoryId")),
+            "name": c.get("categoryName"),
+            "path": _cat_path(n),
+            "leaf": bool(n.get("leafCategoryTreeNode") is True),
+            "level": int(n.get("categoryTreeNodeLevel") or 0),
+        })
+    return out
+def _compress_listy(text: str, max_len: int) -> str:
+    """
+    Generic list shortener (Ingredients, Features, Materials, Components, etc.).
+    Removes parentheticals; keeps the first n tokens that fit.
+    """
+    s = re.sub(r"\s*\([^)]*\)", "", str(text)).strip()
+    # Split on common list separators
+    parts = [p.strip() for p in re.split(r",|;|/|•|\u2022|\s-\s", s) if p.strip()]
+    if not parts:
+        return _smart_truncate(s, max_len)
+
+    kept = []
+    for p in parts:
+        candidate = ", ".join(kept + [p]) if kept else p
+        if len(candidate) <= max_len:
+            kept.append(p)
+        else:
+            break
+
+    if kept:
+        return ", ".join(kept)
+    return _smart_truncate(s, max_len)
+def _compress_claim_text(s: str) -> str:
+    x = str(s).strip()
+    repl = [
+        (" and ", " & "),
+        (" – ", " - "), ("—", "-"),
+        ("  ", " "),
+        ("supports normal ", ""), ("contributes to ", ""), ("function of the ", ""), ("function of ", ""),
+    ]
+    for a, b in repl:
+        x = x.replace(a, b)
+    x = re.sub(r"\s+", " ", x).strip()
+    x = re.sub(r"^(Supports?|Contributes to)\s+", "", x, flags=re.IGNORECASE)
+    return x.rstrip(" ,;:.")
+def _smart_truncate(text: str, max_len: int) -> str:
+    s = str(text).strip()
+    if len(s) <= max_len:
+        return s
+    cut = s[:max_len]
+    space = cut.rfind(" ")
+    if space >= 40:  # avoid chopping too early
+        cut = cut[:space]
+    return cut.rstrip(" ,;:.-")
+
+CATEGORY_PICK_SCHEMA = {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "CategoryPick",
+    "type": "object",
+    "required": ["choice"],
+    "properties": {
+        "choice": {
+            "type": "object",
+            "required": ["categoryId", "categoryName"],
+            "properties": {
+                "categoryId": {"type": "string"},
+                "categoryName": {"type": "string"}
+            },
+            "additionalProperties": False
+        },
+        "ranking": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["categoryId", "score", "why"],
+                "properties": {
+                    "categoryId": {"type": "string"},
+                    "score": {"type": "number", "minimum": 0, "maximum": 1},
+                    "why": {"type": "string"}
+                },
+                "additionalProperties": False
+            }
+        },
+        "notes": {"type": "string"}
+    },
+    "additionalProperties": False
+}
+from jsonschema import validate
 
 ########################################################################################
 
@@ -1226,7 +1741,9 @@ def get_text_size(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeType
     except AttributeError:
         return draw.textsize(text, font=font)
 
-def get_font_from_folder(text: str, max_w: int, max_h: int, draw: ImageDraw.ImageDraw, min_size: int = 12) -> ImageFont.FreeTypeFont:
+
+def get_font_from_folder(text: str, max_w: int, max_h: int, draw: ImageDraw.ImageDraw,
+                         min_size: int = 12) -> ImageFont.FreeTypeFont:
     font_folder = os.path.join(settings.BASE_DIR, "fonts")
     font_files = [f for f in os.listdir(font_folder) if f.endswith(('.ttf', '.otf'))]
     if not font_files:
@@ -1244,12 +1761,14 @@ def get_font_from_folder(text: str, max_w: int, max_h: int, draw: ImageDraw.Imag
                 continue
     return ImageFont.load_default()
 
+
 def fit_within(img: Image.Image, box_w: int, box_h: int, margin_ratio: float = 0.94) -> Image.Image:
     target_w = int(box_w * margin_ratio)
     target_h = int(box_h * margin_ratio)
     w, h = img.size
     scale = min(target_w / w, target_h / h)
     return img.resize((max(1, int(w * scale)), max(1, int(h * scale))), Image.LANCZOS)
+
 
 def paste_with_shadow(canvas: Image.Image, tile: Image.Image, x: int, y: int, shadow_offset=(16, 16), blur=22):
     if tile.mode != "RGBA":
@@ -1266,6 +1785,7 @@ def paste_with_shadow(canvas: Image.Image, tile: Image.Image, x: int, y: int, sh
         canvas.paste(shadow, (sx, sy), shadow)
     canvas.paste(tile, (x, y), tile)
 
+
 class EnhanceImageAPIView(APIView):
     def post(self, request):
         image_url = request.data.get("image_url", "").strip()
@@ -1281,7 +1801,7 @@ class EnhanceImageAPIView(APIView):
             if remove_bg:
                 unit = safe_remove_bg(unit)
 
-            S = 1600 
+            S = 1600
             canvas = Image.new("RGBA", (S, S), (255, 255, 255, 255))
             draw = ImageDraw.Draw(canvas)
 
@@ -1303,7 +1823,6 @@ class EnhanceImageAPIView(APIView):
             dy = content_top + (content_h - tile.size[1]) // 2
             canvas.paste(tile, (dx, dy), tile)
 
-
             if logo_url:
                 try:
                     logo = download_rgba(logo_url)
@@ -1321,7 +1840,7 @@ class EnhanceImageAPIView(APIView):
             canvas.save(buf, format="PNG", optimize=True)
             buf.seek(0)
             response = HttpResponse(buf, content_type="image/png")
-            response["Content-Disposition"] = f'inline; filename="enhanced_{random.randint(1000,9999)}.png"'
+            response["Content-Disposition"] = f'inline; filename="enhanced_{random.randint(1000, 9999)}.png"'
             return response
 
         except requests.exceptions.RequestException:
@@ -1331,12 +1850,14 @@ class EnhanceImageAPIView(APIView):
         except Exception as e:
             return Response({"error": f"Unexpected server error: {str(e)}"}, status=500)
 
+
 # --------------------------------------------------------------Item View--------------------------------------------------------------
 
 def fetch_image(url: str) -> Image.Image:
     r = requests.get(url, timeout=20)
     r.raise_for_status()
     return Image.open(io.BytesIO(r.content)).convert("RGBA")
+
 
 def strip_background(img: Image.Image) -> Image.Image:
     if not REMBG_API_KEY:
@@ -1351,6 +1872,7 @@ def strip_background(img: Image.Image) -> Image.Image:
         raise RuntimeError(f"rembg API error: {resp.status_code} {resp.text[:200]}")
     return Image.open(io.BytesIO(resp.content)).convert("RGBA")
 
+
 def safe_strip_background(img: Image.Image) -> Image.Image:
     try:
         cut = strip_background(img)
@@ -1360,6 +1882,7 @@ def safe_strip_background(img: Image.Image) -> Image.Image:
         print(f"[rembg] background removal failed, using original image: {e}")
         return img
 
+
 def resize_to_fit(img: Image.Image, box_w: int, box_h: int, margin_ratio: float = 0.94) -> Image.Image:
     target_w = int(box_w * margin_ratio)
     target_h = int(box_h * margin_ratio)
@@ -1367,7 +1890,9 @@ def resize_to_fit(img: Image.Image, box_w: int, box_h: int, margin_ratio: float 
     scale = min(target_w / w, target_h / h)
     return img.resize((max(1, int(w * scale)), max(1, int(h * scale))), Image.LANCZOS)
 
-def create_single_image(image_url: str, output_path: str = "single_item.jpg", output_size: int = 1600, padding: int = 28, do_remove_bg: bool = True, margin_ratio: float = 0.94):
+
+def create_single_image(image_url: str, output_path: str = "single_item.jpg", output_size: int = 1600,
+                        padding: int = 28, do_remove_bg: bool = True, margin_ratio: float = 0.94):
     unit = fetch_image(image_url)
     if do_remove_bg:
         unit = safe_strip_background(unit)
@@ -1381,6 +1906,7 @@ def create_single_image(image_url: str, output_path: str = "single_item.jpg", ou
     print(f"[*] Saving -> {output_path}")
     canvas.convert("RGB").save(output_path, quality=95, optimize=True, subsampling=2)
     return output_path
+
 
 class SingleItemListingAPIView(APIView):
     def post(self, request):
@@ -1398,9 +1924,9 @@ class SingleItemListingAPIView(APIView):
                 return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
         except eBayToken.DoesNotExist:
             return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         access = ensure_access_token(request.user)
-        
+
         raw_text_in = _clean_text(request.data.get("raw_text", ""), limit=8000)
         images = _https_only(request.data.get("images", []))
         marketplace_id = MARKETPLACE_ID
@@ -1424,7 +1950,8 @@ class SingleItemListingAPIView(APIView):
             os.remove(output_path)
         except Exception as e:
             print(f"[Image Processing Error] {e}")
-            return Response({"error": f"Failed to process or upload image: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": f"Failed to process or upload image: {str(e)}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # system_prompt = (
         #     "Extract concise keywords for eBay category selection and search. "
@@ -1435,7 +1962,7 @@ class SingleItemListingAPIView(APIView):
         # user_prompt = f"""MARKETPLACE: {marketplace_id}
         # RAW_TEXT:
         # {raw_text_in}
-        
+
         # OUTPUT RULES:
         # - category_keywords: 1–5 short phrases (2–3 words) for product category.
         # - search_keywords: 3–12 search terms, lowercase, ≤ 30 chars.
@@ -1469,26 +1996,26 @@ class SingleItemListingAPIView(APIView):
             "search_keywords must be less than 30 characters"
         )
         user_prompt = f"""MARKETPLACE: {marketplaceId}
-    
+
         RAW_TEXT:
         {raw_text_in}
-        
+
         RAW_TEXT_FROM_IMAGES:
         {s0_text}
-        
+
         VISION EXTRACTION (structured facts):
         {s0_json}
-        
+
         PACK CONTEXT:
         {pack_ctx}
-        
+
         TITLE RULES:
         - If MULTIPACK: include "Pack of <quantity>" in normalized_title.
         - If BUNDLE: include the word "Bundle" and name key components like "Textbook + Workbook".
         - If SINGLE: do not add "Pack" or "Bundle".
         - Keep ≤ 80 chars, no emojis or promo.
-    
-    
+
+
         OUTPUT RULES:
         - category_keywords: 3–5 short phrases (2–3 words) that best describe the product category.
         - search_keywords: 3–12 search terms buyers would type (mix of unigrams/bigrams/trigrams), all lowercase.
@@ -1499,16 +2026,14 @@ class SingleItemListingAPIView(APIView):
         - identifiers: only if explicitly present (isbn/ean/gtin/mpn)."""
         s1 = call_llm_json(system_prompt, user_prompt)
         s1["search_keywords"] = clean_keywords(s1.get("search_keywords", []))
-    
+
         normalized_title = s1.get("normalized_title") or _fallback_title(raw_text_in)
-    
+
         category_keywords = s1.get("category_keywords") or []
-    
 
         access = ensure_access_token(request.user)
         tree_id = get_category_tree_id(access)
         query = (" ".join(category_keywords)).strip() or normalized_title
-
 
         # try:
         #     cat_id, cat_name = suggest_leaf_category(tree_id, query, access)
@@ -1517,95 +2042,92 @@ class SingleItemListingAPIView(APIView):
         #     if not cat_id:
         #         return Response({"error": "No category found", "query": query}, status=status.HTTP_404_NOT_FOUND)
 
-
-
         USE_LLM_CATEGORY = True  # feature flag
-        
+
+        try:
+            if USE_LLM_CATEGORY:
+                # Uses title + description and eBay suggestions, returns a LEAF when possible
+                cat_id, cat_name, ranking, notes = pick_category_with_llm(
+                    tree_id=tree_id,
+                    query=query,  # usually your normalized title
+                    normalized_title=normalized_title,
+                    raw_text=raw_text_in,
+                )
+                # Optional logging / audit trail
+                app.logger.info("LLM category pick: %s (%s) | notes=%s | top=%s",
+                                cat_name, cat_id, notes, (ranking[:3] if ranking else None))
+            else:
+                raise RuntimeError("LLM category selection disabled")
+        except Exception as e:
+            app.logger.warning("LLM category pick failed: %s", e)
             try:
-                if USE_LLM_CATEGORY:
-                    # Uses title + description and eBay suggestions, returns a LEAF when possible
-                    cat_id, cat_name, ranking, notes = pick_category_with_llm(
-                        tree_id=tree_id,
-                        query=query,  # usually your normalized title
-                        normalized_title=normalized_title,
-                        raw_text=raw_text_in,
-                    )
-                    # Optional logging / audit trail
-                    app.logger.info("LLM category pick: %s (%s) | notes=%s | top=%s",
-                                    cat_name, cat_id, notes, (ranking[:3] if ranking else None))
-                else:
-                    raise RuntimeError("LLM category selection disabled")
-            except Exception as e:
-                app.logger.warning("LLM category pick failed: %s", e)
-                try:
-                    # Your existing deterministic picker (first suitable leaf)
-                    cat_id, cat_name = suggest_leaf_category(tree_id, query)
-                except Exception as e2:
-                    app.logger.warning("Taxonomy leaf picker failed: %s", e2)
-                    cat_id, cat_name = browse_majority_category(query)
-                    if not cat_id:
-                        return jsonify({
-                            "error": "no category found from taxonomy or browse",
-                            "query": query
-                        }), 404
-        
-            aspects_info = get_required_and_recommended_aspects(tree_id, cat_id)
-        
-            catalog = build_aspect_catalog(aspects_info)
-        
-        
-            req_in = aspects_info.get("required", [])
-            rec_in = aspects_info.get("recommended", [])
-            req_names = [n for n in (_aspect_name(x) for x in req_in) if n]
-            rec_names = [n for n in (_aspect_name(x) for x in rec_in) if n]
-        
-            all_names = set(catalog.keys())
-            optional_names = sorted(all_names - set(req_names) - set(rec_names))
-            allowed = all_names
-        
-            system_prompt2 = (
-                "You fill eBay item aspects from provided text/images.\n"
-                "Rules:\n"
-                "• NEVER leave required aspects empty; if not available, use 'Does not apply' or 'Unknown' ONLY for required.\n"
-                "• Fill optional aspects only when explicit or very likely. Respect cardinality exactly.\n"
-                "• Multipack/bundle: multiply quantitative values by pack size (e.g., total weight/tablets). "
-                "For bundles, choose one most relevant/latest value per aspect.\n"
-                "• LENGTH LIMITS: Obey aspectMaxLength from metadata. If unknown, keep EVERY free-text aspect ≤ 65 chars "
-                "(esp. 'Main Purpose', 'Brand', 'MPN', 'Ingredients').\n"
-                "• 'Ingredients': output ≤ 65 chars as a short comma-separated list of the KEY ingredients only "
-                "(max 3–4 items). Omit long excipient lists and parenthetical details; prefer concise names "
-                "(e.g., 'Vitamin B1 (Thiamin), Dicalcium phosphate, Microcrystalline cellulose').\n"
-                "• If any value would exceed a limit, shorten conservatively (replace 'and' with '&', remove filler, "
-                "avoid trailing punctuation). If still long, truncate on a word boundary within the limit.\n"
-                "• Use UK English; no emojis or marketing. For selection-only aspects, output exactly one allowed option.\n"
-                "• Include units only if the aspect expects them; otherwise provide just the value.\n"
-            )
-        
-            # (Optionally cap how many optionals you show, to keep token use sane)
-            MAX_OPTIONALS_IN_PROMPT = 40
-            shown_optional = optional_names[:MAX_OPTIONALS_IN_PROMPT]
-        
-            user_prompt2 = f"""
+                # Your existing deterministic picker (first suitable leaf)
+                cat_id, cat_name = suggest_leaf_category(tree_id, query)
+            except Exception as e2:
+                app.logger.warning("Taxonomy leaf picker failed: %s", e2)
+                cat_id, cat_name = browse_majority_category(query)
+                if not cat_id:
+                    return jsonify({
+                        "error": "no category found from taxonomy or browse",
+                        "query": query
+                    }), 404
+
+        aspects_info = get_required_and_recommended_aspects(tree_id, cat_id)
+
+        catalog = build_aspect_catalog(aspects_info)
+
+        req_in = aspects_info.get("required", [])
+        rec_in = aspects_info.get("recommended", [])
+        req_names = [n for n in (_aspect_name(x) for x in req_in) if n]
+        rec_names = [n for n in (_aspect_name(x) for x in rec_in) if n]
+
+        all_names = set(catalog.keys())
+        optional_names = sorted(all_names - set(req_names) - set(rec_names))
+        allowed = all_names
+
+        system_prompt2 = (
+            "You fill eBay item aspects from provided text/images.\n"
+            "Rules:\n"
+            "• NEVER leave required aspects empty; if not available, use 'Does not apply' or 'Unknown' ONLY for required.\n"
+            "• Fill optional aspects only when explicit or very likely. Respect cardinality exactly.\n"
+            "• Multipack/bundle: multiply quantitative values by pack size (e.g., total weight/tablets). "
+            "For bundles, choose one most relevant/latest value per aspect.\n"
+            "• LENGTH LIMITS: Obey aspectMaxLength from metadata. If unknown, keep EVERY free-text aspect ≤ 65 chars "
+            "(esp. 'Main Purpose', 'Brand', 'MPN', 'Ingredients').\n"
+            "• 'Ingredients': output ≤ 65 chars as a short comma-separated list of the KEY ingredients only "
+            "(max 3–4 items). Omit long excipient lists and parenthetical details; prefer concise names "
+            "(e.g., 'Vitamin B1 (Thiamin), Dicalcium phosphate, Microcrystalline cellulose').\n"
+            "• If any value would exceed a limit, shorten conservatively (replace 'and' with '&', remove filler, "
+            "avoid trailing punctuation). If still long, truncate on a word boundary within the limit.\n"
+            "• Use UK English; no emojis or marketing. For selection-only aspects, output exactly one allowed option.\n"
+            "• Include units only if the aspect expects them; otherwise provide just the value.\n"
+        )
+
+        # (Optionally cap how many optionals you show, to keep token use sane)
+        MAX_OPTIONALS_IN_PROMPT = 40
+        shown_optional = optional_names[:MAX_OPTIONALS_IN_PROMPT]
+
+        user_prompt2 = f"""
             INPUT TEXT:
             {normalized_title}
-        
+
             RAW TEXT:
             {raw_text_in}
-            
+
             RAW_TEXT_FROM_IMAGES:
             {s0_text}
-            
+
             VISION EXTRACTION (structured facts):
             {s0_json}
-            
+
             PACK CONTEXT:
             {pack_ctx}
-        
+
             ASPECTS:
             - REQUIRED: {req_names}
             - RECOMMENDED: {rec_names}
             - OPTIONAL (you may fill when confident): {shown_optional}
-        
+
             OUTPUT RULES:
             {{
               "filled": {{"AspectName": ["value1","value2"]}},
@@ -1613,236 +2135,233 @@ class SingleItemListingAPIView(APIView):
               "notes": "optional"
             }}
             """
-        
-            s2 = call_llm_json(system_prompt2, user_prompt2)
-            s2 = coerce_aspects_fill(s2)
-            validate(instance=s2, schema=ASPECTS_FILL_SCHEMA)
-            # Enforce eBay aspect max-lengths to avoid 25002 errors
-            # After: validate(instance=s3, schema=ASPECTS_FILL_SCHEMA)
-            limits = aspect_length_limits(aspects_info)  # ← generalized limits
-            filled = s2.get("filled") or {}
-        
-            for aspect_name, values in list(filled.items()):
-                max_len = limits.get(aspect_name)
-                if not max_len:
-                    continue
-                filled[aspect_name] = [_shrink_for_limit(aspect_name, v, max_len) for v in (values or [])]
-        
-            s2["filled"] = filled
-        
-            filled_all = sanitize_filled(s2.get("filled"), catalog)
-        
-            # Compute missing required after sanitization
-            missing_required = [n for n in req_names if not filled_all.get(n)]
-        
-            result = {
-                "filled": filled_all,
-                "missing_required": missing_required,
-                "notes": s2.get("notes", "")
-            }
-        
-            filled_aspects = result["filled"]
 
+        s2 = call_llm_json(system_prompt2, user_prompt2)
+        s2 = coerce_aspects_fill(s2)
+        validate(instance=s2, schema=ASPECTS_FILL_SCHEMA)
+        # Enforce eBay aspect max-lengths to avoid 25002 errors
+        # After: validate(instance=s3, schema=ASPECTS_FILL_SCHEMA)
+        limits = aspect_length_limits(aspects_info)  # ← generalized limits
+        filled = s2.get("filled") or {}
 
+        for aspect_name, values in list(filled.items()):
+            max_len = limits.get(aspect_name)
+            if not max_len:
+                continue
+            filled[aspect_name] = [_shrink_for_limit(aspect_name, v, max_len) for v in (values or [])]
 
+        s2["filled"] = filled
 
+        filled_all = sanitize_filled(s2.get("filled"), catalog)
 
-        # aspects_info = get_required_and_recommended_aspects(tree_id, cat_id, access)
-        # req_names = [_aspect_name(x) for x in aspects_info.get("required", []) if _aspect_name(x)]
-        # rec_names = [_aspect_name(x) for x in aspects_info.get("recommended", []) if _aspect_name(x)]
-        # filled_aspects = {name: ["Does not apply"] for name in req_names}
+        # Compute missing required after sanitization
+        missing_required = [n for n in req_names if not filled_all.get(n)]
 
-        # single_value_aspects = [
-        #     _aspect_name(aspect) for aspect in aspects_info.get("raw", [])
-        #     if _aspect_name(aspect) and aspect.get("aspectConstraint", {}).get("aspectMode") in ["FREE_TEXT", "SELECTION_ONLY"]
-        # ]
+        result = {
+            "filled": filled_all,
+            "missing_required": missing_required,
+            "notes": s2.get("notes", "")
+        }
 
-        # if req_names or rec_names:
-        #     system_prompt2 = (
-        #         "Fill eBay item aspects from text/images. NEVER leave required aspects empty; "
-        #         "extract when explicit, infer when reasonable, otherwise use 'Does not apply'. "
-        #         "For aspects that define unique item variations (e.g., color, size, model), select ONLY the first value mentioned in the text to describe a single item."
-        #     )
-        #     user_prompt2 = f"""
-        #     INPUT TEXT:
-        #     {normalized_title}
-        #     RAW TEXT:
-        #     {raw_text_in}
-        #     ASPECTS:
-        #     - REQUIRED: {req_names}
-        #     - RECOMMENDED: {rec_names}
-        #     OUTPUT RULES:
-        #     {{
-        #     "filled": {{"AspectName": ["value1"]}},
-        #     "missing_required": ["AspectName"],
-        #     "notes": "optional"
-        #     }}
-        #     """
-        #     try:
-        #         s3 = call_llm_json(system_prompt2, user_prompt2)
-        #         allowed = set(req_names + rec_names)
-        #         for k, vals in (s3.get("filled") or {}).items():
-        #             if k in allowed and isinstance(vals, list):
-        #                 clean_vals = list(dict.fromkeys([str(v).strip() for v in vals if str(v).strip()]))
-        #                 if k in single_value_aspects and clean_vals:
-        #                     clean_vals = [clean_vals[0]]
-        #                 if clean_vals:
-        #                     filled_aspects[k] = clean_vals
-        #         filled_aspects = apply_aspect_constraints(filled_aspects, aspects_info.get("raw"))
-        #         if "Book Title" in filled_aspects:
-        #             filled_aspects["Book Title"] = [v[:65] for v in filled_aspects["Book Title"]]
-        #     except Exception as e:
-        #         print(f"[AI Aspects Error] {e}")
+        filled_aspects = result["filled"]
 
-        # try:
-        #     desc_bundle = build_description_simple_from_raw(raw_text_in, html_mode=True)
-        #     description_text = desc_bundle["text"]
-        #     description_html = desc_bundle["html"]
-        # except Exception as e:
-        #     print(f"[AI Description Error] {e}")
-        #     description_text = raw_text_in[:2000]
-        #     description_html = f"<p>{description_text}</p>"
+    # aspects_info = get_required_and_recommended_aspects(tree_id, cat_id, access)
+    # req_names = [_aspect_name(x) for x in aspects_info.get("required", []) if _aspect_name(x)]
+    # rec_names = [_aspect_name(x) for x in aspects_info.get("recommended", []) if _aspect_name(x)]
+    # filled_aspects = {name: ["Does not apply"] for name in req_names}
 
-        # title = smart_titlecase(normalized_title)[:80]
-        # category_id = cat_id
-        # category_name = cat_name
-        # aspects = filled_aspects
+    # single_value_aspects = [
+    #     _aspect_name(aspect) for aspect in aspects_info.get("raw", [])
+    #     if _aspect_name(aspect) and aspect.get("aspectConstraint", {}).get("aspectMode") in ["FREE_TEXT", "SELECTION_ONLY"]
+    # ]
 
-        try:
-            desc_bundle = build_description_simple_from_raw(raw_text_in, html_mode=True,pack_ctx=pack_ctx,pack=pack,s0=s0)
-            description_text = desc_bundle["text"]
-            description_html = desc_bundle["html"]
-        except Exception as e:
-            print(f"[AI Description Error] {e}")
-            description_text = raw_text_in[:2000]
-            description_html = f"<p>{description_text}</p>"
+    # if req_names or rec_names:
+    #     system_prompt2 = (
+    #         "Fill eBay item aspects from text/images. NEVER leave required aspects empty; "
+    #         "extract when explicit, infer when reasonable, otherwise use 'Does not apply'. "
+    #         "For aspects that define unique item variations (e.g., color, size, model), select ONLY the first value mentioned in the text to describe a single item."
+    #     )
+    #     user_prompt2 = f"""
+    #     INPUT TEXT:
+    #     {normalized_title}
+    #     RAW TEXT:
+    #     {raw_text_in}
+    #     ASPECTS:
+    #     - REQUIRED: {req_names}
+    #     - RECOMMENDED: {rec_names}
+    #     OUTPUT RULES:
+    #     {{
+    #     "filled": {{"AspectName": ["value1"]}},
+    #     "missing_required": ["AspectName"],
+    #     "notes": "optional"
+    #     }}
+    #     """
+    #     try:
+    #         s3 = call_llm_json(system_prompt2, user_prompt2)
+    #         allowed = set(req_names + rec_names)
+    #         for k, vals in (s3.get("filled") or {}).items():
+    #             if k in allowed and isinstance(vals, list):
+    #                 clean_vals = list(dict.fromkeys([str(v).strip() for v in vals if str(v).strip()]))
+    #                 if k in single_value_aspects and clean_vals:
+    #                     clean_vals = [clean_vals[0]]
+    #                 if clean_vals:
+    #                     filled_aspects[k] = clean_vals
+    #         filled_aspects = apply_aspect_constraints(filled_aspects, aspects_info.get("raw"))
+    #         if "Book Title" in filled_aspects:
+    #             filled_aspects["Book Title"] = [v[:65] for v in filled_aspects["Book Title"]]
+    #     except Exception as e:
+    #         print(f"[AI Aspects Error] {e}")
 
-        title = smart_titlecase(normalized_title)[:80]
-        category_id = cat_id
-        category_name = cat_name
-        aspects = filled_aspects
+    # try:
+    #     desc_bundle = build_description_simple_from_raw(raw_text_in, html_mode=True)
+    #     description_text = desc_bundle["text"]
+    #     description_html = desc_bundle["html"]
+    # except Exception as e:
+    #     print(f"[AI Description Error] {e}")
+    #     description_text = raw_text_in[:2000]
+    #     description_html = f"<p>{description_text}</p>"
 
+    # title = smart_titlecase(normalized_title)[:80]
+    # category_id = cat_id
+    # category_name = cat_name
+    # aspects = filled_aspects
 
+    try:
+        desc_bundle = build_description_simple_from_raw(raw_text_in, html_mode=True, pack_ctx=pack_ctx, pack=pack,
+                                                        s0=s0)
+        description_text = desc_bundle["text"]
+        description_html = desc_bundle["html"]
+    except Exception as e:
+        print(f"[AI Description Error] {e}")
+        description_text = raw_text_in[:2000]
+        description_html = f"<p>{description_text}</p>"
 
-        try:
-            lang = "en-GB" if marketplace_id == "EBAY_GB" else "en-US"
-            headers = {
-                "Authorization": f"Bearer {access}",
-                "Content-Type": "application/json",
-                "Content-Language": lang,
-                "Accept-Language": lang,
-                "X-EBAY-C-MARKETPLACE-ID": marketplace_id,
-            }
+    title = smart_titlecase(normalized_title)[:80]
+    category_id = cat_id
+    category_name = cat_name
+    aspects = filled_aspects
 
-            max_attempts = 3
-            for _ in range(max_attempts):
-                check_url = f"{BASE}/sell/inventory/v1/inventory_item/{sku}"
-                r = requests.get(check_url, headers=headers)
-                if r.status_code != 200:
-                    break
-                sku = _gen_sku("RAW")
-            else:
-                return Response({"error": "Failed to generate unique SKU"}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        lang = "en-GB" if marketplace_id == "EBAY_GB" else "en-US"
+        headers = {
+            "Authorization": f"Bearer {access}",
+            "Content-Type": "application/json",
+            "Content-Language": lang,
+            "Accept-Language": lang,
+            "X-EBAY-C-MARKETPLACE-ID": marketplace_id,
+        }
 
-            inv_url = f"{BASE}/sell/inventory/v1/inventory_item/{sku}"
-            inv_payload = {
-                "product": {
-                    "title": title,
-                    # "description": description_text,
-                    "description": description_html,
-                    "aspects": aspects,
-                    "imageUrls": images
-                },
-                "condition": condition,
-                "availability": {"shipToLocationAvailability": {"quantity": quantity}}
-            }
-            r = requests.put(inv_url, headers=headers, json=inv_payload)
-            if r.status_code not in (200, 201, 204):
-                return Response({"error": parse_ebay_error(r.text), "step": "inventory_item"}, status=status.HTTP_400_BAD_REQUEST)
+        max_attempts = 3
+        for _ in range(max_attempts):
+            check_url = f"{BASE}/sell/inventory/v1/inventory_item/{sku}"
+            r = requests.get(check_url, headers=headers)
+            if r.status_code != 200:
+                break
+            sku = _gen_sku("RAW")
+        else:
+            return Response({"error": "Failed to generate unique SKU"}, status=status.HTTP_400_BAD_REQUEST)
 
-            try:
-                fulfillment_policy_id = get_first_policy_id("fulfillment", access, marketplace_id)
-                payment_policy_id = get_first_policy_id("payment", access, marketplace_id)
-                return_policy_id = get_first_policy_id("return", access, marketplace_id)
-            except RuntimeError as e:
-                return Response({"error": f"Missing eBay policies: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
-
-            merchant_location_key = get_or_create_location(access, marketplace_id, profile)
-            offer_payload = {
-                "sku": sku,
-                "marketplaceId": marketplace_id,
-                "format": "FIXED_PRICE",
-                "availableQuantity": quantity,
-                "categoryId": category_id,
-                "listingDescription": description_html,
-                "pricingSummary": {
-                    "price": {
-                        "value": str(price["value"]),
-                        "currency": price["currency"]
-                    }
-                },
-                "listingPolicies": {
-                    "fulfillmentPolicyId": fulfillment_policy_id,
-                    "paymentPolicyId": payment_policy_id,
-                    "returnPolicyId": return_policy_id
-                },
-                "merchantLocationKey": merchant_location_key
-            }
-            offer_url = f"{BASE}/sell/inventory/v1/offer"
-            r = requests.post(offer_url, headers=headers, json=offer_payload)
-            if r.status_code not in (200, 201):
-                return Response({"error": parse_ebay_error(r.text), "step": "create_offer"}, status=status.HTTP_400_BAD_REQUEST)
-
-            offer_id = r.json().get("offerId")
-            pub_url = f"{BASE}/sell/inventory/v1/offer/{offer_id}/publish"
-            r = requests.post(pub_url, headers=headers)
-            if r.status_code not in (200, 201):
-                return Response({"error": parse_ebay_error(r.text), "step": "publish"}, status=status.HTTP_400_BAD_REQUEST)
-
-            pub = r.json()
-            listing_id = pub.get("listingId") or (pub.get("listingIds") or [None])[0]
-            view_url = f"https://www.ebay.co.uk/itm/{listing_id}" if marketplace_id == "EBAY_GB" else None
-
-            listing_count, _ = ListingCount.objects.get_or_create(id=1, defaults={"total_count": 0})
-            listing_count.total_count += 1
-            listing_count.save()
-
-            UserListing.objects.create(
-                user=request.user,
-                listing_id=listing_id,
-                offer_id=offer_id,
-                sku=sku,
-                title=title,
-                price_value=price["value"],
-                price_currency=price["currency"],
-                quantity=quantity,
-                condition=condition,
-                category_id=category_id,
-                category_name=category_name,
-                marketplace_id=marketplace_id,
-                view_url=view_url,
-                listing_type="Single"
-            )
-
-            return Response({
-                "status": "published",
-                "offerId": offer_id,
-                "listingId": listing_id,
-                "viewItemUrl": view_url,
-                "sku": sku,
-                "marketplaceId": marketplace_id,
-                "categoryId": category_id,
-                "categoryName": category_name,
+        inv_url = f"{BASE}/sell/inventory/v1/inventory_item/{sku}"
+        inv_payload = {
+            "product": {
                 "title": title,
-                "aspects": aspects
-            })
+                # "description": description_text,
+                "description": description_html,
+                "aspects": aspects,
+                "imageUrls": images
+            },
+            "condition": condition,
+            "availability": {"shipToLocationAvailability": {"quantity": quantity}}
+        }
+        r = requests.put(inv_url, headers=headers, json=inv_payload)
+        if r.status_code not in (200, 201, 204):
+            return Response({"error": parse_ebay_error(r.text), "step": "inventory_item"},
+                            status=status.HTTP_400_BAD_REQUEST)
 
-        except requests.exceptions.RequestException as e:
-            return Response({"error": f"Network error with eBay: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        try:
+            fulfillment_policy_id = get_first_policy_id("fulfillment", access, marketplace_id)
+            payment_policy_id = get_first_policy_id("payment", access, marketplace_id)
+            return_policy_id = get_first_policy_id("return", access, marketplace_id)
         except RuntimeError as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            return Response({"error": f"Unexpected error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": f"Missing eBay policies: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        merchant_location_key = get_or_create_location(access, marketplace_id, profile)
+        offer_payload = {
+            "sku": sku,
+            "marketplaceId": marketplace_id,
+            "format": "FIXED_PRICE",
+            "availableQuantity": quantity,
+            "categoryId": category_id,
+            "listingDescription": description_html,
+            "pricingSummary": {
+                "price": {
+                    "value": str(price["value"]),
+                    "currency": price["currency"]
+                }
+            },
+            "listingPolicies": {
+                "fulfillmentPolicyId": fulfillment_policy_id,
+                "paymentPolicyId": payment_policy_id,
+                "returnPolicyId": return_policy_id
+            },
+            "merchantLocationKey": merchant_location_key
+        }
+        offer_url = f"{BASE}/sell/inventory/v1/offer"
+        r = requests.post(offer_url, headers=headers, json=offer_payload)
+        if r.status_code not in (200, 201):
+            return Response({"error": parse_ebay_error(r.text), "step": "create_offer"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        offer_id = r.json().get("offerId")
+        pub_url = f"{BASE}/sell/inventory/v1/offer/{offer_id}/publish"
+        r = requests.post(pub_url, headers=headers)
+        if r.status_code not in (200, 201):
+            return Response({"error": parse_ebay_error(r.text), "step": "publish"}, status=status.HTTP_400_BAD_REQUEST)
+
+        pub = r.json()
+        listing_id = pub.get("listingId") or (pub.get("listingIds") or [None])[0]
+        view_url = f"https://www.ebay.co.uk/itm/{listing_id}" if marketplace_id == "EBAY_GB" else None
+
+        listing_count, _ = ListingCount.objects.get_or_create(id=1, defaults={"total_count": 0})
+        listing_count.total_count += 1
+        listing_count.save()
+
+        UserListing.objects.create(
+            user=request.user,
+            listing_id=listing_id,
+            offer_id=offer_id,
+            sku=sku,
+            title=title,
+            price_value=price["value"],
+            price_currency=price["currency"],
+            quantity=quantity,
+            condition=condition,
+            category_id=category_id,
+            category_name=category_name,
+            marketplace_id=marketplace_id,
+            view_url=view_url,
+            listing_type="Single"
+        )
+
+        return Response({
+            "status": "published",
+            "offerId": offer_id,
+            "listingId": listing_id,
+            "viewItemUrl": view_url,
+            "sku": sku,
+            "marketplaceId": marketplace_id,
+            "categoryId": category_id,
+            "categoryName": category_name,
+            "title": title,
+            "aspects": aspects
+        })
+
+    except requests.exceptions.RequestException as e:
+        return Response({"error": f"Network error with eBay: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except RuntimeError as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({"error": f"Unexpected error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # --------------------------------------------------------------Multipack View--------------------------------------------------------------
@@ -1852,10 +2371,12 @@ def _gen_sku_multi(prefix="MULTI"):
     unique_id = str(uuid.uuid4())[:8].upper()
     return f"{prefix}-{ts[-6:]}-{unique_id}"
 
+
 def download_rgba(url: str) -> Image.Image:
     r = requests.get(url, timeout=20)
     r.raise_for_status()
     return Image.open(io.BytesIO(r.content)).convert("RGBA")
+
 
 def remove_bg_via_rembg(img: Image.Image) -> Image.Image:
     buf = io.BytesIO()
@@ -1868,7 +2389,9 @@ def remove_bg_via_rembg(img: Image.Image) -> Image.Image:
         raise RuntimeError(f"rembg API error: {resp.status_code} {resp.text[:200]}")
     return Image.open(io.BytesIO(resp.content)).convert("RGBA")
 
-def is_white_background(img: Image.Image,border_frac: float = 0.01,v_thresh: float = 0.92,chroma_thresh: float = 0.12,min_ratio: float = 0.85,std_thresh: float = 18.0):
+
+def is_white_background(img: Image.Image, border_frac: float = 0.01, v_thresh: float = 0.92,
+                        chroma_thresh: float = 0.12, min_ratio: float = 0.85, std_thresh: float = 18.0):
     arr = np.asarray(img.convert("RGB"), dtype=np.float32) / 255.0
     h, w, _ = arr.shape
     b = max(1, int(min(h, w) * border_frac))
@@ -1891,7 +2414,8 @@ def is_white_background(img: Image.Image,border_frac: float = 0.01,v_thresh: flo
     return (ratio >= min_ratio and border_std <= std_thresh)
 
 
-def crop_to_subject_white_bg(img: Image.Image,v_thresh: float = 0.5,chroma_thresh: float = 0.12,margin: float = 0.04,min_fg_ratio: float = 0.02,use_edge_help: bool = True) -> Image.Image:
+def crop_to_subject_white_bg(img: Image.Image, v_thresh: float = 0.5, chroma_thresh: float = 0.12, margin: float = 0.04,
+                             min_fg_ratio: float = 0.02, use_edge_help: bool = True) -> Image.Image:
     arr = np.asarray(img.convert("RGB"), dtype=np.float32) / 255.0
     mx = arr.max(axis=2)
     mn = arr.min(axis=2)
@@ -1928,7 +2452,8 @@ def crop_to_subject_white_bg(img: Image.Image,v_thresh: float = 0.5,chroma_thres
     y1 = min(h, y1 + dy)
 
     return img.crop((x0, y0, x1, y1))
-    
+
+
 def safe_remove_bg(img: Image.Image) -> Image.Image:
     is_white = is_white_background(img)
     if is_white:
@@ -1945,6 +2470,8 @@ def safe_remove_bg(img: Image.Image) -> Image.Image:
             return Image.alpha_composite(white, cut)
         except Exception:
             return img
+
+
 # def safe_remove_bg(img: Image.Image) -> Image.Image:
 #     try:
 #         cut = remove_bg_via_rembg(img)
@@ -1960,6 +2487,7 @@ def fit_within(img: Image.Image, box_w: int, box_h: int, margin_ratio: float = 0
     w, h = img.size
     scale = min(target_w / w, target_h / h)
     return img.resize((max(1, int(w * scale)), max(1, int(h * scale))), Image.LANCZOS)
+
 
 def grid_spec(pack_size: int):
     n = max(2, min(6, int(pack_size)))
@@ -1977,7 +2505,9 @@ def grid_spec(pack_size: int):
         cells = [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2)]
     return rows, cols, cells
 
-def compose_multipack(image_url: str, pack_size: int = 4, output_path: str = "multipack.jpg", output_size: int = 1600, padding: int = 28, do_remove_bg: bool = True, margin_ratio: float = 0.94):
+
+def compose_multipack(image_url: str, pack_size: int = 4, output_path: str = "multipack.jpg", output_size: int = 1600,
+                      padding: int = 28, do_remove_bg: bool = True, margin_ratio: float = 0.94):
     assert 2 <= pack_size <= 6, "pack_size must be between 2 and 6"
     unit = download_rgba(image_url)
     if do_remove_bg:
@@ -2004,11 +2534,13 @@ def compose_multipack(image_url: str, pack_size: int = 4, output_path: str = "mu
     canvas.convert("RGB").save(output_path, quality=95, optimize=True, subsampling=2)
     return output_path
 
+
 class MultipackListingAPIView(APIView):
     def post(self, request):
         action = request.data.get("action", "publish")
         if action != "publish":
-            return Response({"error": "Invalid action. Only 'publish' is supported"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Invalid action. Only 'publish' is supported"},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         try:
             profile = UserProfile.objects.get(user=request.user)
@@ -2055,7 +2587,8 @@ class MultipackListingAPIView(APIView):
                 os.remove(output_path)
             except Exception as e:
                 print(f"[Image Processing Error] {e}")
-                return Response({"error": f"Failed to process or upload multipack image: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({"error": f"Failed to process or upload multipack image: {str(e)}"},
+                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         system_prompt = (
             f"Extract concise keywords for eBay category selection and search for a multipack listing of {multipack_quantity} items. "
@@ -2101,7 +2634,8 @@ class MultipackListingAPIView(APIView):
         filled_aspects = {name: ["Does not apply"] for name in req_names}
         single_value_aspects = [
             _aspect_name(aspect) for aspect in aspects_info.get("raw", [])
-            if _aspect_name(aspect) and aspect.get("aspectConstraint", {}).get("aspectMode") in ["FREE_TEXT", "SELECTION_ONLY"]
+            if _aspect_name(aspect) and aspect.get("aspectConstraint", {}).get("aspectMode") in ["FREE_TEXT",
+                                                                                                 "SELECTION_ONLY"]
         ]
 
         system_prompt2 = (
@@ -2187,7 +2721,8 @@ class MultipackListingAPIView(APIView):
             }
             r = requests.put(inv_url, headers=headers, json=inv_payload)
             if r.status_code not in (200, 201, 204):
-                return Response({"error": parse_ebay_error(r.text), "step": "inventory_item"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": parse_ebay_error(r.text), "step": "inventory_item"},
+                                status=status.HTTP_400_BAD_REQUEST)
 
             try:
                 fulfillment_policy_id = get_first_policy_id("fulfillment", access, marketplace_id)
@@ -2221,13 +2756,15 @@ class MultipackListingAPIView(APIView):
             offer_url = f"{BASE}/sell/inventory/v1/offer"
             r = requests.post(offer_url, headers=headers, json=offer_payload)
             if r.status_code not in (200, 201):
-                return Response({"error": parse_ebay_error(r.text), "step": "create_offer"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": parse_ebay_error(r.text), "step": "create_offer"},
+                                status=status.HTTP_400_BAD_REQUEST)
 
             offer_id = r.json().get("offerId")
             pub_url = f"{BASE}/sell/inventory/v1/offer/{offer_id}/publish"
             r = requests.post(pub_url, headers=headers)
             if r.status_code not in (200, 201):
-                return Response({"error": parse_ebay_error(r.text), "step": "publish"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": parse_ebay_error(r.text), "step": "publish"},
+                                status=status.HTTP_400_BAD_REQUEST)
 
             pub = r.json()
             listing_id = pub.get("listingId") or (pub.get("listingIds") or [None])[0]
@@ -2268,11 +2805,13 @@ class MultipackListingAPIView(APIView):
                 "vat_rate": vat_rate,
             })
         except requests.exceptions.RequestException as e:
-            return Response({"error": f"Network error with eBay: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": f"Network error with eBay: {str(e)}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except RuntimeError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"error": f"Unexpected error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 # --------------------------------------------------------------Bundle View--------------------------------------------------------------
 
@@ -2335,12 +2874,12 @@ def make_grid_layout(n: int) -> tuple[int, int, list[tuple[float, float]]]:
 
 
 def compose_bundle(
-    image_urls: list[str],
-    output_path: str = "bundle.jpg",
-    output_size: int = 1600,
-    padding: int = 0,
-    do_remove_bg: bool = True,
-    margin_ratio: float = 0.94,
+        image_urls: list[str],
+        output_path: str = "bundle.jpg",
+        output_size: int = 1600,
+        padding: int = 0,
+        do_remove_bg: bool = True,
+        margin_ratio: float = 0.94,
 ):
     assert 2 <= len(image_urls) <= 6, "Provide 2 to 6 item URLs."
     items: list[Image.Image] = []
@@ -2374,7 +2913,8 @@ def compose_bundle(
 
     print(f"[*] Saving -> {output_path}")
     canvas.convert("RGB").save(output_path, quality=95, optimize=True, subsampling=2)
-    
+
+
 class BundleListingAPIView(APIView):
     def post(self, request):
         try:
@@ -2408,7 +2948,8 @@ class BundleListingAPIView(APIView):
             return Response({"error": "Bundle quantity must be between 2 and 6"}, status=status.HTTP_400_BAD_REQUEST)
 
         if len(images) < bundle_quantity:
-            return Response({"error": f"Bundle listings require at least {bundle_quantity} images"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": f"Bundle listings require at least {bundle_quantity} images"},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         if remove_background:
             try:
@@ -2427,7 +2968,8 @@ class BundleListingAPIView(APIView):
                 os.remove(output_path)
             except Exception as e:
                 print(f"[Image Processing Error] {e}")
-                return Response({"error": f"Failed to process or upload bundle image: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({"error": f"Failed to process or upload bundle image: {str(e)}"},
+                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         system_prompt = (
             f"Extract concise keywords for eBay category selection and search for a bundle listing of {bundle_quantity} different items. "
@@ -2473,7 +3015,8 @@ class BundleListingAPIView(APIView):
         filled_aspects = {name: ["Does not apply"] for name in req_names}
         single_value_aspects = [
             _aspect_name(aspect) for aspect in aspects_info.get("raw", [])
-            if _aspect_name(aspect) and aspect.get("aspectConstraint", {}).get("aspectMode") in ["FREE_TEXT", "SELECTION_ONLY"]
+            if _aspect_name(aspect) and aspect.get("aspectConstraint", {}).get("aspectMode") in ["FREE_TEXT",
+                                                                                                 "SELECTION_ONLY"]
         ]
 
         if req_names or rec_names:
@@ -2560,7 +3103,8 @@ class BundleListingAPIView(APIView):
             }
             r = requests.put(inv_url, headers=headers, json=inv_payload)
             if r.status_code not in (200, 201, 204):
-                return Response({"error": parse_ebay_error(r.text), "step": "inventory_item"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": parse_ebay_error(r.text), "step": "inventory_item"},
+                                status=status.HTTP_400_BAD_REQUEST)
 
             try:
                 fulfillment_policy_id = get_first_policy_id("fulfillment", access, marketplace_id)
@@ -2594,13 +3138,15 @@ class BundleListingAPIView(APIView):
             offer_url = f"{BASE}/sell/inventory/v1/offer"
             r = requests.post(offer_url, headers=headers, json=offer_payload)
             if r.status_code not in (200, 201):
-                return Response({"error": parse_ebay_error(r.text), "step": "create_offer"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": parse_ebay_error(r.text), "step": "create_offer"},
+                                status=status.HTTP_400_BAD_REQUEST)
 
             offer_id = r.json().get("offerId")
             pub_url = f"{BASE}/sell/inventory/v1/offer/{offer_id}/publish"
             r = requests.post(pub_url, headers=headers)
             if r.status_code not in (200, 201):
-                return Response({"error": parse_ebay_error(r.text), "step": "publish"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": parse_ebay_error(r.text), "step": "publish"},
+                                status=status.HTTP_400_BAD_REQUEST)
 
             pub = r.json()
             listing_id = pub.get("listingId") or (pub.get("listingIds") or [None])[0]
@@ -2642,7 +3188,8 @@ class BundleListingAPIView(APIView):
                 "bundle_quantity": bundle_quantity
             })
         except requests.exceptions.RequestException as e:
-            return Response({"error": f"Network error with eBay: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": f"Network error with eBay: {str(e)}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except RuntimeError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
