@@ -28,7 +28,7 @@ from openai import OpenAI
 from .models import UserProfile, eBayToken, OTP, ListingCount, UserListing
 from werkzeug.utils import secure_filename
 import uuid
-from typing import Tuple, Optional
+from typing import Any, Dict, Tuple, Optional
 from PIL import Image, ImageDraw, ImageFont, ImageFile, ImageFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
@@ -1198,6 +1198,674 @@ def create_single_image(image_url: str, output_path: str = "single_item.jpg", ou
     canvas.convert("RGB").save(output_path, quality=95, optimize=True, subsampling=2)
     return output_path
 
+# class SingleItemListingAPIView(APIView):
+#     def post(self, request):
+#         if request.data.get("action", "publish") != "publish":
+#             return Response({"error": "Only 'publish' action is supported"}, status=status.HTTP_400_BAD_REQUEST)
+
+#         try:
+#             profile = UserProfile.objects.get(user=request.user)
+#         except UserProfile.DoesNotExist:
+#             return Response({"error": "Please create your profile first"}, status=status.HTTP_400_BAD_REQUEST)
+
+#         try:
+#             token = eBayToken.objects.get(user=request.user)
+#             if not token.refresh_token:
+#                 return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
+#         except eBayToken.DoesNotExist:
+#             return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
+        
+#         access = ensure_access_token(request.user)
+        
+#         raw_text_in = _clean_text(request.data.get("raw_text", ""), limit=8000)
+#         images = _https_only(request.data.get("images", []))
+#         marketplace_id = MARKETPLACE_ID
+#         price = request.data.get("price")
+#         quantity = int(request.data.get("quantity", 1))
+#         condition = request.data.get("condition", "NEW").upper()
+#         sku = request.data.get("sku") or _gen_sku("RAW")
+#         remove_background = request.data.get("remove_bg", False)
+
+#         if not raw_text_in and not images:
+#             return Response({"error": "Raw text or images required"}, status=status.HTTP_400_BAD_REQUEST)
+
+#         try:
+#             output_path = f"media/single_{uuid.uuid4().hex}.jpg"
+#             os.makedirs("media", exist_ok=True)
+#             create_single_image(image_url=images[0], output_path=output_path, do_remove_bg=remove_background)
+#             processed_image_url = upload_to_imgbb(output_path)
+#             images[0] = processed_image_url
+#             os.remove(output_path)
+#         except Exception as e:
+#             print(f"[Image Processing Error] {e}")
+#             return Response({"error": f"Failed to process or upload image: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+#         system_prompt = (
+#             "Extract concise keywords for eBay category selection and search. "
+#             "Return STRICT JSON. Use ONLY facts from input. "
+#             "Lowercase all keywords, no punctuation, no duplicates. "
+#             "For normalized_title, describe ONE specific item, selecting the first mentioned variant for any attribute that defines a unique item (e.g., color, size, model)."
+#         )
+#         user_prompt = f"""MARKETPLACE: {marketplace_id}
+#         RAW_TEXT:
+#         {raw_text_in}
+        
+#         OUTPUT RULES:
+#         - category_keywords: 1–5 short phrases (2–3 words) for product category.
+#         - search_keywords: 3–12 search terms, lowercase, ≤ 30 chars.
+#         - normalized_title: <=80 chars, clean, factual, describes ONE item.
+#         - brand: only if in RAW_TEXT.
+#         - identifiers: only if present (isbn/ean/gtin/mpn)."""
+#         try:
+#             s1 = call_llm_json(system_prompt, user_prompt)
+#             s1["search_keywords"] = clean_keywords(s1.get("search_keywords", []))
+#             normalized_title = s1.get("normalized_title") or _fallback_title(raw_text_in)
+#             category_keywords = s1.get("category_keywords", [])
+#             brand = s1.get("brand")
+#         except Exception as e:
+#             print(f"[AI Keywords Error] {e}")
+#             normalized_title = smart_titlecase(raw_text_in[:80]) or _fallback_title(raw_text_in)
+#             category_keywords = []
+#             brand = None
+
+#         access = ensure_access_token(request.user)
+#         tree_id = get_category_tree_id(access)
+#         query = (" ".join(category_keywords)).strip() or normalized_title
+#         try:
+#             cat_id, cat_name = suggest_leaf_category(tree_id, query, access)
+#         except Exception:
+#             cat_id, cat_name = browse_majority_category(query, access)
+#             if not cat_id:
+#                 return Response({"error": "No category found", "query": query}, status=status.HTTP_404_NOT_FOUND)
+
+#         aspects_info = get_required_and_recommended_aspects(tree_id, cat_id, access)
+#         req_names = [_aspect_name(x) for x in aspects_info.get("required", []) if _aspect_name(x)]
+#         rec_names = [_aspect_name(x) for x in aspects_info.get("recommended", []) if _aspect_name(x)]
+#         filled_aspects = {name: ["Does not apply"] for name in req_names}
+
+#         single_value_aspects = [
+#             _aspect_name(aspect) for aspect in aspects_info.get("raw", [])
+#             if _aspect_name(aspect) and aspect.get("aspectConstraint", {}).get("aspectMode") in ["FREE_TEXT", "SELECTION_ONLY"]
+#         ]
+
+#         if req_names or rec_names:
+#             system_prompt2 = (
+#                 "Fill eBay item aspects from text/images. NEVER leave required aspects empty; "
+#                 "extract when explicit, infer when reasonable, otherwise use 'Does not apply'. "
+#                 "For aspects that define unique item variations (e.g., color, size, model), select ONLY the first value mentioned in the text to describe a single item."
+#             )
+#             user_prompt2 = f"""
+#             INPUT TEXT:
+#             {normalized_title}
+#             RAW TEXT:
+#             {raw_text_in}
+#             ASPECTS:
+#             - REQUIRED: {req_names}
+#             - RECOMMENDED: {rec_names}
+#             OUTPUT RULES:
+#             {{
+#             "filled": {{"AspectName": ["value1"]}},
+#             "missing_required": ["AspectName"],
+#             "notes": "optional"
+#             }}
+#             """
+#             try:
+#                 s3 = call_llm_json(system_prompt2, user_prompt2)
+#                 allowed = set(req_names + rec_names)
+#                 for k, vals in (s3.get("filled") or {}).items():
+#                     if k in allowed and isinstance(vals, list):
+#                         clean_vals = list(dict.fromkeys([str(v).strip() for v in vals if str(v).strip()]))
+#                         if k in single_value_aspects and clean_vals:
+#                             clean_vals = [clean_vals[0]]
+#                         if clean_vals:
+#                             filled_aspects[k] = clean_vals
+#                 filled_aspects = apply_aspect_constraints(filled_aspects, aspects_info.get("raw"))
+#                 if "Book Title" in filled_aspects:
+#                     filled_aspects["Book Title"] = [v[:65] for v in filled_aspects["Book Title"]]
+#             except Exception as e:
+#                 print(f"[AI Aspects Error] {e}")
+
+#         try:
+#             desc_bundle = build_description_simple_from_raw(raw_text_in, html_mode=True)
+#             description_text = desc_bundle["text"]
+#             description_html = desc_bundle["html"]
+#         except Exception as e:
+#             print(f"[AI Description Error] {e}")
+#             description_text = raw_text_in[:2000]
+#             description_html = f"<p>{description_text}</p>"
+
+#         title = smart_titlecase(normalized_title)[:80]
+#         category_id = cat_id
+#         category_name = cat_name
+#         aspects = filled_aspects
+
+#         try:
+#             lang = "en-GB" if marketplace_id == "EBAY_GB" else "en-US"
+#             headers = {
+#                 "Authorization": f"Bearer {access}",
+#                 "Content-Type": "application/json",
+#                 "Content-Language": lang,
+#                 "Accept-Language": lang,
+#                 "X-EBAY-C-MARKETPLACE-ID": marketplace_id,
+#             }
+
+#             max_attempts = 3
+#             for _ in range(max_attempts):
+#                 check_url = f"{BASE}/sell/inventory/v1/inventory_item/{sku}"
+#                 r = requests.get(check_url, headers=headers)
+#                 if r.status_code != 200:
+#                     break
+#                 sku = _gen_sku("RAW")
+#             else:
+#                 return Response({"error": "Failed to generate unique SKU"}, status=status.HTTP_400_BAD_REQUEST)
+
+#             inv_url = f"{BASE}/sell/inventory/v1/inventory_item/{sku}"
+#             inv_payload = {
+#                 "product": {
+#                     "title": title,
+#                     "description": description_text,
+#                     "aspects": aspects,
+#                     "imageUrls": images
+#                 },
+#                 "condition": condition,
+#                 "availability": {"shipToLocationAvailability": {"quantity": quantity}}
+#             }
+#             r = requests.put(inv_url, headers=headers, json=inv_payload)
+#             if r.status_code not in (200, 201, 204):
+#                 return Response({"error": parse_ebay_error(r.text), "step": "inventory_item"}, status=status.HTTP_400_BAD_REQUEST)
+
+#             try:
+#                 fulfillment_policy_id = get_first_policy_id("fulfillment", access, marketplace_id)
+#                 payment_policy_id = get_first_policy_id("payment", access, marketplace_id)
+#                 return_policy_id = get_first_policy_id("return", access, marketplace_id)
+#             except RuntimeError as e:
+#                 return Response({"error": f"Missing eBay policies: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+#             merchant_location_key = get_or_create_location(access, marketplace_id, profile)
+#             offer_payload = {
+#                 "sku": sku,
+#                 "marketplaceId": marketplace_id,
+#                 "format": "FIXED_PRICE",
+#                 "availableQuantity": quantity,
+#                 "categoryId": category_id,
+#                 "listingDescription": description_html,
+#                 "pricingSummary": {
+#                     "price": {
+#                         "value": str(price["value"]),
+#                         "currency": price["currency"]
+#                     }
+#                 },
+#                 "listingPolicies": {
+#                     "fulfillmentPolicyId": fulfillment_policy_id,
+#                     "paymentPolicyId": payment_policy_id,
+#                     "returnPolicyId": return_policy_id
+#                 },
+#                 "merchantLocationKey": merchant_location_key
+#             }
+#             offer_url = f"{BASE}/sell/inventory/v1/offer"
+#             r = requests.post(offer_url, headers=headers, json=offer_payload)
+#             if r.status_code not in (200, 201):
+#                 return Response({"error": parse_ebay_error(r.text), "step": "create_offer"}, status=status.HTTP_400_BAD_REQUEST)
+
+#             offer_id = r.json().get("offerId")
+#             pub_url = f"{BASE}/sell/inventory/v1/offer/{offer_id}/publish"
+#             r = requests.post(pub_url, headers=headers)
+#             if r.status_code not in (200, 201):
+#                 return Response({"error": parse_ebay_error(r.text), "step": "publish"}, status=status.HTTP_400_BAD_REQUEST)
+
+#             pub = r.json()
+#             listing_id = pub.get("listingId") or (pub.get("listingIds") or [None])[0]
+#             view_url = f"https://www.ebay.co.uk/itm/{listing_id}" if marketplace_id == "EBAY_GB" else None
+
+#             listing_count, _ = ListingCount.objects.get_or_create(id=1, defaults={"total_count": 0})
+#             listing_count.total_count += 1
+#             listing_count.save()
+
+#             UserListing.objects.create(
+#                 user=request.user,
+#                 listing_id=listing_id,
+#                 offer_id=offer_id,
+#                 sku=sku,
+#                 title=title,
+#                 price_value=price["value"],
+#                 price_currency=price["currency"],
+#                 quantity=quantity,
+#                 condition=condition,
+#                 category_id=category_id,
+#                 category_name=category_name,
+#                 marketplace_id=marketplace_id,
+#                 view_url=view_url,
+#                 listing_type="Single"
+#             )
+
+#             return Response({
+#                 "status": "published",
+#                 "offerId": offer_id,
+#                 "listingId": listing_id,
+#                 "viewItemUrl": view_url,
+#                 "sku": sku,
+#                 "marketplaceId": marketplace_id,
+#                 "categoryId": category_id,
+#                 "categoryName": category_name,
+#                 "title": title,
+#                 "aspects": aspects
+#             })
+
+#         except requests.exceptions.RequestException as e:
+#             return Response({"error": f"Network error with eBay: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#         except RuntimeError as e:
+#             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+#         except Exception as e:
+#             return Response({"error": f"Unexpected error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+def build_pack_context(body: dict) -> tuple[dict, str]:
+    mode = (body.get("image_mode") or "").strip().lower()
+    def to_int(x, default=0):
+        try:
+            return int(x)
+        except Exception:
+            return default
+    pack = {"type": "single"}
+    ctx = "SINGLE ITEM"
+
+    if mode == "multipack":
+        qty = max(to_int(body.get("pack_size"), 1), 1)
+        unit = (body.get("unit") or body.get("pack_unit") or "").strip()
+        pack = {"type": "multipack", "quantity": qty, "unit": unit}
+        ctx = f"MULTIPACK: Pack of {qty}" + (f" {unit}" if unit else "")
+
+    elif mode == "bundle":
+        size = max(to_int(body.get("bundle_size"), 0), 0)
+        components = body.get("bundle_components") or []
+        pack = {"type": "bundle", "bundle_size": size, "components": components}
+        if components:
+            ctx = "BUNDLE: " + " + ".join(map(str, components))
+        elif size >= 2:
+            ctx = f"BUNDLE: {size} items"
+        else:
+            ctx = "BUNDLE"
+
+    return pack, ctx
+
+def call_llm_json_vision(system_prompt: str, text_prompt: str, image_urls: list[str]) -> dict:
+    if not OPENAI_API_KEY:
+        raise NotImplementedError("OPENAI_API_KEY not set; vision LLM features disabled.")
+    from openai import OpenAI
+    client = OpenAI(api_key=OPENAI_API_KEY)
+    user_content = [{"type": "text", "text": (text_prompt or "").strip()}]
+    for u in (image_urls or [])[:8]: 
+        if isinstance(u, str) and u.startswith("http"):
+            user_content.append({"type": "image_url", "image_url": {"url": u}})
+
+    resp = client.chat.completions.create(
+        model="gpt-4o-mini",
+        response_format={"type": "json_object"},
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content},
+        ],
+        temperature=0.2,
+    )
+    txt = (resp.choices[0].message.content or "").strip()
+    try:
+        return json.loads(txt)
+    except Exception:
+        m = re.search(r'\{.*\}', txt, re.DOTALL)
+        return json.loads(m.group(0)) if m else {"_raw": txt}
+
+def extract_product_from_images_gpt4o(image_urls: list[str], marketplace_id: str, pack_ctx: str = "") -> dict:
+    sys_prompt = (
+        "You are a product extraction assistant for creating eBay listings from images only. "
+        "Look carefully at the packaging, labels, and any visible text to extract FACTS only. "
+        "Return a JSON object with these keys exactly: "
+        "normalized_title, raw_text, category_keywords, search_keywords, brand, identifiers, notes. "
+        "Rules: "
+        "• The title must be ≤80 chars, factual, no emojis or promo. "
+        "• Lowercase all keywords, 3–5 category_keywords, 3–12 search_keywords; each search keyword ≤30 chars. "
+        "• Only include brand if clearly visible. "
+        "• identifiers object may include isbn, ean, gtin, or mpn if visible; otherwise omit. "
+        "• Do NOT invent data; if unsure, leave fields empty or omit. "
+    )
+    text_prompt = f"""MARKETPLACE: {marketplace_id}
+    PACK CONTEXT: {pack_ctx or "SINGLE ITEM"}
+
+    Return a JSON object only.
+    """
+    result = call_llm_json_vision(sys_prompt, text_prompt, image_urls)
+    result["search_keywords"] = clean_keywords(result.get("search_keywords", []))
+    result["category_keywords"] = clean_keywords(result.get("category_keywords", []))[:5]
+    return result
+
+def build_aspect_catalog(aspects_info):
+    cat = {}
+    for a in aspects_info.get("raw", []):
+        name = a.get("localizedAspectName")
+        if not name:
+            continue
+        c = a.get("aspectConstraint", {}) or {}
+        if c.get("aspectUsage") == "NOT_RECOMMENDED":
+            continue
+        appl = set(c.get("aspectApplicableTo") or ["PRODUCT"])
+        if "PRODUCT" not in appl:
+            continue
+
+        mode = c.get("aspectMode", "FREE_TEXT")
+        cardinality = c.get("itemToAspectCardinality", "SINGLE")
+        vals = {v.get("localizedValue") for v in (a.get("aspectValues") or []) if v.get("localizedValue")}
+        cat[name] = {
+            "mode": mode,
+            "cardinality": cardinality,
+            "values": vals if mode == "SELECTION_ONLY" else set()
+        }
+    return cat
+
+def coerce_aspects_fill(s3: dict) -> dict:
+    notes = s3.get("notes")
+    if isinstance(notes, dict):
+        s3.setdefault("filled", {})
+        for k, v in notes.items():
+            if isinstance(v, list) and k not in s3["filled"]:
+                s3["filled"][k] = [str(x) for x in v]
+        s3["notes"] = "; ".join(
+            f"{k}: {', '.join(map(str, v if isinstance(v, list) else [v]))}"
+            for k, v in notes.items()
+        )
+    return s3
+
+def aspect_length_limits(aspects_info: dict,
+                         default_free_text: int = 65,
+                         default_selection: int = 65) -> dict:
+    limits: dict[str, int] = {}
+
+    def _get_name_from_any(node: Dict[str, Any], hint: Optional[str] = None) -> Optional[str]:
+        for key in ("aspectName", "localizedAspectName", "name", "localizedName"):
+            val = node.get(key)
+            if isinstance(val, str) and val.strip():
+                return val.strip()
+        a = node.get("aspect")
+        if isinstance(a, str) and a.strip():
+            return a.strip()
+        if isinstance(a, dict):
+            for key in ("aspectName", "localizedAspectName", "name", "localizedName"):
+                val = a.get(key)
+                if isinstance(val, str) and val.strip():
+                    return val.strip()
+        return hint.strip() if isinstance(hint, str) and hint.strip() else None
+
+    def _harvest_node(node: Dict[str, Any], name_hint: Optional[str] = None):
+        nm = _get_name_from_any(node, hint=name_hint)
+        if not isinstance(nm, str) or not nm:
+            return
+
+        cons = (node.get("constraints") or node.get("aspectConstraints") or {})
+        L = (cons.get("aspectMaxLength")
+             or cons.get("maxLength")
+             or node.get("aspectMaxLength"))
+        if isinstance(L, int) and L > 0:
+            limits[nm] = L
+            return
+
+        mode = (cons.get("aspectMode") or cons.get("mode") or "").lower()
+        if "free" in mode:
+            limits.setdefault(nm, default_free_text)
+        elif "select" in mode:
+            options = node.get("values") or node.get("aspectValues") or []
+            if isinstance(options, list) and options:
+                try:
+                    longest = max(
+                        len(str(o.get("value") if isinstance(o, dict) else o))
+                        for o in options
+                    )
+                    limits[nm] = min(max(longest, 32), default_selection)
+                except Exception:
+                    limits.setdefault(nm, default_selection)
+            else:
+                limits.setdefault(nm, default_selection)
+        else:
+            limits.setdefault(nm, default_free_text)
+
+    ai = aspects_info or {}
+
+    by_name = ((ai.get("meta") or {}).get("by_name")) or {}
+    if isinstance(by_name, dict):
+        for nm, node in by_name.items():
+            if isinstance(node, dict):
+                _harvest_node(node, name_hint=nm if isinstance(nm, str) else None)
+
+    for key in ("required", "recommended", "optional", "aspects"):
+        arr = ai.get(key)
+        if isinstance(arr, list):
+            for entry in arr:
+                if isinstance(entry, dict):
+                    _harvest_node(entry)
+
+    limits.setdefault("Main Purpose", 65)
+    limits.setdefault("Brand", 65)
+    limits.setdefault("MPN", 65)
+    limits.setdefault("Ingredients", 65)
+    limits.setdefault("Active Ingredients", 65)
+
+    return limits
+CATEGORY_PICK_SCHEMA = {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "CategoryPick",
+    "type": "object",
+    "required": ["choice"],
+    "properties": {
+        "choice": {
+            "type": "object",
+            "required": ["categoryId", "categoryName"],
+            "properties": {
+                "categoryId": {"type": "string"},
+                "categoryName": {"type": "string"}
+            },
+            "additionalProperties": False
+        },
+        "ranking": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["categoryId", "score", "why"],
+                "properties": {
+                    "categoryId": {"type": "string"},
+                    "score": {"type": "number", "minimum": 0, "maximum": 1},
+                    "why": {"type": "string"}
+                },
+                "additionalProperties": False
+            }
+        },
+        "notes": {"type": "string"}
+    },
+    "additionalProperties": False
+}
+def _compress_listy(text: str, max_len: int) -> str:
+    s = re.sub(r"\s*\([^)]*\)", "", str(text)).strip()
+    parts = [p.strip() for p in re.split(r",|;|/|•|\u2022|\s-\s", s) if p.strip()]
+    if not parts:
+        return _smart_truncate(s, max_len)
+
+    kept = []
+    for p in parts:
+        candidate = ", ".join(kept + [p]) if kept else p
+        if len(candidate) <= max_len:
+            kept.append(p)
+        else:
+            break
+
+    if kept:
+        return ", ".join(kept)
+    return _smart_truncate(s, max_len)
+
+def _compress_claim_text(s: str) -> str:
+    x = str(s).strip()
+    repl = [
+        (" and ", " & "),
+        (" – ", " - "), ("—", "-"),
+        ("  ", " "),
+        ("supports normal ", ""), ("contributes to ", ""), ("function of the ", ""), ("function of ", ""),
+    ]
+    for a, b in repl:
+        x = x.replace(a, b)
+    x = re.sub(r"\s+", " ", x).strip()
+    x = re.sub(r"^(Supports?|Contributes to)\s+", "", x, flags=re.IGNORECASE)
+    return x.rstrip(" ,;:.")
+
+def _smart_truncate(text: str, max_len: int) -> str:
+    s = str(text).strip()
+    if len(s) <= max_len:
+        return s
+    cut = s[:max_len]
+    space = cut.rfind(" ")
+    if space >= 40:
+        cut = cut[:space]
+    return cut.rstrip(" ,;:.-")
+
+def _shrink_for_limit(aspect_name: str, value: str, max_len: int) -> str:
+    if not isinstance(max_len, int) or max_len <= 0:
+        return str(value)
+    s = str(value).strip()
+    if len(s) <= max_len:
+        return s
+
+    nm = (aspect_name or "").lower()
+    if any(k in nm for k in ("ingredient", "feature", "material", "component", "contents", "included")):
+        s = _compress_listy(s, max_len)
+    elif any(k in nm for k in ("purpose", "benefit", "direction", "dosage", "indication", "description")):
+        s = _compress_claim_text(s)
+        if len(s) > max_len:
+            s = _smart_truncate(s, max_len)
+    else:
+        s = _smart_truncate(s, max_len)
+    return s
+
+def sanitize_filled(filled_in: dict, catalog: dict) -> dict:
+    out = {}
+    for name, vals in (filled_in or {}).items():
+        if name not in catalog:
+            continue
+
+        if not isinstance(vals, (list, tuple)):
+            vals = [vals]
+        vals = [str(v).strip() for v in vals if isinstance(v, (str, int, float)) and str(v).strip()]
+        if not vals:
+            continue
+
+        spec = catalog[name]
+        mode = spec["mode"]
+        card = spec["cardinality"]
+
+        if mode == "SELECTION_ONLY":
+            whitelist = spec["values"]
+            vals = [v for v in vals if v in whitelist]
+            if not vals:
+                continue
+
+        if card == "SINGLE":
+            vals = vals[:1]
+
+        seen = set()
+        uniq = []
+        for v in vals:
+            if v not in seen:
+                uniq.append(v)
+                seen.add(v)
+
+        if uniq:
+            out[name] = uniq
+    return out
+
+def _cat_path(node: dict) -> str:
+    anc = node.get("categoryTreeNodeAncestors") or []
+    names = [a.get("categoryName") for a in anc if a.get("categoryName")]
+    names.append(node.get("category", {}).get("categoryName"))
+    return " > ".join([n for n in names if n])
+
+def _summarize_suggestions(suggestions: list[dict], limit: int = 12) -> list[dict]:
+    out = []
+    for n in suggestions[:limit]:
+        c = n.get("category") or {}
+        out.append({
+            "id": str(c.get("categoryId")),
+            "name": c.get("categoryName"),
+            "path": _cat_path(n),
+            "leaf": bool(n.get("leafCategoryTreeNode") is True),
+            "level": int(n.get("categoryTreeNodeLevel") or 0),
+        })
+    return out
+from jsonschema import validate
+def pick_category_with_llm(tree_id: str, query: str, normalized_title: str, raw_text: str):
+    access = ensure_access_token()
+    r = requests.get(
+        f"{API}/commerce/taxonomy/v1/category_tree/{tree_id}/get_category_suggestions",
+        params={"q": query},
+        headers={"Authorization": f"Bearer {access}"},
+        timeout=30,
+    )
+    r.raise_for_status()
+    suggestions = (r.json() or {}).get("categorySuggestions") or []
+    if not suggestions:
+        raise RuntimeError("No category suggestions found")
+
+    sugg = _summarize_suggestions(suggestions, limit=12)
+    text = (raw_text or "")[:1500]
+
+    system_prompt = (
+        "You are an assistant that chooses the BEST eBay UK (EBAY_GB) leaf category "
+        "for a product, given its title/description and eBay's own suggestions. "
+        "Rules:\n"
+        "1) Prefer a LEAF category. If multiple leaves fit, choose the most specific (deepest level).\n"
+        "2) The pick MUST come from the provided suggestions (do not invent IDs).\n"
+        "3) Match on domain cues in title/description (product type, audience, format), not just keywords.\n"
+        "4) If the text is clearly educational/revision/GCSE etc., bias toward textbooks/education within Books.\n"
+        "5) Return JSON only."
+    )
+
+    opts_lines = []
+    for i, s in enumerate(sugg, 1):
+        leaf_flag = "leaf" if s["leaf"] else "non-leaf"
+        opts_lines.append(f"{i}. [{s['id']}] {s['path']}  ({leaf_flag}, level {s['level']})")
+    options_block = "\n".join(opts_lines)
+
+    user_prompt = f"""
+    TITLE:
+    {normalized_title}
+
+    DESCRIPTION (truncated):
+    {text}
+
+    SUGGESTIONS (choose exactly one from these):
+    {options_block}
+
+    OUTPUT JSON:
+    {{
+      "choice": {{"categoryId":"<id from list>", "categoryName":"<name>"}},
+      "ranking": [{{"categoryId":"<id>", "score":0.00, "why":"brief"}}],
+      "notes": "optional"
+    }}
+    """
+
+    result = call_llm_json(system_prompt, user_prompt)
+    validate(instance=result, schema=CATEGORY_PICK_SCHEMA)
+
+    by_id = {s["id"]: s for s in sugg}
+    choice = result["choice"]
+    cid = str(choice["categoryId"])
+    picked = by_id.get(cid)
+
+    if not picked:
+        leaves = [s for s in sugg if s["leaf"]]
+        leaves.sort(key=lambda s: s["level"], reverse=True)
+        picked = leaves[0] if leaves else sugg[0]
+        choice = {"categoryId": picked["id"], "categoryName": picked["name"]}
+
+    if not picked["leaf"]:
+        leaves = [s for s in sugg if s["leaf"]]
+        if leaves:
+            leaves.sort(key=lambda s: s["level"], reverse=True)
+            picked = leaves[0]
+            choice = {"categoryId": picked["id"], "categoryName": picked["name"]}
+
+    return choice["categoryId"], choice["categoryName"], result.get("ranking"), result.get("notes")
+
 class SingleItemListingAPIView(APIView):
     def post(self, request):
         if request.data.get("action", "publish") != "publish":
@@ -1214,9 +1882,8 @@ class SingleItemListingAPIView(APIView):
                 return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
         except eBayToken.DoesNotExist:
             return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         access = ensure_access_token(request.user)
-        
         raw_text_in = _clean_text(request.data.get("raw_text", ""), limit=8000)
         images = _https_only(request.data.get("images", []))
         marketplace_id = MARKETPLACE_ID
@@ -1225,9 +1892,7 @@ class SingleItemListingAPIView(APIView):
         condition = request.data.get("condition", "NEW").upper()
         sku = request.data.get("sku") or _gen_sku("RAW")
         remove_background = request.data.get("remove_bg", False)
-
-        if not raw_text_in and not images:
-            return Response({"error": "Raw text or images required"}, status=status.HTTP_400_BAD_REQUEST)
+        vat_percent = float(request.data.get("vat_percent"))
 
         try:
             output_path = f"media/single_{uuid.uuid4().hex}.jpg"
@@ -1237,100 +1902,157 @@ class SingleItemListingAPIView(APIView):
             images[0] = processed_image_url
             os.remove(output_path)
         except Exception as e:
-            print(f"[Image Processing Error] {e}")
             return Response({"error": f"Failed to process or upload image: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+        pack, pack_ctx = build_pack_context(request.data.get)
+        s0 = extract_product_from_images_gpt4o(images, MARKETPLACE_ID, pack_ctx)
+        s0_text = s0.get("raw_text", "") or ""
+        s0_json = json.dumps(s0, ensure_ascii=False)
+
         system_prompt = (
-            "Extract concise keywords for eBay category selection and search. "
-            "Return STRICT JSON. Use ONLY facts from input. "
-            "Lowercase all keywords, no punctuation, no duplicates. "
-            "For normalized_title, describe ONE specific item, selecting the first mentioned variant for any attribute that defines a unique item (e.g., color, size, model)."
+            "You extract concise keywords for eBay category selection and search. "
+            "Return STRICT JSON per the schema. Use ONLY facts present in the input. "
+            "Do NOT invent identifiers; if absent, omit the field. "
+            "Lowercase all keywords. No punctuation, no duplicates."
+            "search_keywords must be less than 30 characters"
         )
-        user_prompt = f"""MARKETPLACE: {marketplace_id}
+        user_prompt = f"""MARKETPLACE: {MARKETPLACE_ID}
+
         RAW_TEXT:
         {raw_text_in}
-        
-        OUTPUT RULES:
-        - category_keywords: 1–5 short phrases (2–3 words) for product category.
-        - search_keywords: 3–12 search terms, lowercase, ≤ 30 chars.
-        - normalized_title: <=80 chars, clean, factual, describes ONE item.
-        - brand: only if in RAW_TEXT.
-        - identifiers: only if present (isbn/ean/gtin/mpn)."""
-        try:
-            s1 = call_llm_json(system_prompt, user_prompt)
-            s1["search_keywords"] = clean_keywords(s1.get("search_keywords", []))
-            normalized_title = s1.get("normalized_title") or _fallback_title(raw_text_in)
-            category_keywords = s1.get("category_keywords", [])
-            brand = s1.get("brand")
-        except Exception as e:
-            print(f"[AI Keywords Error] {e}")
-            normalized_title = smart_titlecase(raw_text_in[:80]) or _fallback_title(raw_text_in)
-            category_keywords = []
-            brand = None
 
+        RAW_TEXT_FROM_IMAGES:
+        {s0_text}
+
+        VISION EXTRACTION (structured facts):
+        {s0_json}
+
+        PACK CONTEXT:
+        {pack_ctx}
+
+        TITLE RULES:
+        - If MULTIPACK: include "Pack of <quantity>" in normalized_title.
+        - If BUNDLE: include the word "Bundle" and name key components like "Textbook + Workbook".
+        - If SINGLE: do not add "Pack" or "Bundle".
+        - Keep ≤ 80 chars, no emojis or promo.
+
+        OUTPUT RULES:
+        - category_keywords: 3-5 short phrases (2-3 words) that best describe the product category.
+        - search_keywords: 3-12 search terms buyers would type (mix of unigrams/bigrams/trigrams), all lowercase.
+        - All search_keywords must be ≤ 30 characters.
+        - normalized_title: <=80 chars, clean and factual (no emojis/promo).
+        - if it is a multipack or bundle include that in the title.
+        - brand: only if explicitly present in RAW_TEXT.
+        - identifiers: only if explicitly present (isbn/ean/gtin/mpn)."""
+        s1 = call_llm_json(system_prompt, user_prompt)
+        s1["search_keywords"] = clean_keywords(s1.get("search_keywords", []))
+        normalized_title = s1.get("normalized_title") or _fallback_title(raw_text_in)
+        category_keywords = s1.get("category_keywords") or []
         access = ensure_access_token(request.user)
         tree_id = get_category_tree_id(access)
         query = (" ".join(category_keywords)).strip() or normalized_title
+        USE_LLM_CATEGORY = True
+
         try:
-            cat_id, cat_name = suggest_leaf_category(tree_id, query, access)
-        except Exception:
-            cat_id, cat_name = browse_majority_category(query, access)
-            if not cat_id:
-                return Response({"error": "No category found", "query": query}, status=status.HTTP_404_NOT_FOUND)
+            if USE_LLM_CATEGORY:
+                cat_id, cat_name, ranking, notes = pick_category_with_llm(
+                    tree_id=tree_id,
+                    query=query,
+                    normalized_title=normalized_title,
+                    raw_text=raw_text_in,
+                )
+            else:
+                raise RuntimeError("LLM category selection disabled")
+        except Exception as e:
+            try:
+                cat_id, cat_name = suggest_leaf_category(tree_id, query)
+            except Exception as e2:
+                cat_id, cat_name = browse_majority_category(query)
+                if not cat_id:
+                    return Response({ "error": "no category found from taxonomy or browse","query": query}), 404
 
-        aspects_info = get_required_and_recommended_aspects(tree_id, cat_id, access)
-        req_names = [_aspect_name(x) for x in aspects_info.get("required", []) if _aspect_name(x)]
-        rec_names = [_aspect_name(x) for x in aspects_info.get("recommended", []) if _aspect_name(x)]
-        filled_aspects = {name: ["Does not apply"] for name in req_names}
-
-        single_value_aspects = [
-            _aspect_name(aspect) for aspect in aspects_info.get("raw", [])
-            if _aspect_name(aspect) and aspect.get("aspectConstraint", {}).get("aspectMode") in ["FREE_TEXT", "SELECTION_ONLY"]
-        ]
-
-        if req_names or rec_names:
-            system_prompt2 = (
-                "Fill eBay item aspects from text/images. NEVER leave required aspects empty; "
-                "extract when explicit, infer when reasonable, otherwise use 'Does not apply'. "
-                "For aspects that define unique item variations (e.g., color, size, model), select ONLY the first value mentioned in the text to describe a single item."
-            )
-            user_prompt2 = f"""
+        aspects_info = get_required_and_recommended_aspects(tree_id, cat_id)
+        catalog = build_aspect_catalog(aspects_info)
+        req_in = aspects_info.get("required", [])
+        rec_in = aspects_info.get("recommended", [])
+        req_names = [n for n in (_aspect_name(x) for x in req_in) if n]
+        rec_names = [n for n in (_aspect_name(x) for x in rec_in) if n]
+        all_names = set(catalog.keys())
+        optional_names = sorted(all_names - set(req_names) - set(rec_names))
+        allowed = all_names
+        system_prompt2 = (
+            "You fill eBay item aspects from provided text/images.\n"
+            "Rules:\n"
+            "• NEVER leave required aspects empty; if not available, use 'Does not apply' or 'Unknown' ONLY for required.\n"
+            "• Fill optional aspects only when explicit or very likely. Respect cardinality exactly.\n"
+            "• Multipack/bundle: multiply quantitative values by pack size (e.g., total weight/tablets). "
+            "For bundles, choose one most relevant/latest value per aspect.\n"
+            "• LENGTH LIMITS: Obey aspectMaxLength from metadata. If unknown, keep EVERY free-text aspect ≤ 65 chars "
+            "(esp. 'Main Purpose', 'Brand', 'MPN', 'Ingredients').\n"
+            "• 'Ingredients': output ≤ 65 chars as a short comma-separated list of the KEY ingredients only "
+            "(max 3-4 items). Omit long excipient lists and parenthetical details; prefer concise names "
+            "(e.g., 'Vitamin B1 (Thiamin), Dicalcium phosphate, Microcrystalline cellulose').\n"
+            "• If any value would exceed a limit, shorten conservatively (replace 'and' with '&', remove filler, "
+            "avoid trailing punctuation). If still long, truncate on a word boundary within the limit.\n"
+            "• Use UK English; no emojis or marketing. For selection-only aspects, output exactly one allowed option.\n"
+            "• Include units only if the aspect expects them; otherwise provide just the value.\n"
+        )
+        MAX_OPTIONALS_IN_PROMPT = 40
+        shown_optional = optional_names[:MAX_OPTIONALS_IN_PROMPT]
+        user_prompt2 = f"""
             INPUT TEXT:
             {normalized_title}
+
             RAW TEXT:
             {raw_text_in}
+
+            RAW_TEXT_FROM_IMAGES:
+            {s0_text}
+
+            VISION EXTRACTION (structured facts):
+            {s0_json}
+
+            PACK CONTEXT:
+            {pack_ctx}
+
             ASPECTS:
             - REQUIRED: {req_names}
             - RECOMMENDED: {rec_names}
+            - OPTIONAL (you may fill when confident): {shown_optional}
+
             OUTPUT RULES:
             {{
-            "filled": {{"AspectName": ["value1"]}},
-            "missing_required": ["AspectName"],
-            "notes": "optional"
+              "filled": {{"AspectName": ["value1","value2"]}},
+              "missing_required": ["AspectName"],
+              "notes": "optional"
             }}
             """
-            try:
-                s3 = call_llm_json(system_prompt2, user_prompt2)
-                allowed = set(req_names + rec_names)
-                for k, vals in (s3.get("filled") or {}).items():
-                    if k in allowed and isinstance(vals, list):
-                        clean_vals = list(dict.fromkeys([str(v).strip() for v in vals if str(v).strip()]))
-                        if k in single_value_aspects and clean_vals:
-                            clean_vals = [clean_vals[0]]
-                        if clean_vals:
-                            filled_aspects[k] = clean_vals
-                filled_aspects = apply_aspect_constraints(filled_aspects, aspects_info.get("raw"))
-                if "Book Title" in filled_aspects:
-                    filled_aspects["Book Title"] = [v[:65] for v in filled_aspects["Book Title"]]
-            except Exception as e:
-                print(f"[AI Aspects Error] {e}")
+        s2 = call_llm_json(system_prompt2, user_prompt2)
+        s2 = coerce_aspects_fill(s2)
+        limits = aspect_length_limits(aspects_info)
+        filled = s2.get("filled") or {}
+
+        for aspect_name, values in list(filled.items()):
+            max_len = limits.get(aspect_name)
+            if not max_len:
+                continue
+            filled[aspect_name] = [_shrink_for_limit(aspect_name, v, max_len) for v in (values or [])]
+
+        s2["filled"] = filled
+        filled_all = sanitize_filled(s2.get("filled"), catalog)
+        missing_required = [n for n in req_names if not filled_all.get(n)]
+        result = {
+            "filled": filled_all,
+            "missing_required": missing_required,
+            "notes": s2.get("notes", "")
+        }
+        filled_aspects = result["filled"]
 
         try:
-            desc_bundle = build_description_simple_from_raw(raw_text_in, html_mode=True)
+            desc_bundle = build_description_simple_from_raw(raw_text_in, html_mode=True, pack_ctx=pack_ctx, pack=pack, s0=s0)
             description_text = desc_bundle["text"]
             description_html = desc_bundle["html"]
         except Exception as e:
-            print(f"[AI Description Error] {e}")
             description_text = raw_text_in[:2000]
             description_html = f"<p>{description_text}</p>"
 
@@ -1338,126 +2060,115 @@ class SingleItemListingAPIView(APIView):
         category_id = cat_id
         category_name = cat_name
         aspects = filled_aspects
+        lang = "en-GB" if marketplace_id == "EBAY_GB" else "en-US"
+        headers = {
+            "Authorization": f"Bearer {access}",
+            "Content-Type": "application/json",
+            "Content-Language": lang,
+            "Accept-Language": lang,
+            "X-EBAY-C-MARKETPLACE-ID": marketplace_id,
+        }
+        max_attempts = 3
+
+        for _ in range(max_attempts):
+            check_url = f"{BASE}/sell/inventory/v1/inventory_item/{sku}"
+            r = requests.get(check_url, headers=headers)
+            if r.status_code != 200:
+                break
+            sku = _gen_sku("RAW")
+        else:
+            return Response({"error": "Failed to generate unique SKU"}, status=status.HTTP_400_BAD_REQUEST)
+
+        inv_url = f"{BASE}/sell/inventory/v1/inventory_item/{sku}"
+        inv_payload = {
+            "product": {
+                "title": title,
+                "description": description_html,
+                "aspects": aspects,
+                "imageUrls": images
+            },
+            "condition": condition,
+            "availability": {"shipToLocationAvailability": {"quantity": quantity}}
+        }
+        r = requests.put(inv_url, headers=headers, json=inv_payload)
+        if r.status_code not in (200, 201, 204):
+            return Response({"error": parse_ebay_error(r.text), "step": "inventory_item"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            lang = "en-GB" if marketplace_id == "EBAY_GB" else "en-US"
-            headers = {
-                "Authorization": f"Bearer {access}",
-                "Content-Type": "application/json",
-                "Content-Language": lang,
-                "Accept-Language": lang,
-                "X-EBAY-C-MARKETPLACE-ID": marketplace_id,
-            }
-
-            max_attempts = 3
-            for _ in range(max_attempts):
-                check_url = f"{BASE}/sell/inventory/v1/inventory_item/{sku}"
-                r = requests.get(check_url, headers=headers)
-                if r.status_code != 200:
-                    break
-                sku = _gen_sku("RAW")
-            else:
-                return Response({"error": "Failed to generate unique SKU"}, status=status.HTTP_400_BAD_REQUEST)
-
-            inv_url = f"{BASE}/sell/inventory/v1/inventory_item/{sku}"
-            inv_payload = {
-                "product": {
-                    "title": title,
-                    "description": description_text,
-                    "aspects": aspects,
-                    "imageUrls": images
-                },
-                "condition": condition,
-                "availability": {"shipToLocationAvailability": {"quantity": quantity}}
-            }
-            r = requests.put(inv_url, headers=headers, json=inv_payload)
-            if r.status_code not in (200, 201, 204):
-                return Response({"error": parse_ebay_error(r.text), "step": "inventory_item"}, status=status.HTTP_400_BAD_REQUEST)
-
-            try:
-                fulfillment_policy_id = get_first_policy_id("fulfillment", access, marketplace_id)
-                payment_policy_id = get_first_policy_id("payment", access, marketplace_id)
-                return_policy_id = get_first_policy_id("return", access, marketplace_id)
-            except RuntimeError as e:
-                return Response({"error": f"Missing eBay policies: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
-
-            merchant_location_key = get_or_create_location(access, marketplace_id, profile)
-            offer_payload = {
-                "sku": sku,
-                "marketplaceId": marketplace_id,
-                "format": "FIXED_PRICE",
-                "availableQuantity": quantity,
-                "categoryId": category_id,
-                "listingDescription": description_html,
-                "pricingSummary": {
-                    "price": {
-                        "value": str(price["value"]),
-                        "currency": price["currency"]
-                    }
-                },
-                "listingPolicies": {
-                    "fulfillmentPolicyId": fulfillment_policy_id,
-                    "paymentPolicyId": payment_policy_id,
-                    "returnPolicyId": return_policy_id
-                },
-                "merchantLocationKey": merchant_location_key
-            }
-            offer_url = f"{BASE}/sell/inventory/v1/offer"
-            r = requests.post(offer_url, headers=headers, json=offer_payload)
-            if r.status_code not in (200, 201):
-                return Response({"error": parse_ebay_error(r.text), "step": "create_offer"}, status=status.HTTP_400_BAD_REQUEST)
-
-            offer_id = r.json().get("offerId")
-            pub_url = f"{BASE}/sell/inventory/v1/offer/{offer_id}/publish"
-            r = requests.post(pub_url, headers=headers)
-            if r.status_code not in (200, 201):
-                return Response({"error": parse_ebay_error(r.text), "step": "publish"}, status=status.HTTP_400_BAD_REQUEST)
-
-            pub = r.json()
-            listing_id = pub.get("listingId") or (pub.get("listingIds") or [None])[0]
-            view_url = f"https://www.ebay.co.uk/itm/{listing_id}" if marketplace_id == "EBAY_GB" else None
-
-            listing_count, _ = ListingCount.objects.get_or_create(id=1, defaults={"total_count": 0})
-            listing_count.total_count += 1
-            listing_count.save()
-
-            UserListing.objects.create(
-                user=request.user,
-                listing_id=listing_id,
-                offer_id=offer_id,
-                sku=sku,
-                title=title,
-                price_value=price["value"],
-                price_currency=price["currency"],
-                quantity=quantity,
-                condition=condition,
-                category_id=category_id,
-                category_name=category_name,
-                marketplace_id=marketplace_id,
-                view_url=view_url,
-                listing_type="Single"
-            )
-
-            return Response({
-                "status": "published",
-                "offerId": offer_id,
-                "listingId": listing_id,
-                "viewItemUrl": view_url,
-                "sku": sku,
-                "marketplaceId": marketplace_id,
-                "categoryId": category_id,
-                "categoryName": category_name,
-                "title": title,
-                "aspects": aspects
-            })
-
-        except requests.exceptions.RequestException as e:
-            return Response({"error": f"Network error with eBay: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            fulfillment_policy_id = get_first_policy_id("fulfillment", access, marketplace_id)
+            payment_policy_id = get_first_policy_id("payment", access, marketplace_id)
+            return_policy_id = get_first_policy_id("return", access, marketplace_id)
         except RuntimeError as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            return Response({"error": f"Unexpected error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": f"Missing eBay policies: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
+        merchant_location_key = get_or_create_location(access, marketplace_id, profile)
+        offer_payload = {
+            "sku": sku,
+            "marketplaceId": marketplace_id,
+            "format": "FIXED_PRICE",
+            "availableQuantity": quantity,
+            "categoryId": category_id,
+            "listingDescription": description_html,
+            "pricingSummary": {
+                "price": {
+                    "value": str(price["value"]),
+                    "currency": price["currency"]
+                }
+            },
+            "listingPolicies": {
+                "fulfillmentPolicyId": fulfillment_policy_id,
+                "paymentPolicyId": payment_policy_id,
+                "returnPolicyId": return_policy_id
+            },
+            "merchantLocationKey": merchant_location_key
+        }
+        offer_url = f"{BASE}/sell/inventory/v1/offer"
+        r = requests.post(offer_url, headers=headers, json=offer_payload)
+        if r.status_code not in (200, 201):
+            return Response({"error": parse_ebay_error(r.text), "step": "create_offer"}, status=status.HTTP_400_BAD_REQUEST)
+
+        offer_id = r.json().get("offerId")
+        pub_url = f"{BASE}/sell/inventory/v1/offer/{offer_id}/publish"
+        r = requests.post(pub_url, headers=headers)
+        if r.status_code not in (200, 201):
+            return Response({"error": parse_ebay_error(r.text), "step": "publish"}, status=status.HTTP_400_BAD_REQUEST)
+
+        pub = r.json()
+        listing_id = pub.get("listingId") or (pub.get("listingIds") or [None])[0]
+        view_url = f"https://www.ebay.co.uk/itm/{listing_id}" if marketplace_id == "EBAY_GB" else None
+        listing_count, _ = ListingCount.objects.get_or_create(id=1, defaults={"total_count": 0})
+        listing_count.total_count += 1
+        listing_count.save()
+
+        UserListing.objects.create(
+            user=request.user,
+            listing_id=listing_id,
+            offer_id=offer_id,
+            sku=sku,
+            title=title,
+            price_value=price["value"],
+            price_currency=price["currency"],
+            quantity=quantity,
+            condition=condition,
+            category_id=category_id,
+            category_name=category_name,
+            marketplace_id=marketplace_id,
+            view_url=view_url,
+            listing_type="Single"
+        )
+
+        return Response({
+            "status": "published",
+            "offerId": offer_id,
+            "listingId": listing_id,
+            "viewItemUrl": view_url,
+            "sku": sku,
+            "marketplaceId": marketplace_id,
+            "categoryId": category_id,
+            "categoryName": category_name,
+            "title": title,
+            "aspects": aspects
+        })
 
 # --------------------------------------------------------------Multipack View--------------------------------------------------------------
 
