@@ -1,5 +1,7 @@
 from django.urls import path
 from . import views
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('', views.index_view, name='index'),
@@ -37,3 +39,5 @@ urlpatterns = [
     path('api/multipack-listing/', views.MultipackListingAPIView.as_view(), name='api-multipack-listing'),
     path('api/bundle-listing/', views.BundleListingAPIView.as_view(), name='api-bundle-listing'),
 ]
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

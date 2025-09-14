@@ -153,20 +153,6 @@ def call_llm_text_simple(user_prompt: str, system_prompt: str = None) -> str:
     )
     return resp.choices[0].message.content.strip()
 
-# def build_description_simple_from_raw(raw_text: str, html_mode: bool = True) -> dict:
-#     prompt = (
-#         "Return HTML only. Use ONLY <p>, <ul>, <li>, <br>, <strong>, <em> tags. "
-#         "No headings, tables, images, scripts. "
-#         f"Write eBay product description for: {raw_text}" if html_mode else
-#         f"Write plain text eBay product description for: {raw_text}"
-#     )
-#     try:
-#         out = call_llm_text_simple(prompt)[:6000].strip()
-#         return {"html": out, "text": _strip_html(out) if html_mode else out}
-#     except Exception:
-#         fallback = _clean_text(raw_text, limit=2000)
-#         return {"html": f"<p>{fallback}</p>" if html_mode else fallback, "text": fallback}
-
 def pack_label(pack: dict) -> str:
     t = (pack or {}).get("type", "single")
     if t == "multipack":
@@ -1580,13 +1566,12 @@ def build_pack_context(body: dict) -> tuple[dict, str]:
 def call_llm_json_vision(system_prompt: str, text_prompt: str, image_urls: list[str]) -> dict:
     if not OPENAI_API_KEY:
         raise NotImplementedError("OPENAI_API_KEY not set; vision LLM features disabled.")
-    from openai import OpenAI
     client = OpenAI(api_key=OPENAI_API_KEY)
     user_content = [{"type": "text", "text": (text_prompt or "").strip()}]
     for u in (image_urls or [])[:8]: 
         if isinstance(u, str) and u.startswith("http"):
             user_content.append({"type": "image_url", "image_url": {"url": u}})
-
+    print("Calling Vision API")
     resp = client.chat.completions.create(
         model="gpt-4o-mini",
         response_format={"type": "json_object"},
@@ -1596,6 +1581,7 @@ def call_llm_json_vision(system_prompt: str, text_prompt: str, image_urls: list[
         ],
         temperature=0.2,
     )
+    print(resp)
     txt = (resp.choices[0].message.content or "").strip()
     try:
         return json.loads(txt)
@@ -1621,7 +1607,9 @@ def extract_product_from_images_gpt4o(image_urls: list[str], marketplace_id: str
 
     Return a JSON object only.
     """
+    print("Before Vision LLM Call")
     result = call_llm_json_vision(sys_prompt, text_prompt, image_urls)
+    print("After Vision LLM Call")
     result["search_keywords"] = clean_keywords(result.get("search_keywords", []))
     result["category_keywords"] = clean_keywords(result.get("category_keywords", []))[:5]
     return result
@@ -1966,6 +1954,7 @@ def prepare_listing_components(*,images,raw_text_in,marketplace_id,pack_ctx,pack
 
     print("Extracting product from images")
     s0 = extract_product_from_images_gpt4o(images, marketplace_id, pack_ctx)
+    print("Getting product from images")
     s0_text = s0.get("raw_text", "") or ""
     s0_json = json.dumps(s0, ensure_ascii=False)
     print(f"s0 result: {s0_json}")
@@ -2188,16 +2177,26 @@ class SingleItemListingAPIView(APIView):
         sku = request.data.get("sku") or _gen_sku("RAW")
         remove_background = request.data.get("remove_bg", False)
 
+        # try:
+        #     output_path = f"media/single_{uuid.uuid4().hex}.jpg"
+        #     os.makedirs("media", exist_ok=True)
+        #     create_single_image(image_url=images[0], output_path=output_path, do_remove_bg=remove_background)
+        #     processed_image_url = upload_to_imgbb(output_path)
+        #     images[0] = processed_image_url
+        #     os.remove(output_path)
+        # except Exception as e:
+        #     return Response({"error": f"Failed to process or upload image: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         try:
             output_path = f"media/single_{uuid.uuid4().hex}.jpg"
             os.makedirs("media", exist_ok=True)
             create_single_image(image_url=images[0], output_path=output_path, do_remove_bg=remove_background)
-            processed_image_url = upload_to_imgbb(output_path)
+            relative_url = f"{settings.MEDIA_URL}{os.path.basename(output_path)}"
+            processed_image_url = request.build_absolute_uri(relative_url)
             images[0] = processed_image_url
-            os.remove(output_path)
         except Exception as e:
-            return Response({"error": f"Failed to process or upload image: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+            return Response({"error": f"Failed to process image: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        print(processed_image_url)
         pack = {"type": "single"}
         pack_ctx = "SINGLE ITEM"
         
