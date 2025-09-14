@@ -2186,17 +2186,9 @@ class SingleItemListingAPIView(APIView):
         #     os.remove(output_path)
         # except Exception as e:
         #     return Response({"error": f"Failed to process or upload image: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        try:
-            output_path = f"media/single_{uuid.uuid4().hex}.jpg"
-            os.makedirs("media", exist_ok=True)
-            create_single_image(image_url=images[0], output_path=output_path, do_remove_bg=remove_background)
-            relative_url = f"{settings.MEDIA_URL}{os.path.basename(output_path)}"
-            processed_image_url = request.build_absolute_uri(relative_url)
-            images[0] = processed_image_url
-        except Exception as e:
-            return Response({"error": f"Failed to process image: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         
-        print(processed_image_url)
+        images[0] = "https://assets.tryandreview.com/uploads/images/products/product_57atpioool1z.jpg"
         pack = {"type": "single"}
         pack_ctx = "SINGLE ITEM"
         

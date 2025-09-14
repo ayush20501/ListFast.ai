@@ -39,5 +39,3 @@ urlpatterns = [
     path('api/multipack-listing/', views.MultipackListingAPIView.as_view(), name='api-multipack-listing'),
     path('api/bundle-listing/', views.BundleListingAPIView.as_view(), name='api-bundle-listing'),
 ]
-
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
