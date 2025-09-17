@@ -34,7 +34,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
 from django.contrib.auth.decorators import login_required
 import numpy as np
-
+from botocore.exceptions import ClientError
+import boto3
 
 # Configuration
 DB_URL = config("DB_URL")
@@ -81,6 +82,12 @@ SMALL_WORDS = {
     "per", "via", "vs", "vs."
 }
 MAX_LEN = 30
+
+AWS_ACCESS_KEY = config("AWS_ACCESS_KEY")
+AWS_SECRET_KEY = config("AWS_SECRET_KEY")
+S3_BUCKET = config("S3_BUCKET")
+AWS_REGION = config("AWS_REGION")
+
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # Serializers
@@ -491,7 +498,28 @@ def upload_to_imgbb(image_path: str) -> str:
         raise RuntimeError(f"ImgBB upload failed: {resp.status_code} {resp.text[:200]}")
     return resp.json()["data"]["url"]
 
-
+def upload_to_s3(file_path):
+    s3_client = boto3.client(
+            's3',
+            aws_access_key_id=AWS_ACCESS_KEY,
+            aws_secret_access_key=AWS_SECRET_KEY,
+            region_name=AWS_REGION
+        )
+    
+    file_name = file_path.split('/')[-1]
+    s3_key = f"images/{file_name}"  
+    try:
+        s3_client.upload_file(
+            file_path,
+            S3_BUCKET,
+            s3_key,
+            ExtraArgs={'ContentType': 'image/png'}
+        )
+        url = f"https://{S3_BUCKET}.s3.{AWS_REGION}.amazonaws.com/{s3_key}"
+        return url
+    except ClientError as e:
+        print(f"Error: {e}")
+        return None
 
 # ----------------------------------Views----------------------------------
 
@@ -2149,7 +2177,6 @@ OUTPUT RULES:
     print(f"Returning result: {result}")
     return result
 
-
 class SingleItemListingAPIView(APIView):
     def post(self, request):
         if request.data.get("action", "publish") != "publish":
@@ -2176,19 +2203,26 @@ class SingleItemListingAPIView(APIView):
         condition = request.data.get("condition", "NEW").upper()
         sku = request.data.get("sku") or _gen_sku("RAW")
         remove_background = request.data.get("remove_bg", False)
+        try:
+            output_path = f"media/single_{uuid.uuid4().hex}.jpg"
+            os.makedirs("media", exist_ok=True)
+            create_single_image(image_url=images[0], output_path=output_path, do_remove_bg=remove_background)
 
-        # try:
-        #     output_path = f"media/single_{uuid.uuid4().hex}.jpg"
-        #     os.makedirs("media", exist_ok=True)
-        #     create_single_image(image_url=images[0], output_path=output_path, do_remove_bg=remove_background)
-        #     processed_image_url = upload_to_imgbb(output_path)
-        #     images[0] = processed_image_url
-        #     os.remove(output_path)
-        # except Exception as e:
-        #     return Response({"error": f"Failed to process or upload image: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            file_name = f"listings/{uuid.uuid4().hex}.jpg"
+            processed_image_url = upload_to_s3(output_path)
 
-        
-        images[0] = "https://assets.tryandreview.com/uploads/images/products/product_57atpioool1z.jpg"
+            images[0] = processed_image_url
+            if os.path.exists(output_path):
+                print(f"Removing {output_path}")
+                os.remove(output_path)
+            else:
+                print(f"File not found: {output_path}")
+    
+        except Exception as e:
+            return Response({"error": f"Failed to process or upload image: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        print(processed_image_url)
+
         pack = {"type": "single"}
         pack_ctx = "SINGLE ITEM"
         
@@ -2508,7 +2542,7 @@ class MultipackListingAPIView(APIView):
                     output_path=output_path,
                     do_remove_bg=remove_background
                 )
-                processed_image_url = upload_to_imgbb(output_path)
+                processed_image_url = upload_to_s3(output_path)
                 images[0] = processed_image_url
                 os.remove(output_path)
             except Exception as e:
@@ -2818,7 +2852,7 @@ class BundleListingAPIView(APIView):
                     margin_ratio=0.94
                 )
                 print("Uploading to imgbb")
-                processed_image_url = upload_to_imgbb(output_path)
+                processed_image_url = upload_to_s3(output_path)
                 print(f"Processed image URL: {processed_image_url}")
                 images = [processed_image_url] + images[bundle_quantity:]
                 print(f"Updated images: {images}")
