@@ -13,3 +13,4 @@ gunicorn
 whitenoise
 dj_database_url
 numpy
+boto3
