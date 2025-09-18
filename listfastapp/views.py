@@ -1976,7 +1976,7 @@ def pick_category_with_llm(tree_id: str, query: str, normalized_title: str, raw_
 
     return choice["categoryId"], choice["categoryName"], result.get("ranking"), result.get("notes")
 
-def prepare_listing_components(*,images,raw_text_in,marketplace_id,pack_ctx,pack,access,use_llm_category=True,max_optional_aspects=40):
+def prepare_listing_components(*,images,raw_text_in,marketplace_id,pack_ctx,pack,access,use_llm_category=True,max_optional_aspects=2):
     print("Starting prepare_listing_components")
     print(f"Input - images: {images}, marketplace_id: {marketplace_id}, pack_ctx: {pack_ctx}, pack: {pack}")
 
@@ -2084,7 +2084,7 @@ OUTPUT RULES:
     shown_optional = optional_names[:max_optional_aspects]
     print(f"Required aspects: {req_names}")
     print(f"Recommended aspects: {rec_names}")
-    print(f"Optional aspects: {shown_optional}")
+    # print(f"Optional aspects: {shown_optional}")
 
     print("Preparing LLM call for aspects")
     system_prompt2 = (
@@ -2204,6 +2204,7 @@ class SingleItemListingAPIView(APIView):
         sku = request.data.get("sku") or _gen_sku("RAW")
         random_number = random.randint(100, 999)
         sku = f"{sku}-{random_number}"
+        print("sku",sku)
         remove_background = request.data.get("remove_bg", False)
         try:
             output_path = f"media/single_{uuid.uuid4().hex}.jpg"
