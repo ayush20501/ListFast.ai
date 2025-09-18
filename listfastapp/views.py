@@ -2529,6 +2529,9 @@ class MultipackListingAPIView(APIView):
         condition = request.data.get("condition", "NEW").upper()
         vat_rate = float(request.data.get("vat_rate", 0))
         sku = request.data.get("sku") or _gen_sku_multi("MULTI")
+        random_number = random.randint(100, 999)
+        sku = f"{sku}-{random_number}"
+        print("sku",sku)
         remove_background = request.data.get("remove_background", False)
         multipack_quantity = request.data.get("multipack_quantity", 2)
 
