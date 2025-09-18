@@ -338,6 +338,17 @@
                                         <option value="GBP" selected>GBP (£)</option>
                                     </select>
                                 </div>
+                                <div class="input-group">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-3">UK VAT Rate
+                                        (%)</label>
+                                    <select id="vat_rate"
+                                        class="input-field w-full px-3 sm:px-4 py-3 rounded-lg text-base">
+                                        <option value="0" selected>0% (No VAT)</option>
+                                        <option value="5" >5% (Reduced Rate)</option>
+                                        <option value="20" >20% (Standard Rate)</option>
+                                    </select>
+                                    <p class="text-sm text-gray-500 mt-2">UK VAT rate for this product</p>
+                                </div>
                             </div>
                             <div class="input-group">
                                 <label class="block text-sm font-semibold text-gray-700 mb-3">SKU (Optional)</label>
@@ -754,6 +765,7 @@
             document.getElementById('price_value').value = "19.99";
             document.getElementById('quantity').value = "3";
             document.getElementById('condition').value = "NEW";
+            document.getElementById('vat_rate').value = "20";
             document.getElementById('sku').value = "SAIN-MACK-125G";
             document.getElementById('remove_bg').checked = true;
             const firstImageInput = imagesContainer.querySelector('input[name="image_url"]');
@@ -791,6 +803,7 @@
                 },
                 quantity: parseInt(document.getElementById('quantity').value),
                 condition: document.getElementById('condition').value,
+                vat_rate: parseFloat(document.getElementById('vat_rate').value),
                 images: collectImages(),
                 remove_bg: document.getElementById('remove_bg').checked,
                 sku: document.getElementById('sku').value.trim() || null
