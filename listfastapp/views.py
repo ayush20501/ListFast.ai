@@ -2208,6 +2208,7 @@ class SingleItemListingAPIView(APIView):
         random_number = random.randint(100, 999)
         sku = f"{sku}-{random_number}"
         print("sku",sku)
+        vat_rate = float(request.data.get("vat_rate", 0))
         remove_background = request.data.get("remove_bg", False)
         try:
             output_path = f"media/single_{uuid.uuid4().hex}.jpg"
@@ -2270,7 +2271,8 @@ class SingleItemListingAPIView(APIView):
                 "imageUrls": images
             },
             "condition": condition,
-            "availability": {"shipToLocationAvailability": {"quantity": quantity}}
+            "availability": {"shipToLocationAvailability": {"quantity": quantity}},
+            "tax": {"vatPercentage": vat_rate} if vat_rate > 0 else {}
         }
         r = requests.put(inv_url, headers=headers, json=inv_payload)
         if r.status_code not in (200, 201, 204):
@@ -2302,7 +2304,8 @@ class SingleItemListingAPIView(APIView):
                 "paymentPolicyId": payment_policy_id,
                 "returnPolicyId": return_policy_id
             },
-            "merchantLocationKey": merchant_location_key
+            "merchantLocationKey": merchant_location_key,
+            "tax": {"vatPercentage": vat_rate} if vat_rate > 0 else {}
         }
         offer_url = f"{BASE}/sell/inventory/v1/offer"
         r = requests.post(offer_url, headers=headers, json=offer_payload)
