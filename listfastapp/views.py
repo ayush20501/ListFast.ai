@@ -141,6 +141,7 @@ def call_llm_json(system_prompt: str, user_prompt: str) -> dict:
                 {"role": "user", "content": user_prompt + "\nReturn only JSON."},
             ],
             temperature=0.0,
+            timeout=60.0,
         )
         return json.loads(resp.choices[0].message.content)
     except Exception as e:
@@ -157,6 +158,7 @@ def call_llm_text_simple(user_prompt: str, system_prompt: str = None) -> str:
         model="gpt-4o-mini",
         messages=messages,
         temperature=0.2,
+        timeout=60.0,
     )
     return resp.choices[0].message.content.strip()
 
@@ -1608,6 +1610,7 @@ def call_llm_json_vision(system_prompt: str, text_prompt: str, image_urls: list[
             {"role": "user", "content": user_content},
         ],
         temperature=0.2,
+        timeout=60.0,
     )
     print(resp)
     txt = (resp.choices[0].message.content or "").strip()
