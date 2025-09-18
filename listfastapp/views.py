@@ -2202,6 +2202,8 @@ class SingleItemListingAPIView(APIView):
         quantity = int(request.data.get("quantity", 1))
         condition = request.data.get("condition", "NEW").upper()
         sku = request.data.get("sku") or _gen_sku("RAW")
+        random_number = random.randint(100, 999)
+        sku = f"{sku}-{random_number}"
         remove_background = request.data.get("remove_bg", False)
         try:
             output_path = f"media/single_{uuid.uuid4().hex}.jpg"
