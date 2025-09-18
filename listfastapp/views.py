@@ -2073,7 +2073,7 @@ OUTPUT RULES:
 
     print("Building aspect catalog")
     catalog = build_aspect_catalog(aspects_info)
-    print(f"Catalog: {catalog}")
+    # print(f"Catalog: {catalog}")
 
     req_in = aspects_info.get("required", [])
     rec_in = aspects_info.get("recommended", [])
