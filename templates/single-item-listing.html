@@ -742,7 +742,8 @@
                 return;
             }
         
-            const uploadBtn = uploadImageInput.closest('label');
+            // const uploadBtn = uploadImageInput.closest('label');
+            const uploadBtn = fileInput.closest('label');
             const originalText = uploadBtn.textContent.trim();
             uploadBtn.style.pointerEvents = 'none';
             uploadBtn.style.opacity = '0.6';
@@ -831,91 +832,7 @@
             fileInput.value = '';
         }
 
-
-    
-
-
-        // async function uploadFile(fileInput) {
-        //     if (!fileInput.files || fileInput.files.length === 0) {
-        //         document.getElementById('error-message').textContent = 'No image file selected';
-        //         document.getElementById('error-message').classList.remove('hidden');
-        //         return;
-        //     }
-        //     const file = fileInput.files[0];
-        //     if (!file.type.startsWith('image/')) {
-        //         document.getElementById('error-message').textContent = 'Please select an image file';
-        //         document.getElementById('error-message').classList.remove('hidden');
-        //         return;
-        //     }
-        //     if (file.size > 10 * 1024 * 1024) {
-        //         document.getElementById('error-message').textContent = 'Image file size must be less than 10MB';
-        //         document.getElementById('error-message').classList.remove('hidden');
-        //         return;
-        //     }
-        //     const uploadBtn = uploadImageInput.closest('label');
-        //     const originalText = uploadBtn.textContent.trim();
-        //     uploadBtn.style.pointerEvents = 'none';
-        //     uploadBtn.style.opacity = '0.6';
-        //     uploadBtn.innerHTML = 'Uploading Image...';
-        //     const formData = new FormData();
-        //     formData.append('image', file);
-        //     try {
-        //         const getCookie = (name) => {
-        //             let cookieValue = null;
-        //             if (document.cookie && document.cookie !== '') {
-        //                 const cookies = document.cookie.split(';');
-        //                 for (let i = 0; i < cookies.length; i++) {
-        //                     const cookie = cookies[i].trim();
-        //                     if (cookie.substring(0, name.length + 1) === (name + '=')) {
-        //                         cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-        //                         break;
-        //                     }
-        //                 }
-        //             }
-        //             return cookieValue;
-        //         };
-        //         const csrftoken = getCookie('csrftoken');
-        //         const response = await fetch('/api/upload-profile-image/', {
-        //             method: 'POST',
-        //             headers: { 'X-CSRFToken': csrftoken },
-        //             body: formData
-        //         });
-        //         const data = await response.json();
-        //         if (response.ok && data.status === 'success') {
-        //             const inputs = imagesContainer.querySelectorAll('input[name="image_url"]');
-        //             let emptyInput = null;
-        //             for (let input of inputs) {
-        //                 if (!input.value.trim()) {
-        //                     emptyInput = input;
-        //                     break;
-        //                 }
-        //             }
-        //             if (emptyInput) {
-        //                 emptyInput.value = data.image_url;
-        //             } else {
-        //                 addImageBtn.click();
-        //                 const newInputs = imagesContainer.querySelectorAll('input[name="image_url"]');
-        //                 newInputs[newInputs.length - 1].value = data.image_url;
-        //             }
-        //             document.getElementById('success-message').textContent = 'Image uploaded successfully!';
-        //             document.getElementById('success-message').classList.remove('hidden');
-        //             document.getElementById('error-message').classList.add('hidden');
-        //         } else {
-        //             document.getElementById('error-message').textContent = `Image upload failed: ${data.error || 'Unknown error'}`;
-        //             document.getElementById('error-message').classList.remove('hidden');
-        //         }
-        //     } catch (err) {
-        //         document.getElementById('error-message').textContent = `Error uploading image: ${err.message}`;
-        //         document.getElementById('error-message').classList.remove('hidden');
-        //     }
-        //     uploadBtn.style.pointerEvents = 'auto';
-        //     uploadBtn.style.opacity = '1';
-        //     uploadBtn.innerHTML = `Upload Image<input type="file" id="upload-image-input" accept="image/*" class="hidden">`;
-        //     const newInput = uploadBtn.querySelector('#upload-image-input');
-        //     newInput.addEventListener('change', () => uploadFile(newInput));
-        //     fileInput.value = '';
-        // }
-
+        
         uploadImageInput.addEventListener('change', () => uploadFile(uploadImageInput));
 
         document.getElementById('autofill-btn').addEventListener('click', () => {
