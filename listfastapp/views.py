@@ -838,27 +838,71 @@ class FetchAddressImageProfileAPIView(APIView):
         except UserProfile.DoesNotExist:
             return Response({'error': 'User profile not found'},status=status.HTTP_404_NOT_FOUND)
 
+# class UploadProfileImageAPIView(APIView):
+#     def post(self, request):
+#         file = request.FILES.get("image")
+#         if not file:
+#             return Response({"error": "No image file provided"}, status=400)
+#         if file.size > MAX_FILE_SIZE:
+#             return Response({"error": "File too large"}, status=400)
+#         try:
+#             encoded_image = base64.b64encode(file.read()).decode("utf-8")
+#             payload = {
+#                 "key": IMGBB_API_KEY,
+#                 "image": encoded_image,
+#                 "name": secure_filename(file.name)
+#             }
+#             response = requests.post(IMGBB_UPLOAD_URL, data=payload)
+#             result = response.json()
+#             if result.get("success"):
+#                 return Response({"status": "success", "image_url": result["data"]["url"]})
+#             return Response({"error": "Upload failed. Please try again later."}, status=500)
+#         except Exception as e:
+#             return Response({"error": "Upload failed. Please try again later."}, status=500)
+
+
 class UploadProfileImageAPIView(APIView):
     def post(self, request):
         file = request.FILES.get("image")
         if not file:
             return Response({"error": "No image file provided"}, status=400)
-        if file.size > MAX_FILE_SIZE:
+        if getattr(file, "size", 0) > MAX_FILE_SIZE:
             return Response({"error": "File too large"}, status=400)
+
+        output_path = None
         try:
-            encoded_image = base64.b64encode(file.read()).decode("utf-8")
-            payload = {
-                "key": IMGBB_API_KEY,
-                "image": encoded_image,
-                "name": secure_filename(file.name)
-            }
-            response = requests.post(IMGBB_UPLOAD_URL, data=payload)
-            result = response.json()
-            if result.get("success"):
-                return Response({"status": "success", "image_url": result["data"]["url"]})
-            return Response({"error": "Upload failed. Please try again later."}, status=500)
+            # Create temp path in ./media (your pattern)
+            os.makedirs("media", exist_ok=True)
+            # follow your example logic: use .jpg for the temp file
+            output_path = f"media/single_{uuid.uuid4().hex}.jpg"
+
+            # Write uploaded file to the temp path
+            with open(output_path, "wb") as out:
+                for chunk in file.chunks():
+                    out.write(chunk)
+
+            # Upload to S3 using your existing helper (unchanged)
+            processed_image_url = upload_to_s3(output_path)
+            if not processed_image_url:
+                return Response({"error": "Upload failed. Please try again later."},
+                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            # Cleanup temp file
+            if os.path.exists(output_path):
+                os.remove(output_path)
+
+            return Response({"status": "success", "image_url": processed_image_url})
+
         except Exception as e:
-            return Response({"error": "Upload failed. Please try again later."}, status=500)
+            # Best-effort cleanup
+            try:
+                if output_path and os.path.exists(output_path):
+                    os.remove(output_path)
+            except Exception:
+                pass
+            return Response({"error": f"Upload failed. Please try again later."},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class SendPasswordChangeOTPAPIView(APIView):
     def post(self, request):
