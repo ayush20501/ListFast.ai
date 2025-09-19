@@ -677,30 +677,96 @@
 
         const uploadImageInput = document.getElementById('upload-image-input');
 
+        async function resizeImageFile(file, targetHeight = 1024) {
+            // Some browsers (iOS) produce HEIC/HEIF; canvas can't output those, so convert to JPEG.
+            const unsupportedMimes = new Set(['image/heic','image/heif']);
+            const preferMime = unsupportedMimes.has(file.type) ? 'image/jpeg' : (file.type || 'image/jpeg');
+        
+            const blobURL = URL.createObjectURL(file);
+            // Use Image for broad compatibility
+            const img = await new Promise((resolve, reject) => {
+                const el = new Image();
+                el.onload = () => resolve(el);
+                el.onerror = reject;
+                el.src = blobURL;
+            });
+        
+            try {
+                // Compute target size
+                const scale = img.height > targetHeight ? (targetHeight / img.height) : 1;
+                const outW = Math.max(1, Math.round(img.width * scale));
+                const outH = Math.max(1, Math.round(img.height * scale));
+        
+                // If already <= target height, just return the original file as-is
+                if (scale === 1) {
+                    URL.revokeObjectURL(blobURL);
+                    return file;
+                }
+        
+                const canvas = document.createElement('canvas');
+                canvas.width = outW;
+                canvas.height = outH;
+        
+                const ctx = canvas.getContext('2d');
+                // Better downscale quality
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, 0, 0, outW, outH);
+        
+                const blob = await new Promise((resolve) =>
+                    canvas.toBlob(resolve, preferMime, preferMime === 'image/jpeg' ? 0.9 : undefined)
+                );
+        
+                URL.revokeObjectURL(blobURL);
+        
+                // Return a File so downstream code that expects a File still works
+                const ext = (preferMime === 'image/png') ? 'png'
+                          : (preferMime === 'image/webp') ? 'webp'
+                          : 'jpg';
+                const base = file.name.replace(/\.[^.]+$/, '');
+                const name = `${base}-h1024.${ext}`;
+                return new File([blob], name, { type: preferMime, lastModified: Date.now() });
+            } catch (e) {
+                URL.revokeObjectURL(blobURL);
+                // Fallback: if anything fails, return original file so existing logic still works
+                return file;
+            }
+        }
+
+
         async function uploadFile(fileInput) {
             if (!fileInput.files || fileInput.files.length === 0) {
                 document.getElementById('error-message').textContent = 'No image file selected';
                 document.getElementById('error-message').classList.remove('hidden');
                 return;
             }
-            const file = fileInput.files[0];
+        
+            let file = fileInput.files[0];
             if (!file.type.startsWith('image/')) {
                 document.getElementById('error-message').textContent = 'Please select an image file';
                 document.getElementById('error-message').classList.remove('hidden');
                 return;
             }
+        
+            // Keep your original max-size guard (unchanged logic)
             if (file.size > 10 * 1024 * 1024) {
                 document.getElementById('error-message').textContent = 'Image file size must be less than 10MB';
                 document.getElementById('error-message').classList.remove('hidden');
                 return;
             }
+        
+            // ↓ NEW: resize to height 1024 client-side before uploading
+            file = await resizeImageFile(file, 1024);
+        
             const uploadBtn = uploadImageInput.closest('label');
             const originalText = uploadBtn.textContent.trim();
             uploadBtn.style.pointerEvents = 'none';
             uploadBtn.style.opacity = '0.6';
             uploadBtn.innerHTML = 'Uploading Image...';
+        
             const formData = new FormData();
-            formData.append('image', file);
+            formData.append('image', file); // pass the resized file
+        
             try {
                 const getCookie = (name) => {
                     let cookieValue = null;
@@ -717,12 +783,14 @@
                     return cookieValue;
                 };
                 const csrftoken = getCookie('csrftoken');
+        
                 const response = await fetch('/api/upload-profile-image/', {
                     method: 'POST',
                     headers: { 'X-CSRFToken': csrftoken },
                     body: formData
                 });
                 const data = await response.json();
+        
                 if (response.ok && data.status === 'success') {
                     const inputs = imagesContainer.querySelectorAll('input[name="image_url"]');
                     let emptyInput = null;
@@ -750,6 +818,7 @@
                 document.getElementById('error-message').textContent = `Error uploading image: ${err.message}`;
                 document.getElementById('error-message').classList.remove('hidden');
             }
+        
             uploadBtn.style.pointerEvents = 'auto';
             uploadBtn.style.opacity = '1';
             uploadBtn.innerHTML = `Upload Image<input type="file" id="upload-image-input" accept="image/*" class="hidden">`;
@@ -757,6 +826,90 @@
             newInput.addEventListener('change', () => uploadFile(newInput));
             fileInput.value = '';
         }
+
+    
+
+
+        // async function uploadFile(fileInput) {
+        //     if (!fileInput.files || fileInput.files.length === 0) {
+        //         document.getElementById('error-message').textContent = 'No image file selected';
+        //         document.getElementById('error-message').classList.remove('hidden');
+        //         return;
+        //     }
+        //     const file = fileInput.files[0];
+        //     if (!file.type.startsWith('image/')) {
+        //         document.getElementById('error-message').textContent = 'Please select an image file';
+        //         document.getElementById('error-message').classList.remove('hidden');
+        //         return;
+        //     }
+        //     if (file.size > 10 * 1024 * 1024) {
+        //         document.getElementById('error-message').textContent = 'Image file size must be less than 10MB';
+        //         document.getElementById('error-message').classList.remove('hidden');
+        //         return;
+        //     }
+        //     const uploadBtn = uploadImageInput.closest('label');
+        //     const originalText = uploadBtn.textContent.trim();
+        //     uploadBtn.style.pointerEvents = 'none';
+        //     uploadBtn.style.opacity = '0.6';
+        //     uploadBtn.innerHTML = 'Uploading Image...';
+        //     const formData = new FormData();
+        //     formData.append('image', file);
+        //     try {
+        //         const getCookie = (name) => {
+        //             let cookieValue = null;
+        //             if (document.cookie && document.cookie !== '') {
+        //                 const cookies = document.cookie.split(';');
+        //                 for (let i = 0; i < cookies.length; i++) {
+        //                     const cookie = cookies[i].trim();
+        //                     if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        //                         cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        //                         break;
+        //                     }
+        //                 }
+        //             }
+        //             return cookieValue;
+        //         };
+        //         const csrftoken = getCookie('csrftoken');
+        //         const response = await fetch('/api/upload-profile-image/', {
+        //             method: 'POST',
+        //             headers: { 'X-CSRFToken': csrftoken },
+        //             body: formData
+        //         });
+        //         const data = await response.json();
+        //         if (response.ok && data.status === 'success') {
+        //             const inputs = imagesContainer.querySelectorAll('input[name="image_url"]');
+        //             let emptyInput = null;
+        //             for (let input of inputs) {
+        //                 if (!input.value.trim()) {
+        //                     emptyInput = input;
+        //                     break;
+        //                 }
+        //             }
+        //             if (emptyInput) {
+        //                 emptyInput.value = data.image_url;
+        //             } else {
+        //                 addImageBtn.click();
+        //                 const newInputs = imagesContainer.querySelectorAll('input[name="image_url"]');
+        //                 newInputs[newInputs.length - 1].value = data.image_url;
+        //             }
+        //             document.getElementById('success-message').textContent = 'Image uploaded successfully!';
+        //             document.getElementById('success-message').classList.remove('hidden');
+        //             document.getElementById('error-message').classList.add('hidden');
+        //         } else {
+        //             document.getElementById('error-message').textContent = `Image upload failed: ${data.error || 'Unknown error'}`;
+        //             document.getElementById('error-message').classList.remove('hidden');
+        //         }
+        //     } catch (err) {
+        //         document.getElementById('error-message').textContent = `Error uploading image: ${err.message}`;
+        //         document.getElementById('error-message').classList.remove('hidden');
+        //     }
+        //     uploadBtn.style.pointerEvents = 'auto';
+        //     uploadBtn.style.opacity = '1';
+        //     uploadBtn.innerHTML = `Upload Image<input type="file" id="upload-image-input" accept="image/*" class="hidden">`;
+        //     const newInput = uploadBtn.querySelector('#upload-image-input');
+        //     newInput.addEventListener('change', () => uploadFile(newInput));
+        //     fileInput.value = '';
+        // }
 
         uploadImageInput.addEventListener('change', () => uploadFile(uploadImageInput));
 
