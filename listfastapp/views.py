@@ -2200,6 +2200,7 @@ class SingleItemListingAPIView(APIView):
         access = ensure_access_token(request.user)
         raw_text_in = _clean_text(request.data.get("raw_text", ""), limit=8000)
         images = _https_only(request.data.get("images", []))
+        print("images", images)
         marketplace_id = MARKETPLACE_ID
         price = request.data.get("price")
         quantity = int(request.data.get("quantity", 1))
