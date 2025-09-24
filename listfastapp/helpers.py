@@ -1021,22 +1021,22 @@ def crop_to_subject_white_bg(img: Image.Image,v_thresh: float = 0.5,chroma_thres
 
     return img.crop((x0, y0, x1, y1))
     
-def safe_remove_bg(img: Image.Image) -> Image.Image:
-    is_white = is_white_background(img)
-    if is_white:
-        cut = crop_to_subject_white_bg(img)
-        try:
-            white = Image.new("RGBA", cut.size, (255, 255, 255, 255))
-            return Image.alpha_composite(white, cut)
-        except Exception:
-            return img
-    else:
-        cut = remove_bg_via_api(img)
-        try:
-            white = Image.new("RGBA", cut.size, (255, 255, 255, 255))
-            return Image.alpha_composite(white, cut)
-        except Exception:
-            return img
+# def safe_remove_bg(img: Image.Image) -> Image.Image:
+#     is_white = is_white_background(img)
+#     if is_white:
+#         cut = crop_to_subject_white_bg(img)
+#         try:
+#             white = Image.new("RGBA", cut.size, (255, 255, 255, 255))
+#             return Image.alpha_composite(white, cut)
+#         except Exception:
+#             return img
+#     else:
+#         cut = remove_bg_via_api(img)
+#         try:
+#             white = Image.new("RGBA", cut.size, (255, 255, 255, 255))
+#             return Image.alpha_composite(white, cut)
+#         except Exception:
+#             return img
 
 def grid_spec(pack_size: int):
     n = max(2, min(6, int(pack_size)))
@@ -1538,6 +1538,7 @@ def safe_remove_bg(img: Image.Image) -> Image.Image:
             return img
     else:
         cut = remove_bg_via_api(img)
+        cut = crop_to_subject_white_bg(cut)
         try:
             white = Image.new("RGBA", cut.size, (255, 255, 255, 255))
             return Image.alpha_composite(white, cut)
