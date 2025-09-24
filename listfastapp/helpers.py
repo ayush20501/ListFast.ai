@@ -521,26 +521,96 @@ def download_rgba(url: str) -> Image.Image:
     r.raise_for_status()
     return Image.open(io.BytesIO(r.content)).convert("RGBA")
 
-def remove_bg_via_api(img: Image.Image, *, api_url: Optional[str] = None, api_key: Optional[str] = None) -> Image.Image:
+# def remove_bg_via_api(img: Image.Image, *, api_url: Optional[str] = None, api_key: Optional[str] = None) -> Image.Image:
+#     api_url = api_url or REMBG_API_URL
+#     api_key = api_key or REMBG_API_KEY
+#     if not api_key:
+#         return img
+
+#     buf = io.BytesIO()
+#     img.convert("RGBA").save(buf, format="PNG")
+#     buf.seek(0)
+#     headers = {"x-api-key": api_key}
+#     files = {"image": ("input.png", buf, "image/png")}
+
+#     try:
+#         resp = requests.post(api_url, headers=headers, files=files)
+#         if resp.status_code == 200:
+#             return Image.open(io.BytesIO(resp.content)).convert("RGBA")
+#         print(f"[rembg] Error {resp.status_code}: {resp.text[:200]}")
+#     except Exception as e:
+#         print(f"[rembg] Exception: {e}")
+#     return img
+
+
+
+def remove_bg_via_api(
+    img: Image.Image,
+    *,
+    api_url: Optional[str] = None,
+    api_key: Optional[str] = None,
+    alpha_threshold: int = 1,   # >0 means treat very faint alpha as background
+    pad_px: int = 0             # add a tiny padding if you want (0 = tight crop)
+) -> Image.Image:
+    """
+    Calls rembg API to remove background, then tightly crops the foreground
+    by using the alpha channel's bounding box.
+
+    alpha_threshold: pixels with alpha <= this are treated as background.
+    pad_px: optional padding (in pixels) after cropping.
+    """
     api_url = api_url or REMBG_API_URL
     api_key = api_key or REMBG_API_KEY
     if not api_key:
         return img
 
+    # Encode input as RGBA PNG
     buf = io.BytesIO()
     img.convert("RGBA").save(buf, format="PNG")
     buf.seek(0)
+
     headers = {"x-api-key": api_key}
     files = {"image": ("input.png", buf, "image/png")}
 
     try:
-        resp = requests.post(api_url, headers=headers, files=files)
-        if resp.status_code == 200:
-            return Image.open(io.BytesIO(resp.content)).convert("RGBA")
-        print(f"[rembg] Error {resp.status_code}: {resp.text[:200]}")
+        resp = requests.post(api_url, headers=headers, files=files, timeout=60)
+        if resp.status_code != 200:
+            print(f"[rembg] Error {resp.status_code}: {resp.text[:200]}")
+            return img
+
+        # Open result and ensure RGBA
+        out = Image.open(io.BytesIO(resp.content)).convert("RGBA")
+
+        # Compute bbox from alpha channel
+        alpha = out.split()[-1]
+
+        if alpha_threshold > 1:
+            # Binarize alpha to ignore faint halos
+            # (anything <= threshold becomes 0)
+            thr = alpha.point(lambda a: 255 if a > alpha_threshold else 0)
+            bbox = thr.getbbox()
+        else:
+            bbox = alpha.getbbox()
+
+        if not bbox:
+            # No opaque pixels? Return as-is.
+            return out
+
+        # Optional padding, clamped to image bounds
+        left, top, right, bottom = bbox
+        if pad_px:
+            left   = max(0, left - pad_px)
+            top    = max(0, top - pad_px)
+            right  = min(out.width,  right + pad_px)
+            bottom = min(out.height, bottom + pad_px)
+
+        cropped = out.crop((left, top, right, bottom))
+        return cropped
+
     except Exception as e:
         print(f"[rembg] Exception: {e}")
-    return img
+        return img
+
 
 def get_text_size(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont) -> Tuple[int, int]:
     try:
@@ -1538,7 +1608,7 @@ def safe_remove_bg(img: Image.Image) -> Image.Image:
             return img
     else:
         cut = remove_bg_via_api(img)
-        cut = crop_to_subject_white_bg(cut)
+        # cut = crop_to_subject_white_bg(cut)
         try:
             white = Image.new("RGBA", cut.size, (255, 255, 255, 255))
             return Image.alpha_composite(white, cut)
