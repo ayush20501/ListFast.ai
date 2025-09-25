@@ -36,6 +36,8 @@ urlpatterns = [
     path('api/format-description/', views.FormatDescriptionAPIView.as_view(), name='api-format-description'),
     path('api/enhance-image/', views.EnhanceImageAPIView.as_view(), name='api-enhance-image'),
     path('api/single-item-listing/', views.SingleItemListingAPIView.as_view(), name='api-single-item-listing'),
+    path('api/task-status/', views.TaskStatusAPIView.as_view(), name='api-task-status'),
+    path('api/my-tasks/', views.MyTasksAPIView.as_view(), name='api-my-tasks'),
     path('api/multipack-listing/', views.MultipackListingAPIView.as_view(), name='api-multipack-listing'),
     path('api/bundle-listing/', views.BundleListingAPIView.as_view(), name='api-bundle-listing'),
 ]

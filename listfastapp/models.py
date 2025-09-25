@@ -77,3 +77,30 @@ class UserListing(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.listing_id})"
+
+
+class TaskRecord(models.Model):
+    STATUS_CHOICES = [
+        ('PENDING', 'PENDING'),
+        ('STARTED', 'STARTED'),
+        ('SUCCESS', 'SUCCESS'),
+        ('FAILURE', 'FAILURE'),
+        ('RETRY', 'RETRY'),
+        ('REVOKED', 'REVOKED'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    task_id = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    payload = models.JSONField(blank=True, null=True)
+    result = models.JSONField(blank=True, null=True)
+    error = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Task {self.name} [{self.task_id}] - {self.status}"
