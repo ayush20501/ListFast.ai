@@ -763,15 +763,74 @@
             uploadFile(logoUploadInput, 'Logo', 'logo_url');
         });
 
+
+        async function compressImageFile(file, {
+          maxSide = 1600,
+          mime = 'image/jpeg',
+          quality = 0.9
+        } = {}) {
+          const heicSet = new Set(['image/heic','image/heif']);
+          const outMime = heicSet.has(file.type) ? 'image/jpeg' : (mime || 'image/jpeg');
+        
+          const url = URL.createObjectURL(file);
+          try {
+            const img = await new Promise((resolve, reject) => {
+              const el = new Image();
+              el.onload = () => resolve(el);
+              el.onerror = reject;
+              el.src = url;
+            });
+        
+            // Compute target dims (limit longest side)
+            const { width, height } = img;
+            const scale = Math.min(1, maxSide / Math.max(width, height));
+            const outW = Math.max(1, Math.round(width * scale));
+            const outH = Math.max(1, Math.round(height * scale));
+        
+            // If no downscale needed but we still want re-encode for size, keep going.
+            const canvas = document.createElement('canvas');
+            canvas.width = outW;
+            canvas.height = outH;
+        
+            const ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, 0, 0, outW, outH);
+        
+            const blob = await new Promise(resolve =>
+              canvas.toBlob(resolve, outMime, outMime === 'image/jpeg' ? quality : undefined)
+            );
+        
+            // Build a File so your FormData field name and server handling stay the same
+            const base = (file.name || 'upload').replace(/\.[^.]+$/, '');
+            const ext  = outMime === 'image/png' ? 'png' : (outMime === 'image/webp' ? 'webp' : 'jpg');
+            const name = `${base}-compressed.${ext}`;
+            return new File([blob], name, { type: outMime, lastModified: Date.now() });
+          } finally {
+            URL.revokeObjectURL(url);
+          }
+        }
+
+
+
         async function uploadFile(fileInput, type, targetInputId) {
             if (!fileInput.files || fileInput.files.length === 0) {
                 showError(`No ${type} file selected`);
                 return;
             }
 
-            const file = fileInput.files[0];
+            // const file = fileInput.files[0];
+            // const formData = new FormData();
+            // formData.append('image', file);
+
+            let file = fileInput.files[0];
+
+            // Compress client-side (change maxSide/quality if you like)
+            file = await compressImageFile(file, { maxSide: 1600, mime: 'image/jpeg', quality: 0.9 });
+            
             const formData = new FormData();
             formData.append('image', file);
+
 
             const uploadBtn = document.getElementById(type === 'Image' ? 'upload-image-btn' : 'upload-logo-btn');
             uploadBtn.disabled = true;
