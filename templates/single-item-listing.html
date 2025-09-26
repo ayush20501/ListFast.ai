@@ -142,16 +142,6 @@
             background: rgba(59, 130, 246, 0.05);
             transform: translateX(0.25rem);
         }
-        .ai-status {
-            background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
-            border: 2px solid #bae6fd;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            backdrop-filter: blur(10px);
-        }
-        .ai-progress {
-            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-        }
         .input-field {
             border: 2px solid #e5e7eb;
             transition: all 0.3s ease;
@@ -311,11 +301,6 @@
                             <span class="text-sm text-green-700 font-medium text-center sm:text-left">Click to see how it works with example data</span>
                         </div>
                         <div class="space-y-4 sm:space-y-6">
-                            <div class="input-group">
-                                <label class="block text-sm font-semibold text-gray-700 mb-3">Product Description <span class="required-asterisk">*</span></label>
-                                <textarea id="raw_text" required rows="5" placeholder="Describe your product in detail - include brand, model, features, condition details, etc." class="input-field w-full px-3 sm:px-4 py-3 rounded-lg text-base resize-none"></textarea>
-                                <p class="text-sm text-gray-500 mt-3">💡 The more detail you provide, the better our AI can optimize your listing for search and sales</p>
-                            </div>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div class="input-group">
                                     <label class="block text-sm font-semibold text-gray-700 mb-3">Price (£) <span class="required-asterisk">*</span></label>
@@ -376,6 +361,11 @@
                             <div class="flex items-center space-x-3 p-3 sm:p-4 bg-gray-50 rounded-lg">
                                 <input id="remove_bg" type="checkbox" class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
                                 <label for="remove_bg" class="text-sm font-semibold text-gray-700">Remove background from images</label>
+                            </div>
+                            <div class="input-group">
+                                <label class="block text-sm font-semibold text-gray-700 mb-3">Product Description (Optional)</label>
+                                <textarea id="raw_text" rows="5" placeholder="Describe your product in detail - include brand, model, features, condition details, etc." class="input-field w-full px-3 sm:px-4 py-3 rounded-lg text-base resize-none"></textarea>
+                                <p class="text-sm text-gray-500 mt-3">💡 The more detail you provide, the better our AI can optimize your listing for search and sales</p>
                             </div>
                             <div class="pt-4">
                                 <button type="submit" id="publish-btn"
@@ -439,18 +429,6 @@
                     </div>
                 </div>
             </div>
-            <div id="ai-status" class="hidden ai-status max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 sm:mt-8">
-                <div class="flex items-center mb-4 sm:mb-6">
-                    <div class="animate-spin rounded-full h-6 sm:h-8 w-6 sm:w-8 border-b-2 border-blue-600 mr-3 sm:mr-4"></div>
-                    <div>
-                        <h3 class="text-base sm:text-lg font-semibold text-blue-900">AI Processing Your Listing</h3>
-                        <p id="ai-status-text" class="text-blue-700 mt-1 text-sm sm:text-base">Analyzing your product description...</p>
-                    </div>
-                </div>
-                <div class="bg-white rounded-full h-2 sm:h-3 overflow-hidden">
-                    <div id="ai-progress" class="ai-progress h-2 sm:h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
-                </div>
-            </div>
         </div>
     </main>
     <footer class="bg-gray-900 text-white">
@@ -511,25 +489,6 @@
         </div>
     </footer>
     <script>
-        const aiStatusEl = document.getElementById('ai-status');
-        const aiStatusTextEl = document.getElementById('ai-status-text');
-        const aiProgressEl = document.getElementById('ai-progress');
-
-        function showAIStatus(message, progress = 0) {
-            aiStatusEl.classList.remove('hidden');
-            aiStatusTextEl.textContent = message;
-            aiProgressEl.style.width = `${progress}%`;
-        }
-
-        function hideAIStatus() {
-            aiStatusEl.classList.add('hidden');
-            aiProgressEl.style.width = '0%';
-        }
-
-        function updateAIProgress(message, progress) {
-            aiStatusTextEl.textContent = message;
-            aiProgressEl.style.width = `${progress}%`;
-        }
 
         function openImageModal(imageUrl) {
             document.getElementById('modal-image').src = imageUrl;
@@ -887,14 +846,14 @@
 
         async function submitToItemEndpoint(formData, button) {
             button.disabled = true;
-            button.textContent = 'Publishing...';
+            button.textContent = 'Processing...';
             document.getElementById('error-message').classList.add('hidden');
             document.getElementById('success-message').classList.add('hidden');
-            showAIStatus('🤖 Analyzing product description...', 10);
-            setTimeout(() => updateAIProgress('🔍 Extracting keywords and metadata...', 25), 500);
-            setTimeout(() => updateAIProgress('📂 Finding optimal eBay category...', 50), 1500);
-            setTimeout(() => updateAIProgress('📋 Filling product specifications...', 75), 2500);
-            setTimeout(() => updateAIProgress('✍️ Generating marketing description...', 90), 3500);
+            
+            // Show immediate feedback
+            document.getElementById('success-message').textContent = 'Starting your listing process...';
+            document.getElementById('success-message').classList.remove('hidden');
+            
             try {
                 const getCookie = (name) => {
                     let cookieValue = null;
@@ -912,34 +871,51 @@
                 };
                 const csrftoken = getCookie('csrftoken');
                 formData.action = 'publish';
-                const response = await fetch('/api/single-item-listing/', {
+                
+                // Start the async request and get the task ID
+                fetch('/api/single-item-listing/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRFToken': csrftoken
                     },
                     body: JSON.stringify(formData),
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    updateAIProgress('✅ Published to eBay!', 100);
-                    setTimeout(() => {
-                        hideAIStatus();
-                        localStorage.setItem('listing-success', JSON.stringify(data));
-                        window.location.href = '/success/';
-                    }, 1000);
-                } else {
-                    hideAIStatus();
-                    document.getElementById('error-message').textContent = data.error || 'Failed to publish listing';
+                }).then(response => response.json())
+                .then(data => {
+                    if (response.ok && data.task_id) {
+                        // Store task ID and redirect to success page
+                        localStorage.setItem('current_task_id', data.task_id);
+                        window.location.href = `/single-listing-success/?task_id=${data.task_id}`;
+                    } else {
+                        document.getElementById('error-message').textContent = data.error || 'Failed to start listing process';
+                        document.getElementById('error-message').classList.remove('hidden');
+                        document.getElementById('success-message').classList.add('hidden');
+                        button.disabled = false;
+                        button.textContent = 'Publish to eBay';
+                    }
+                }).catch(error => {
+                    document.getElementById('error-message').textContent = 'Network error. Please try again.';
                     document.getElementById('error-message').classList.remove('hidden');
-                }
+                    document.getElementById('success-message').classList.add('hidden');
+                    button.disabled = false;
+                    button.textContent = 'Publish to eBay';
+                });
+                
+                // Redirect immediately after a short delay to show the success message
+                setTimeout(() => {
+                    // If the request hasn't completed yet, redirect with a placeholder
+                    if (button.disabled) {
+                        window.location.href = '/single-listing-success/';
+                    }
+                }, 1000);
+                
             } catch (error) {
-                hideAIStatus();
-                document.getElementById('error-message').textContent = 'Network error. Please try again.';
+                document.getElementById('error-message').textContent = 'Failed to start listing process. Please try again.';
                 document.getElementById('error-message').classList.remove('hidden');
+                document.getElementById('success-message').classList.add('hidden');
+                button.disabled = false;
+                button.textContent = 'Publish to eBay';
             }
-            button.disabled = false;
-            button.textContent = 'Publish to eBay';
         }
 
         document.getElementById('listing-form').addEventListener('submit', async (e) => {

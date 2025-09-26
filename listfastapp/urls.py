@@ -10,6 +10,7 @@ urlpatterns = [
     path('display-profile/', views.display_profile_view, name='display-profile'),
     path('ebay-auth/', views.ebay_auth_view, name='ebay-auth'),
     path('success/', views.success_view, name='success'),
+    path('single-listing-success/', views.single_listing_success_view, name='single-listing-success'),
     path('services/', views.services_view, name='services'),
     path('callback/', views.ebay_callback_view, name='ebay-callback'),
     path('ebay-login/', views.ebay_login_view, name='ebay-login'),

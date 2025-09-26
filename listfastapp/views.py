@@ -149,6 +149,10 @@ def success_view(request):
     return render(request, 'success.html')
 
 @login_required
+def single_listing_success_view(request):
+    return render(request, 'single-listing-success.html')
+
+@login_required
 def services_view(request):
     return render(request, 'services.html')
 
@@ -834,7 +838,7 @@ class SingleItemListingAPIView(APIView):
         except Exception:
             pass
 
-        return Response({"task_id": task.id, "status": "queued"}, status=status.HTTP_202_ACCEPTED)
+        return Response({"task_id": task.id, "status": "queued", "redirect_url": f"/single-listing-success/?task_id={task.id}"}, status=status.HTTP_202_ACCEPTED)
 
 
 class TaskStatusAPIView(APIView):
