@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Single Item Listing - ListFast.ai</title>
+    <link rel="icon" href="data:,">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -637,12 +638,10 @@
         const uploadImageInput = document.getElementById('upload-image-input');
 
         async function resizeImageFile(file, targetHeight = 1024) {
-            // Some browsers (iOS) produce HEIC/HEIF; canvas can't output those, so convert to JPEG.
             const unsupportedMimes = new Set(['image/heic','image/heif']);
             const preferMime = unsupportedMimes.has(file.type) ? 'image/jpeg' : (file.type || 'image/jpeg');
         
             const blobURL = URL.createObjectURL(file);
-            // Use Image for broad compatibility
             const img = await new Promise((resolve, reject) => {
                 const el = new Image();
                 el.onload = () => resolve(el);
@@ -651,12 +650,10 @@
             });
         
             try {
-                // Compute target size
                 const scale = img.height > targetHeight ? (targetHeight / img.height) : 1;
                 const outW = Math.max(1, Math.round(img.width * scale));
                 const outH = Math.max(1, Math.round(img.height * scale));
         
-                // If already <= target height, just return the original file as-is
                 if (scale === 1) {
                     URL.revokeObjectURL(blobURL);
                     return file;
@@ -667,7 +664,6 @@
                 canvas.height = outH;
         
                 const ctx = canvas.getContext('2d');
-                // Better downscale quality
                 ctx.imageSmoothingEnabled = true;
                 ctx.imageSmoothingQuality = 'high';
                 ctx.drawImage(img, 0, 0, outW, outH);
@@ -678,7 +674,6 @@
         
                 URL.revokeObjectURL(blobURL);
         
-                // Return a File so downstream code that expects a File still works
                 const ext = (preferMime === 'image/png') ? 'png'
                           : (preferMime === 'image/webp') ? 'webp'
                           : 'jpg';
@@ -687,7 +682,6 @@
                 return new File([blob], name, { type: preferMime, lastModified: Date.now() });
             } catch (e) {
                 URL.revokeObjectURL(blobURL);
-                // Fallback: if anything fails, return original file so existing logic still works
                 return file;
             }
         }
@@ -701,7 +695,6 @@
                 return;
             }
         
-            // const uploadBtn = uploadImageInput.closest('label');
             const uploadBtn = fileInput.closest('label');
             const originalText = uploadBtn.textContent.trim();
             uploadBtn.style.pointerEvents = 'none';
@@ -722,7 +715,6 @@
                     continue;
                 }
         
-                // resize to height 1024
                 file = await resizeImageFile(file, 1024);
         
                 const formData = new FormData();
@@ -850,7 +842,6 @@
             document.getElementById('error-message').classList.add('hidden');
             document.getElementById('success-message').classList.add('hidden');
             
-            // Show immediate feedback
             document.getElementById('success-message').textContent = 'Starting your listing process...';
             document.getElementById('success-message').classList.remove('hidden');
             
@@ -872,7 +863,6 @@
                 const csrftoken = getCookie('csrftoken');
                 formData.action = 'publish';
                 
-                // Start the async request and get the task ID
                 fetch('/api/single-item-listing/', {
                     method: 'POST',
                     headers: {
@@ -883,7 +873,6 @@
                 }).then(response => response.json())
                 .then(data => {
                     if (response.ok && data.task_id) {
-                        // Store task ID and redirect to success page
                         localStorage.setItem('current_task_id', data.task_id);
                         window.location.href = `/single-listing-success/?task_id=${data.task_id}`;
                     } else {
@@ -901,9 +890,7 @@
                     button.textContent = 'Publish to eBay';
                 });
                 
-                // Redirect immediately after a short delay to show the success message
                 setTimeout(() => {
-                    // If the request hasn't completed yet, redirect with a placeholder
                     if (button.disabled) {
                         window.location.href = '/single-listing-success/';
                     }
