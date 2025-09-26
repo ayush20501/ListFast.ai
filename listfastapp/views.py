@@ -33,10 +33,7 @@ import numpy as np
 from botocore.exceptions import ClientError
 import boto3
 
-# Configuration
-DB_URL = config("DB_URL")
 
-# eBay
 EBAY_ENV = config("EBAY_ENV", default="PRODUCTION")
 BASE = config("EBAY_BASE")
 AUTH = config("EBAY_AUTH")
@@ -48,19 +45,16 @@ CLIENT_ID = config("EBAY_CLIENT_ID")
 CLIENT_SECRET = config("EBAY_CLIENT_SECRET")
 RU_NAME = config("EBAY_RU_NAME")
 
-# Email
 EMAIL_HOST = config("EMAIL_HOST")
 EMAIL_USER = config("EMAIL_USER")
 EMAIL_PASS = config("EMAIL_PASS")
 EMAIL_PORT = config("EMAIL_PORT", cast=int)
 
-# External APIs
 OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
 IMGBB_API_KEY = config("IMGBB_API_KEY", default="")
 
 REMBG_API_KEY = config("REMBG_API_KEY", default="")
 REMBG_API_URL = config("REMBG_API_URL", default="")
-# Django
 SECRET_KEY = config("SECRET_KEY")
 
 

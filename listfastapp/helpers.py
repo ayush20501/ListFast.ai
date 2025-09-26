@@ -52,8 +52,6 @@ CATEGORY_PICK_SCHEMA = {
     "additionalProperties": False
 }
 
-# Configuration
-DB_URL = config("DB_URL")
 
 # eBay
 EBAY_ENV = config("EBAY_ENV", default="PRODUCTION")
