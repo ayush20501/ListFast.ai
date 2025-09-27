@@ -385,11 +385,7 @@
                         </div>
 
                         <div class="space-y-4 sm:space-y-6">
-                            <div class="input-group">
-                                <label class="block text-sm font-semibold text-gray-700 mb-3">Bundle Description <span class="required-asterisk">*</span></label>
-                                <textarea id="raw_text" required rows="5" placeholder="Describe your bundle - include all items, brands, features, condition details, etc. Be specific about what's included in this package." class="input-field w-full px-3 sm:px-4 py-3 rounded-lg text-base resize-none"></textarea>
-                                <p class="text-sm text-gray-500 mt-3">💡 The more detail you provide about each item in the bundle, the better our AI can optimize your listing for search and sales</p>
-                            </div>
+                            
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div class="input-group">
@@ -476,6 +472,12 @@
                                 <label for="remove_background" class="text-sm font-semibold text-gray-700">Remove background from images</label>
                             </div>
 
+                            <div class="input-group mt-4">
+                                <label class="block text-sm font-semibold text-gray-700 mb-3">Bundle Description (Optional)</label>
+                                <textarea id="raw_text" rows="5" placeholder="Add any details you'd like us to incorporate (optional)" class="input-field w-full px-3 sm:px-4 py-3 rounded-lg text-base resize-none"></textarea>
+                                <p class="text-sm text-gray-500 mt-3">If left blank, we'll generate the description from your images.</p>
+                            </div>
+
                             <div class="pt-4">
                                 <button type="submit" id="publish-btn" class="w-full bundle-gradient text-white py-3 sm:py-4 px-4 sm:px-6 rounded-xl text-base sm:text-lg font-semibold hover:opacity-90 transition-opacity disabled:bg-gray-400 disabled:cursor-not-allowed hover-lift pulse-animation">Publish to eBay</button>
                                 <p class="text-sm text-gray-500 text-center mt-3">💡 Click "Publish" to list your bundle on eBay immediately</p>
@@ -541,18 +543,7 @@
                 </div>
             </div>
 
-            <div id="ai-status" class="hidden ai-status max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 sm:mt-8">
-                <div class="flex items-center mb-4 sm:mb-6">
-                    <div class="animate-spin rounded-full h-6 sm:h-8 w-6 sm:w-8 border-b-2 border-orange-600 mr-3 sm:mr-4"></div>
-                    <div>
-                        <h3 class="text-base sm:text-lg font-semibold text-orange-900">AI Processing Your Bundle Listing</h3>
-                        <p id="ai-status-text" class="text-orange-700 mt-1 text-sm sm:text-base">Analyzing your bundle description...</p>
-                    </div>
-                </div>
-                <div class="bg-white rounded-full h-2 sm:h-3 overflow-hidden">
-                    <div id="ai-progress" class="ai-progress h-2 sm:h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
-                </div>
-            </div>
+            
         </div>
     </main>
 
@@ -615,25 +606,7 @@
     </footer>
 
     <script>
-        const aiStatusEl = document.getElementById('ai-status');
-        const aiStatusTextEl = document.getElementById('ai-status-text');
-        const aiProgressEl = document.getElementById('ai-progress');
-
-        function showAIStatus(message, progress = 0) {
-            aiStatusEl.classList.remove('hidden');
-            aiStatusTextEl.textContent = message;
-            aiProgressEl.style.width = `${progress}%`;
-        }
-
-        function hideAIStatus() {
-            aiStatusEl.classList.add('hidden');
-            aiProgressEl.style.width = '0%';
-        }
-
-        function updateAIProgress(message, progress) {
-            aiStatusTextEl.textContent = message;
-            aiProgressEl.style.width = `${progress}%`;
-        }
+        
 
         function openImageModal(imageUrl) {
             document.getElementById('modal-image').src = imageUrl;
@@ -1024,11 +997,7 @@
             document.getElementById('error-message').classList.add('hidden');
             document.getElementById('success-message').classList.add('hidden');
 
-            showAIStatus('🤖 Analyzing bundle description...', 10);
-            setTimeout(() => updateAIProgress('🔍 Extracting keywords and metadata...', 25), 500);
-            setTimeout(() => updateAIProgress('📂 Finding optimal eBay category...', 50), 1500);
-            setTimeout(() => updateAIProgress('📋 Filling bundle specifications...', 75), 2500);
-            setTimeout(() => updateAIProgress('✍️ Generating marketing description...', 90), 3500);
+            
 
             try {
                 const getCookie = (name) => {
@@ -1059,19 +1028,18 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    updateAIProgress('✅ Published to eBay!', 100);
-                    setTimeout(() => {
-                        hideAIStatus();
-                        localStorage.setItem('listing-success', JSON.stringify(data));
-                        window.location.href = '/success/';
-                    }, 1000);
+                    if (data.redirect_url) {
+                        window.location.href = data.redirect_url;
+                    } else if (data.task_id) {
+                        window.location.href = `/single-listing-success/?task_id=${data.task_id}`;
+                    } else {
+                        window.location.href = '/single-listing-success/';
+                    }
                 } else {
-                    hideAIStatus();
                     document.getElementById('error-message').textContent = data.error || 'Failed to publish listing';
                     document.getElementById('error-message').classList.remove('hidden');
                 }
             } catch (error) {
-                hideAIStatus();
                 document.getElementById('error-message').textContent = 'Network error. Please try again.';
                 document.getElementById('error-message').classList.remove('hidden');
             }
