@@ -22,6 +22,7 @@ from decouple import config
 from .models import UserProfile, eBayToken, OTP, ListingCount, UserListing, TaskRecord
 from .tasks import create_single_item_listing_task, create_multipack_listing_task, create_bundle_listing_task
 from . import helpers
+from .mailchimp_service import send_welcome_email_via_mailchimp
 from werkzeug.utils import secure_filename
 import uuid
 from typing import Any, Dict, Tuple, Optional
@@ -578,7 +579,8 @@ class SignupAPIView(APIView):
         try:
             msg.send()
             return Response({'message': 'Verification code sent to your email'})
-        except Exception:
+        except Exception as e:
+            print(f"[Registration] Error sending verification email: {str(e)}")
             return Response({"error": "Failed to send verification email. Please try again later."}, status=500)
 
 class VerifyOTPAPIView(APIView):
@@ -610,6 +612,20 @@ class VerifyOTPAPIView(APIView):
             user.save()
             login(request, user)
             request.session.pop('signup_data', None)
+            
+            # Send welcome email via Mailchimp
+            try:
+                # Extract user name from email (before @ symbol) as fallback
+                user_name = email.split('@')[0].replace('.', ' ').replace('_', ' ').title()
+                mailchimp_success = send_welcome_email_via_mailchimp(email, user_name)
+                if mailchimp_success:
+                    print(f"[Registration] Welcome email sent to {email} via Mailchimp")
+                else:
+                    print(f"[Registration] Failed to send welcome email to {email} via Mailchimp")
+            except Exception as mailchimp_error:
+                # Don't fail registration if Mailchimp fails
+                print(f"[Registration] Mailchimp error for {email}: {str(mailchimp_error)}")
+            
             return Response({
                 'message': 'Email verified successfully! Account created.',
                 'user_id': user.id

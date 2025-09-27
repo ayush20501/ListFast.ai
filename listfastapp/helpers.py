@@ -20,7 +20,7 @@ from botocore.exceptions import ClientError
 import boto3
 from jsonschema import validate
 
-# JSON Schema for category picking
+
 CATEGORY_PICK_SCHEMA = {
     "type": "object",
     "properties": {
@@ -52,8 +52,6 @@ CATEGORY_PICK_SCHEMA = {
     "additionalProperties": False
 }
 
-
-# eBay
 EBAY_ENV = config("EBAY_ENV", default="PRODUCTION")
 BASE = config("EBAY_BASE")
 AUTH = config("EBAY_AUTH")
@@ -64,20 +62,14 @@ LANG = config("EBAY_LANG")
 CLIENT_ID = config("EBAY_CLIENT_ID")
 CLIENT_SECRET = config("EBAY_CLIENT_SECRET")
 RU_NAME = config("EBAY_RU_NAME")
-
-# Email
 EMAIL_HOST = config("EMAIL_HOST")
 EMAIL_USER = config("EMAIL_USER")
 EMAIL_PASS = config("EMAIL_PASS")
 EMAIL_PORT = config("EMAIL_PORT", cast=int)
-
-# External APIs
 OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
 IMGBB_API_KEY = config("IMGBB_API_KEY", default="")
-
 REMBG_API_KEY = config("REMBG_API_KEY", default="")
 REMBG_API_URL = config("REMBG_API_URL", default="")
-# Django
 SECRET_KEY = config("SECRET_KEY")
 
 SCOPES = " ".join([
@@ -101,8 +93,6 @@ S3_BUCKET = config("S3_BUCKET")
 AWS_REGION = config("AWS_REGION")
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
-
-# ----------------------------------Helper Functions----------------------------------
 
 def _b64_basic():
     return "Basic " + base64.b64encode(f"{CLIENT_ID}:{CLIENT_SECRET}".encode()).decode()
@@ -178,7 +168,6 @@ def build_description_simple_from_raw(raw_text: str, *,html_mode: bool = True,pa
     ctx_block = f"PACK CONTEXT: {pack_ctx}\n" if pack_ctx else ""
     s0_json = json.dumps(s0, ensure_ascii=False) if s0 else ""
 
-    # Shared guidance for using s0 JSON alongside raw_text
     guidance = (
         "Use the VISION EXTRACTION JSON for precise, structured facts (brand, identifiers, size/qty), "
         "and the PRODUCT TEXT for additional wording. Prefer JSON facts when they conflict. "
@@ -186,7 +175,6 @@ def build_description_simple_from_raw(raw_text: str, *,html_mode: bool = True,pa
     )
 
     if html_mode:
-        # Ask for description + SEO list, restricted tags; include s0 JSON to ground facts
         prompt = (
             "Return HTML only. Use ONLY <p>, <ul>, <li>, <br>, <strong>, <em>. "
             "No headings, no tables, no images, no scripts.\n"
@@ -202,7 +190,6 @@ def build_description_simple_from_raw(raw_text: str, *,html_mode: bool = True,pa
             f"PRODUCT TEXT:\n{str(raw_text)}"
         )
     else:
-        # Plain text version; include s0 JSON and then a single 'Search keywords:' line
         prompt = (
             guidance
             + ctx_block +
@@ -220,18 +207,15 @@ def build_description_simple_from_raw(raw_text: str, *,html_mode: bool = True,pa
         if html_mode:
             html_desc = out
             text_desc = _strip_html(html_desc)
-            # Ensure pack note is present somewhere
             if packaging_note and packaging_note.lower() not in text_desc.lower():
                 html_desc += f"<br><em>{packaging_note}</em>"
                 text_desc = _strip_html(html_desc)
             return {"html": html_desc, "text": text_desc}
         else:
-            # Plain text; append packaging note if missing
             if packaging_note and packaging_note.lower() not in out.lower():
                 out = out + f"\n\n{packaging_note}"
             return {"html": out, "text": out}
     except Exception:
-        # Safe fallback that still includes a placeholder keywords section
         fallback = _clean_text(raw_text, limit=2000)
         if html_mode:
             kw_stub = "<p><strong>Search keywords</strong></p><ul><li>product keyword</li><li>brand term</li></ul>"
