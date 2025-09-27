@@ -20,7 +20,7 @@ from rest_framework.views import APIView
 from rest_framework.serializers import Serializer, CharField, DecimalField, IntegerField, ChoiceField, ListField, URLField
 from decouple import config
 from .models import UserProfile, eBayToken, OTP, ListingCount, UserListing, TaskRecord
-from .tasks import create_single_item_listing_task
+from .tasks import create_single_item_listing_task, create_multipack_listing_task, create_bundle_listing_task
 from . import helpers
 from werkzeug.utils import secure_filename
 import uuid
@@ -892,10 +892,10 @@ class MyTasksAPIView(APIView):
 class MultipackListingAPIView(APIView):
     def post(self, request):
         if request.data.get("action", "publish") != "publish":
-            return Response({"error": "Invalid action. Only 'publish' is supported"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Only 'publish' action is supported"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            profile = UserProfile.objects.get(user=request.user)
+            UserProfile.objects.get(user=request.user)
         except UserProfile.DoesNotExist:
             return Response({"error": "Please create your profile first"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -906,426 +906,76 @@ class MultipackListingAPIView(APIView):
         except eBayToken.DoesNotExist:
             return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
 
-        access = helpers.ensure_access_token(request.user)
-        raw_text_in = helpers._clean_text(request.data.get("raw_text"), limit=8000)
-        images = helpers._https_only(request.data.get("images", []))
-        marketplace_id = MARKETPLACE_ID
-        price = request.data["price"]
-        quantity = request.data["quantity"]
-        condition = request.data.get("condition", "NEW").upper()
-        vat_rate = float(request.data.get("vat_rate", 0))
-        sku = request.data.get("sku") or helpers._gen_sku_multi("MULTI")
-        random_number = random.randint(100, 999)
-        sku = f"{sku}-{random_number}"
-        print("sku",sku)
-        remove_background = request.data.get("remove_background", False)
-        multipack_quantity = request.data.get("multipack_quantity", 2)
+        payload = {
+            "raw_text": request.data.get("raw_text", ""),
+            "images": request.data.get("images", []),
+            "price": request.data.get("price"),
+            "quantity": request.data.get("quantity", 1),
+            "condition": request.data.get("condition", "NEW"),
+            "sku": request.data.get("sku"),
+            "vat_rate": request.data.get("vat_rate", 0),
+            "remove_bg": request.data.get("remove_bg", request.data.get("remove_background", False)),
+            "multipack_quantity": request.data.get("multipack_quantity", 2),
+        }
 
-        pack_ctx = {'type': 'multipack', 'quantity': multipack_quantity, 'unit': ''}
-        pack = f"MULTIPACK: Pack of {multipack_quantity}"
-
-        if multipack_quantity < 1 or multipack_quantity > 6:
-            return Response({"error": "Multipack quantity must be between 1 and 6"}, status=status.HTTP_400_BAD_REQUEST)
-
-        if multipack_quantity > 1 and images:
-            try:
-                output_path = f"media/multipack_{uuid.uuid4().hex}.jpg"
-                os.makedirs("media", exist_ok=True)
-                helpers.compose_multipack(
-                    image_url=images[0],
-                    pack_size=multipack_quantity,
-                    output_path=output_path,
-                    do_remove_bg=remove_background
-                )
-                processed_image_url = helpers.upload_to_s3(output_path)
-                images[0] = processed_image_url
-                os.remove(output_path)
-            except Exception as e:
-                return Response({"error": f"Failed to process or upload multipack image: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        prep = helpers.prepare_listing_components(
-            images=images,
-            raw_text_in=raw_text_in,
-            marketplace_id=marketplace_id,
-            pack_ctx=pack_ctx,
-            pack=pack,
-            access=access,
-        )
-
-        title = prep["title"]
-        description_html = prep["description_html"]
-        aspects = prep["aspects"]
-        category_id = prep["category_id"]
-        category_name = prep["category_name"]
+        task = create_multipack_listing_task.delay(request.user.id, payload)
 
         try:
-            lang = "en-GB" if marketplace_id == "EBAY_GB" else "en-US"
-            headers = {
-                "Authorization": f"Bearer {access}",
-                "Content-Type": "application/json",
-                "Content-Language": lang,
-                "Accept-Language": lang,
-                "X-EBAY-C-MARKETPLACE-ID": marketplace_id,
-            }
-
-            check_url = f"{BASE}/sell/inventory/v1/inventory_item/{sku}"
-            r = requests.get(check_url, headers=headers)
-            if r.status_code == 200:
-                return Response({"error": "SKU already exists"}, status=status.HTTP_400_BAD_REQUEST)
-
-            inv_url = f"{BASE}/sell/inventory/v1/inventory_item/{sku}"
-            inv_payload = {
-                "product": {
-                    "title": title,
-                    "description": description_html,
-                    "aspects": aspects,
-                    "imageUrls": images
-                },
-                "condition": condition,
-                "availability": {"shipToLocationAvailability": {"quantity": quantity}},
-                "tax": {"vatPercentage": vat_rate} if vat_rate > 0 else {}
-            }
-            r = requests.put(inv_url, headers=headers, json=inv_payload)
-            if r.status_code not in (200, 201, 204):
-                return Response({"error": helpers.parse_ebay_error(r.text), "step": "inventory_item"}, status=status.HTTP_400_BAD_REQUEST)
-
-            try:
-                fulfillment_policy_id = helpers.get_first_policy_id("fulfillment", access, marketplace_id)
-                payment_policy_id = helpers.get_first_policy_id("payment", access, marketplace_id)
-                return_policy_id = helpers.get_first_policy_id("return", access, marketplace_id)
-            except RuntimeError as e:
-                return Response({"error": f"Missing eBay policies: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
-
-            merchant_location_key = helpers.get_or_create_location(access, marketplace_id, profile)
-            offer_payload = {
-                "sku": sku,
-                "marketplaceId": marketplace_id,
-                "format": "FIXED_PRICE",
-                "availableQuantity": quantity,
-                "categoryId": category_id,
-                "listingDescription": description_html,
-                "pricingSummary": {
-                    "price": {
-                        "value": str(price["value"]),
-                        "currency": price["currency"]
-                    }
-                },
-                "listingPolicies": {
-                    "fulfillmentPolicyId": fulfillment_policy_id,
-                    "paymentPolicyId": payment_policy_id,
-                    "returnPolicyId": return_policy_id
-                },
-                "merchantLocationKey": merchant_location_key,
-                "tax": {"vatPercentage": vat_rate} if vat_rate > 0 else {}
-            }
-            offer_url = f"{BASE}/sell/inventory/v1/offer"
-            r = requests.post(offer_url, headers=headers, json=offer_payload)
-            if r.status_code not in (200, 201):
-                return Response({"error": helpers.parse_ebay_error(r.text), "step": "create_offer"}, status=status.HTTP_400_BAD_REQUEST)
-
-            offer_id = r.json().get("offerId")
-            pub_url = f"{BASE}/sell/inventory/v1/offer/{offer_id}/publish"
-            r = requests.post(pub_url, headers=headers)
-            if r.status_code not in (200, 201):
-                return Response({"error": helpers.parse_ebay_error(r.text), "step": "publish"}, status=status.HTTP_400_BAD_REQUEST)
-
-            pub = r.json()
-            listing_id = pub.get("listingId") or (pub.get("listingIds") or [None])[0]
-            view_url = f"https://www.ebay.co.uk/itm/{listing_id}" if marketplace_id == "EBAY_GB" else None
-            listing_count, _ = ListingCount.objects.get_or_create(id=1, defaults={"total_count": 0})
-            listing_count.total_count += 1
-            listing_count.save()
-
-            UserListing.objects.create(
+            TaskRecord.objects.create(
                 user=request.user,
-                listing_id=listing_id,
-                offer_id=offer_id,
-                sku=sku,
-                title=title,
-                price_value=price["value"],
-                price_currency=price["currency"],
-                quantity=quantity,
-                condition=condition,
-                category_id=category_id,
-                category_name=category_name,
-                marketplace_id=marketplace_id,
-                view_url=view_url,
-                vat_rate=vat_rate,
-                listing_type='Multi'
+                task_id=task.id,
+                name="create_multipack_listing",
+                status="PENDING",
+                payload=payload,
             )
+        except Exception:
+            pass
 
-            return Response({
-                "status": "published",
-                "offerId": offer_id,
-                "listingId": listing_id,
-                "viewItemUrl": view_url,
-                "sku": sku,
-                "marketplaceId": marketplace_id,
-                "categoryId": category_id,
-                "categoryName": category_name,
-                "title": title,
-                "aspects": aspects,
-                "vat_rate": vat_rate,
-            })
-        except requests.exceptions.RequestException as e:
-            return Response({"error": f"Network error with eBay: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        except RuntimeError as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            return Response({"error": f"Unexpected error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"task_id": task.id, "status": "queued", "redirect_url": f"/single-listing-success/?task_id={task.id}"}, status=status.HTTP_202_ACCEPTED)
 
 # --------------------------------------------------------------Bundle View--------------------------------------------------------------
 
     
 class BundleListingAPIView(APIView):
     def post(self, request):
-        print("Starting BundleListingAPIView.post")
+        if request.data.get("action", "publish") != "publish":
+            return Response({"error": "Only 'publish' action is supported"}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            print("Fetching user profile")
-            profile = UserProfile.objects.get(user=request.user)
+            UserProfile.objects.get(user=request.user)
         except UserProfile.DoesNotExist:
-            print("User profile not found")
             return Response({"error": "Please create your profile first"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            print("Fetching eBay token")
             token = eBayToken.objects.get(user=request.user)
             if not token.refresh_token:
-                print("eBay token refresh_token missing")
                 return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
         except eBayToken.DoesNotExist:
-            print("eBay token not found")
             return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
 
-        print("Ensuring access token")
-        access = helpers.ensure_access_token(request.user)
-        print(f"Access token: {access}")
-        raw_text_in = helpers._clean_text(request.data.get("raw_text"), limit=8000)
-        print(f"Raw text: {raw_text_in}")
-        images = helpers._https_only(request.data.get("images", []))
-        print(f"Images: {images}")
-        marketplace_id = MARKETPLACE_ID
-        print(f"Marketplace ID: {marketplace_id}")
-        price = request.data.get("price")
-        print(f"Price: {price}")
-        quantity = int(request.data.get("quantity", 1))
-        print(f"Quantity: {quantity}")
-        condition = request.data.get("condition", "NEW").upper()
-        print(f"Condition: {condition}")
-        vat_rate = float(request.data.get("vat_rate", 0))
-        print(f"VAT rate: {vat_rate}")
-        sku = request.data.get("sku") or helpers._gen_sku_multi("BUNDLE")
-        print(f"SKU: {sku}")
-        remove_background = request.data.get("remove_background", False)
-        print(f"Remove background: {remove_background}")
-        bundle_quantity = int(request.data.get("bundle_quantity", 2))
-        print(f"Bundle quantity: {bundle_quantity}")
+        payload = {
+            "raw_text": request.data.get("raw_text", ""),
+            "images": request.data.get("images", []),
+            "price": request.data.get("price"),
+            "quantity": request.data.get("quantity", 1),
+            "condition": request.data.get("condition", "NEW"),
+            "sku": request.data.get("sku"),
+            "vat_rate": request.data.get("vat_rate", 0),
+            "remove_bg": request.data.get("remove_bg", request.data.get("remove_background", False)),
+            "bundle_quantity": request.data.get("bundle_quantity", 2),
+        }
 
-        pack_ctx = {'type': 'bundle', 'bundle_size': bundle_quantity, 'components': []}
-        pack = f"BUNDLE: {bundle_quantity} items"
-        print(f"Pack: {pack}")
-        print(f"Pack context: {pack_ctx}")
-
-        if bundle_quantity < 2 or bundle_quantity > 6:
-            print(f"Invalid bundle quantity: {bundle_quantity}")
-            return Response({"error": "Bundle quantity must be between 2 and 6"}, status=status.HTTP_400_BAD_REQUEST)
-
-        if len(images) < bundle_quantity:
-            print(f"Insufficient images: {len(images)} for bundle quantity {bundle_quantity}")
-            return Response({"error": f"Bundle listings require at least {bundle_quantity} images"}, status=status.HTTP_400_BAD_REQUEST)
-
-        if remove_background:
-            try:
-                print("Processing bundle image")
-                output_path = f"media/bundle_{uuid.uuid4().hex}.jpg"
-                print(f"Output path: {output_path}")
-                os.makedirs("media", exist_ok=True)
-                helpers.compose_bundle(
-                    image_urls=images[:bundle_quantity],
-                    output_path=output_path,
-                    output_size=1600,
-                    padding=0,
-                    do_remove_bg=True,
-                    margin_ratio=0.94
-                )
-                print("Uploading to imgbb")
-                processed_image_url = helpers.upload_to_s3(output_path)
-                print(f"Processed image URL: {processed_image_url}")
-                images = [processed_image_url] + images[bundle_quantity:]
-                print(f"Updated images: {images}")
-                os.remove(output_path)
-                print(f"Removed temporary file: {output_path}")
-            except Exception as e:
-                print(f"Image processing error: {str(e)}")
-                return Response({"error": f"Failed to process or upload bundle image: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        print("Preparing listing components")
-        prep = helpers.prepare_listing_components(
-            images=images,
-            raw_text_in=raw_text_in,
-            marketplace_id=marketplace_id,
-            pack_ctx=pack_ctx,
-            pack=pack,
-            access=access,
-        )
-        print(f"Prep result: {prep}")
-
-        title = prep["title"]
-        description_html = prep["description_html"]
-        aspects = prep["aspects"]
-        category_id = prep["category_id"]
-        category_name = prep["category_name"]
-        print(f"Title: {title}")
-        print(f"Description HTML: {description_html}")
-        print(f"Aspects: {aspects}")
-        print(f"Category ID: {category_id}")
-        print(f"Category Name: {category_name}")
+        task = create_bundle_listing_task.delay(request.user.id, payload)
 
         try:
-            lang = "en-GB" if marketplace_id == "EBAY_GB" else "en-US"
-            print(f"Language: {lang}")
-            headers = {
-                "Authorization": f"Bearer {access}",
-                "Content-Type": "application/json",
-                "Content-Language": lang,
-                "Accept-Language": lang,
-                "X-EBAY-C-MARKETPLACE-ID": marketplace_id,
-            }
-            print(f"Headers: {headers}")
-
-            print(f"Checking SKU: {sku}")
-            check_url = f"{BASE}/sell/inventory/v1/inventory_item/{sku}"
-            r = requests.get(check_url, headers=headers)
-            print(f"SKU check response: {r.status_code}")
-            if r.status_code == 200:
-                print(f"SKU already exists: {sku}")
-                return Response({"error": "SKU already exists"}, status=status.HTTP_400_BAD_REQUEST)
-
-            print("Creating inventory item")
-            inv_url = f"{BASE}/sell/inventory/v1/inventory_item/{sku}"
-            inv_payload = {
-                "product": {
-                    "title": title,
-                    "description": description_html,
-                    "aspects": aspects,
-                    "imageUrls": images
-                },
-                "condition": condition,
-                "availability": {"shipToLocationAvailability": {"quantity": quantity}},
-                "tax": {"vatPercentage": vat_rate} if vat_rate > 0 else {}
-            }
-            print(f"Inventory payload: {inv_payload}")
-            r = requests.put(inv_url, headers=headers, json=inv_payload)
-            print(f"Inventory response: {r.status_code}")
-            if r.status_code not in (200, 201, 204):
-                print(f"Inventory error: {helpers.parse_ebay_error(r.text)}")
-                return Response({"error": helpers.parse_ebay_error(r.text), "step": "inventory_item"}, status=status.HTTP_400_BAD_REQUEST)
-
-            print("Fetching policy IDs")
-            try:
-                fulfillment_policy_id = helpers.get_first_policy_id("fulfillment", access, marketplace_id)
-                payment_policy_id = helpers.get_first_policy_id("payment", access, marketplace_id)
-                return_policy_id = helpers.get_first_policy_id("return", access, marketplace_id)
-                print(f"Fulfillment policy ID: {fulfillment_policy_id}")
-                print(f"Payment policy ID: {payment_policy_id}")
-                print(f"Return policy ID: {return_policy_id}")
-            except RuntimeError as e:
-                print(f"Policy error: {str(e)}")
-                return Response({"error": f"Missing eBay policies: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
-
-            print("Getting or creating merchant location")
-            merchant_location_key = helpers.get_or_create_location(access, marketplace_id, profile)
-            print(f"Merchant location key: {merchant_location_key}")
-            offer_payload = {
-                "sku": sku,
-                "marketplaceId": marketplace_id,
-                "format": "FIXED_PRICE",
-                "availableQuantity": quantity,
-                "categoryId": category_id,
-                "listingDescription": description_html,
-                "pricingSummary": {
-                    "price": {
-                        "value": str(price["value"]),
-                        "currency": price["currency"]
-                    }
-                },
-                "listingPolicies": {
-                    "fulfillmentPolicyId": fulfillment_policy_id,
-                    "paymentPolicyId": payment_policy_id,
-                    "returnPolicyId": return_policy_id
-                },
-                "merchantLocationKey": merchant_location_key,
-                "tax": {"vatPercentage": vat_rate} if vat_rate > 0 else {}
-            }
-            print(f"Offer payload: {offer_payload}")
-            offer_url = f"{BASE}/sell/inventory/v1/offer"
-            r = requests.post(offer_url, headers=headers, json=offer_payload)
-            print(f"Offer response: {r.status_code}")
-            if r.status_code not in (200, 201):
-                print(f"Offer error: {helpers.parse_ebay_error(r.text)}")
-                return Response({"error": helpers.parse_ebay_error(r.text), "step": "create_offer"}, status=status.HTTP_400_BAD_REQUEST)
-
-            offer_id = r.json().get("offerId")
-            print(f"Offer ID: {offer_id}")
-            pub_url = f"{BASE}/sell/inventory/v1/offer/{offer_id}/publish"
-            r = requests.post(pub_url, headers=headers)
-            print(f"Publish response: {r.status_code}")
-            if r.status_code not in (200, 201):
-                print(f"Publish error: {helpers.parse_ebay_error(r.text)}")
-                return Response({"error": helpers.parse_ebay_error(r.text), "step": "publish"}, status=status.HTTP_400_BAD_REQUEST)
-
-            pub = r.json()
-            print(f"Publish response JSON: {pub}")
-            listing_id = pub.get("listingId") or (pub.get("listingIds") or [None])[0]
-            print(f"Listing ID: {listing_id}")
-            view_url = f"https://www.ebay.co.uk/itm/{listing_id}" if marketplace_id == "EBAY_GB" else None
-            print(f"View URL: {view_url}")
-            listing_count, _ = ListingCount.objects.get_or_create(id=1, defaults={"total_count": 0})
-            listing_count.total_count += 1
-            listing_count.save()
-            print(f"Updated listing count: {listing_count.total_count}")
-
-            print("Creating UserListing")
-            UserListing.objects.create(
+            TaskRecord.objects.create(
                 user=request.user,
-                listing_id=listing_id,
-                offer_id=offer_id,
-                sku=sku,
-                title=title,
-                price_value=price["value"],
-                price_currency=price["currency"],
-                quantity=quantity,
-                condition=condition,
-                category_id=category_id,
-                category_name=category_name,
-                marketplace_id=marketplace_id,
-                view_url=view_url,
-                vat_rate=vat_rate,
-                listing_type='Bundle',
+                task_id=task.id,
+                name="create_bundle_listing",
+                status="PENDING",
+                payload=payload,
             )
-            print("UserListing created")
+        except Exception:
+            pass
 
-            print("Preparing response")
-            return Response({
-                "status": "published",
-                "offerId": offer_id,
-                "listingId": listing_id,
-                "viewItemUrl": view_url,
-                "sku": sku,
-                "marketplaceId": marketplace_id,
-                "categoryId": category_id,
-                "categoryName": category_name,
-                "title": title,
-                "aspects": aspects,
-                "vat_rate": vat_rate,
-                "bundle_quantity": bundle_quantity
-            })
-        except requests.exceptions.RequestException as e:
-            print(f"Network error: {str(e)}")
-            return Response({"error": f"Network error with eBay: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        except RuntimeError as e:
-            print(f"Runtime error: {str(e)}")
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            print(f"Unexpected error: {str(e)}")
-            return Response({"error": f"Unexpected error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"task_id": task.id, "status": "queued", "redirect_url": f"/single-listing-success/?task_id={task.id}"}, status=status.HTTP_202_ACCEPTED)
