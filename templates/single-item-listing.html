@@ -621,7 +621,7 @@
             const newInput = document.createElement('input');
             newInput.type = 'text';
             newInput.name = 'image_url';
-            newInput.placeholder = 'Paste an image URL or upload above';
+            newInput.placeholder = 'Or Add Image HTTPS URL';
             newInput.className = 'input-field flex-1 px-3 sm:px-4 py-3 rounded-lg text-base';
             const removeBtn = document.createElement('button');
             removeBtn.type = 'button';
@@ -777,7 +777,7 @@
         
             uploadBtn.style.pointerEvents = 'auto';
             uploadBtn.style.opacity = '1';
-            uploadBtn.innerHTML = `Upload Image<input type="file" id="upload-image-input" accept="image/*" class="hidden" multiple>`;
+            uploadBtn.innerHTML = `Add Image<input type="file" id="upload-image-input" accept="image/*" class="hidden" multiple>`;
             const newInput = uploadBtn.querySelector('#upload-image-input');
             newInput.addEventListener('change', () => uploadFile(newInput));
             fileInput.value = '';
