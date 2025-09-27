@@ -292,7 +292,7 @@
             <div class="grid lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-12">
                 <div class="lg:col-span-2">
                     <form id="listing-form" class="card rounded-2xl shadow-lg p-4 sm:p-6 lg:p-8">
-                        <div class="mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-center p-3 sm:p-4 bg-green-50 border border-green-200 rounded-xl gap-3 sm:gap-4">
+                        <!-- <div class="mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-center p-3 sm:p-4 bg-green-50 border border-green-200 rounded-xl gap-3 sm:gap-4">
                             <button type="button" id="autofill-btn" class="w-full sm:w-auto single-listing-gradient text-white px-4 sm:px-6 py-3 rounded-lg hover:opacity-90 transition-opacity font-medium flex items-center justify-center">
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
@@ -300,7 +300,41 @@
                                 Fill Sample Data
                             </button>
                             <span class="text-sm text-green-700 font-medium text-center sm:text-left">Click to see how it works with example data</span>
+                        </div> -->
+                        <div class="input-group">
+                                <label class="block text-sm font-semibold text-gray-700 mb-3">Product Images <span class="required-asterisk">*</span></label>
+                                <div class="space-y-4">
+                                    <div class="flex flex-col sm:flex-row gap-3">
+                                        <label class="upload-btn px-4 sm:px-6 py-3 rounded-lg font-semibold cursor-pointer text-center sm:text-left">
+                                            Take/Upload Image
+                                            <input type="file" id="upload-image-input" accept="image/*" class="hidden" multiple>
+                                        </label>
+                                    </div>
+                                    <div id="images-container" class="space-y-2">
+                                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                            <input type="text" name="image_url" placeholder="Take or Upload an image or add image URL" class="input-field flex-1 px-3 sm:px-4 py-3 rounded-lg text-base">
+                                            <button type="button" id="add-image-btn" class="px-3 py-2 sm:py-3 single-listing-gradient text-white rounded-lg font-bold text-lg hover:opacity-90 min-h-[44px]">+</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-gray-500 mt-3">📸 You can take or upload images or paste HTTPS URLs. High-quality images improve sales significantly!</p>
+                            </div>
+                            <div class="flex items-center space-x-3 p-3 sm:p-4 bg-gray-50 rounded-lg">
+                                <input id="remove_bg" type="checkbox" class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <label for="remove_bg" class="text-sm font-semibold text-gray-700">Remove background from images</label>
+                            </div>
+                            <div class="input-group">
+                                <label class="block text-sm font-semibold text-gray-700 mb-3">Product Description (Optional)</label>
+                                <textarea id="raw_text" rows="5" placeholder="Describe your product in detail - include brand, model, features, condition details, etc." class="input-field w-full px-3 sm:px-4 py-3 rounded-lg text-base resize-none"></textarea>
+                                <p class="text-sm text-gray-500 mt-3">💡  Our AI extracts brand, model, features, and condition from your images. If something isn’t visible (like measurements, compatibility, batch/expiry, or special terms), include it here to boost accuracy and sales.</p>
+                            </div>
+                            <div class="pt-4">
+                                <button type="submit" id="publish-btn"
+                                    class="w-full single-listing-gradient text-white py-3 sm:py-4 px-4 sm:px-6 rounded-xl text-base sm:text-lg font-semibold hover:opacity-90 transition-opacity disabled:bg-gray-400 disabled:cursor-not-allowed hover-lift pulse-animation">Publish to eBay</button>
+                            </div>
                         </div>
+                        
+                        
                         <div class="space-y-4 sm:space-y-6">
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div class="input-group">
@@ -341,38 +375,6 @@
                                 <input type="text" id="sku" name="sku" placeholder="Enter SKU (optional)" class="input-field w-full px-3 sm:px-4 py-3 rounded-lg text-base">
                                 <p class="text-sm text-gray-500 mt-3">🏷️ Stock Keeping Unit - a unique identifier for inventory tracking</p>
                             </div>
-                            <div class="input-group">
-                                <label class="block text-sm font-semibold text-gray-700 mb-3">Product Images <span class="required-asterisk">*</span></label>
-                                <div class="space-y-4">
-                                    <div class="flex flex-col sm:flex-row gap-3">
-                                        <label class="upload-btn px-4 sm:px-6 py-3 rounded-lg font-semibold cursor-pointer text-center sm:text-left">
-                                            Upload Image
-                                            <input type="file" id="upload-image-input" accept="image/*" class="hidden" multiple>
-                                        </label>
-                                    </div>
-                                    <div id="images-container" class="space-y-2">
-                                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                                            <input type="text" name="image_url" placeholder="Paste an image URL or upload above" class="input-field flex-1 px-3 sm:px-4 py-3 rounded-lg text-base">
-                                            <button type="button" id="add-image-btn" class="px-3 py-2 sm:py-3 single-listing-gradient text-white rounded-lg font-bold text-lg hover:opacity-90 min-h-[44px]">+</button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <p class="text-sm text-gray-500 mt-3">📸 You can upload images or paste HTTPS URLs. High-quality images improve sales significantly!</p>
-                            </div>
-                            <div class="flex items-center space-x-3 p-3 sm:p-4 bg-gray-50 rounded-lg">
-                                <input id="remove_bg" type="checkbox" class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                                <label for="remove_bg" class="text-sm font-semibold text-gray-700">Remove background from images</label>
-                            </div>
-                            <div class="input-group">
-                                <label class="block text-sm font-semibold text-gray-700 mb-3">Product Description (Optional)</label>
-                                <textarea id="raw_text" rows="5" placeholder="Describe your product in detail - include brand, model, features, condition details, etc." class="input-field w-full px-3 sm:px-4 py-3 rounded-lg text-base resize-none"></textarea>
-                                <p class="text-sm text-gray-500 mt-3">💡 The more detail you provide, the better our AI can optimize your listing for search and sales</p>
-                            </div>
-                            <div class="pt-4">
-                                <button type="submit" id="publish-btn"
-                                    class="w-full single-listing-gradient text-white py-3 sm:py-4 px-4 sm:px-6 rounded-xl text-base sm:text-lg font-semibold hover:opacity-90 transition-opacity disabled:bg-gray-400 disabled:cursor-not-allowed hover-lift pulse-animation">Publish to eBay</button>
-                            </div>
-                        </div>
                     </form>
                 </div>
                 <div class="space-y-4 sm:space-y-6">
