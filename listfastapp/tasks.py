@@ -65,27 +65,27 @@ def create_single_item_listing_task(self, user_id: int, payload: Dict[str, Any])
     remove_background = payload.get("remove_bg", False)
 
     
-    try:
-        processed_images, img_errors = helpers.process_all_images(images, remove_background)
-        images[:] = processed_images  # mutate original list in place if you like
-        if img_errors:
-            app.logger.warning("Some images failed to process: %s", img_errors)
-    except Exception as e:
-        finish('FAILURE', error=f"Failed to process or upload images: {e}")
-        return {"error": f"Failed to process or upload images: {e}"}
+    # try:
+    #     processed_images, img_errors = helpers.process_all_images(images, remove_background)
+    #     images[:] = processed_images  # mutate original list in place if you like
+    #     if img_errors:
+    #         app.logger.warning("Some images failed to process: %s", img_errors)
+    # except Exception as e:
+    #     finish('FAILURE', error=f"Failed to process or upload images: {e}")
+    #     return {"error": f"Failed to process or upload images: {e}"}
 
     
-    # try:
-    #     output_path = f"media/single_{uuid.uuid4().hex}.jpg"
-    #     os.makedirs("media", exist_ok=True)
-    #     helpers.create_single_image(image_url=images[0], output_path=output_path, do_remove_bg=remove_background)
-    #     processed_image_url = helpers.upload_to_s3(output_path)
-    #     images[0] = processed_image_url
-    #     if os.path.exists(output_path):
-    #         os.remove(output_path)
-    # except Exception as e:
-    #     finish('FAILURE', error=f"Failed to process or upload image: {str(e)}")
-    #     return {"error": f"Failed to process or upload image: {str(e)}"}
+    try:
+        output_path = f"media/single_{uuid.uuid4().hex}.jpg"
+        os.makedirs("media", exist_ok=True)
+        helpers.create_single_image(image_url=images[0], output_path=output_path, do_remove_bg=remove_background)
+        processed_image_url = helpers.upload_to_s3(output_path)
+        images[0] = processed_image_url
+        if os.path.exists(output_path):
+            os.remove(output_path)
+    except Exception as e:
+        finish('FAILURE', error=f"Failed to process or upload image: {str(e)}")
+        return {"error": f"Failed to process or upload image: {str(e)}"}
 
     pack = {"type": "single"}
     pack_ctx = "SINGLE ITEM"
