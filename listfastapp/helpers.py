@@ -21,6 +21,7 @@ import boto3
 from jsonschema import validate
 
 
+
 CATEGORY_PICK_SCHEMA = {
     "type": "object",
     "properties": {
@@ -689,6 +690,42 @@ def create_single_image(image_url: str, output_path: str = "single_item.jpg", ou
     print(f"[*] Saving -> {output_path}")
     canvas.convert("RGB").save(output_path, quality=95, optimize=True, subsampling=2)
     return output_path
+
+
+def process_all_images(images, remove_background=False):
+    """
+    For each image URL in `images`, create the processed single image,
+    upload to S3, and replace the entry with the S3 URL.
+    Returns (updated_images, errors)
+    """
+    os.makedirs("media", exist_ok=True)
+    updated = list(images)  # preserve order
+    errors = []
+
+    for i, src_url in enumerate(images or []):
+        if not src_url:
+            continue
+        output_path = f"media/single_{uuid.uuid4().hex}.jpg"
+        try:
+            create_single_image(
+                image_url=src_url,
+                output_path=output_path,
+                do_remove_bg=remove_background
+            )
+            processed_url = upload_to_s3(output_path)
+            updated[i] = processed_url
+        except Exception as e:
+            errors.append({"index": i, "url": src_url, "error": str(e)})
+            # keep original URL in `updated[i]`
+        finally:
+            if os.path.exists(output_path):
+                try:
+                    os.remove(output_path)
+                except Exception:
+                    pass
+
+    return updated, errors
+
 
 def build_pack_context(body: dict) -> tuple[dict, str]:
     mode = (body.get("image_mode") or "").strip().lower()
