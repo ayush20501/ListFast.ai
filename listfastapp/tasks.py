@@ -32,6 +32,53 @@ def create_single_item_listing_task(self, user_id: int, payload: Dict[str, Any])
             if error is not None:
                 record.error = error
             record.save()
+            if status == 'FAILURE' and error is not None:
+                from django.core.mail import EmailMultiAlternatives
+                from os import getenv
+                
+                subject = "ListFast.ai - Single Item Listing Failed"
+                body = f"""
+                <html>
+                    <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+                            <h1 style="color: white; margin: 0;">ListFast.ai</h1>
+                        </div>
+                        <div style="padding: 40px 30px; background: #f9f9f9;">
+                            <h2 style="color: #333; margin-bottom: 20px;">Single Item Listing Failed</h2>
+                            <p style="color: #666; font-size: 16px; line-height: 1.6;">
+                                We're sorry, but your single item listing could not be completed due to the following error:
+                            </p>
+                            <div style="background: white; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #e74c3c;">
+                                <p style="color: #e74c3c; font-size: 14px; margin: 0;">
+                                    {error}
+                                </p>
+                            </div>
+                            <p style="color: #666; font-size: 16px; line-height: 1.6;">
+                                Please try again or contact support if the issue persists.
+                            </p>
+                            <a href="mailto:support@listfast.ai" style="display: inline-block; background: #667eea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 20px;">
+                                Contact Support
+                            </a>
+                        </div>
+                        <div style="background: #333; padding: 20px; text-align: center;">
+                            <p style="color: #999; margin: 0; font-size: 12px;">
+                                © 2025 ListFast.ai. All rights reserved.
+                            </p>
+                        </div>
+                    </body>
+                </html>
+                """
+                msg = EmailMultiAlternatives(
+                    subject=subject,
+                    body=f"Your single item listing failed due to: {error}",
+                    from_email=getenv("EMAIL_USER"),
+                    to=[user.email]
+                )
+                msg.attach_alternative(body, "text/html")
+                try:
+                    msg.send()
+                except Exception as e:
+                    print(f"Failed to send notification email: {str(e)}")
 
     try:
         UserProfile.objects.get(user=user)
