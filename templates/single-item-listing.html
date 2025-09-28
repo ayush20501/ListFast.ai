@@ -786,27 +786,6 @@
         
         uploadImageInput.addEventListener('change', () => uploadFile(uploadImageInput));
 
-        document.getElementById('autofill-btn').addEventListener('click', () => {
-            document.getElementById('raw_text').value = "Sainsbury's Mackerel Fillets in Olive Oil 125g - Premium quality mackerel fillets preserved in olive oil. Perfect for sandwiches, salads, or as a healthy snack. Rich in omega-3 fatty acids and protein. Best before date clearly marked on tin.";
-            document.getElementById('price_value').value = "19.99";
-            document.getElementById('quantity').value = "3";
-            document.getElementById('condition').value = "NEW";
-            document.getElementById('vat_rate').value = "20";
-            document.getElementById('sku').value = "SAIN-MACK-125G";
-            document.getElementById('remove_bg').checked = true;
-            const firstImageInput = imagesContainer.querySelector('input[name="image_url"]');
-            if (firstImageInput) {
-                firstImageInput.value = "https://assets.sainsburys-groceries.co.uk/gol/1261448/1/640x640.jpg";
-            }
-            document.getElementById('error-message').classList.add('hidden');
-            document.getElementById('success-message').classList.add('hidden');
-            const form = document.getElementById('listing-form');
-            form.style.transform = 'scale(1.01)';
-            form.style.transition = 'transform 0.2s ease';
-            setTimeout(() => {
-                form.style.transform = 'scale(1)';
-            }, 200);
-        });
 
         function collectImages() {
             const inputs = imagesContainer.querySelectorAll('input[name="image_url"]');
@@ -837,6 +816,7 @@
         }
 
         async function submitToItemEndpoint(formData, button) {
+            console.log('submitToItemEndpoint called with:', formData);
             button.disabled = true;
             button.textContent = 'Processing...';
             document.getElementById('error-message').classList.add('hidden');
@@ -870,19 +850,25 @@
                         'X-CSRFToken': csrftoken
                     },
                     body: JSON.stringify(formData),
-                }).then(response => response.json())
-                .then(data => {
-                    if (response.ok && data.task_id) {
-                        localStorage.setItem('current_task_id', data.task_id);
-                        window.location.href = `/single-listing-success/?task_id=${data.task_id}`;
+                }).then(response => {
+                    return response.json().then(data => ({
+                        ok: response.ok,
+                        status: response.status,
+                        data: data
+                    }));
+                }).then(result => {
+                    if (result.ok && result.data.task_id) {
+                        localStorage.setItem('current_task_id', result.data.task_id);
+                        window.location.href = `/single-listing-success/?task_id=${result.data.task_id}`;
                     } else {
-                        document.getElementById('error-message').textContent = data.error || 'Failed to start listing process';
+                        document.getElementById('error-message').textContent = result.data.error || 'Failed to start listing process';
                         document.getElementById('error-message').classList.remove('hidden');
                         document.getElementById('success-message').classList.add('hidden');
                         button.disabled = false;
                         button.textContent = 'Publish to eBay';
                     }
                 }).catch(error => {
+                    console.error('Network error:', error);
                     document.getElementById('error-message').textContent = 'Network error. Please try again.';
                     document.getElementById('error-message').classList.remove('hidden');
                     document.getElementById('success-message').classList.add('hidden');
@@ -907,6 +893,8 @@
 
         document.getElementById('listing-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            console.log('Form submitted');
+            
             const images = collectImages();
             if (images.length === 0) {
                 document.getElementById('error-message').textContent = 'At least one valid HTTPS image URL is required.';
@@ -914,7 +902,10 @@
                 document.getElementById('success-message').classList.add('hidden');
                 return;
             }
+            
             const formData = getFormData();
+            console.log('Form data collected:', formData);
+            
             const button = document.getElementById('publish-btn');
             await submitToItemEndpoint(formData, button);
         });

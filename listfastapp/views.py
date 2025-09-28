@@ -33,6 +33,7 @@ from django.contrib.auth.decorators import login_required
 import numpy as np
 from botocore.exceptions import ClientError
 import boto3
+from django.db.models import F, Sum, ExpressionWrapper, DecimalField as ModelDecimalField
 
 
 EBAY_ENV = config("EBAY_ENV", default="PRODUCTION")
@@ -376,10 +377,23 @@ class UserStatsAPIView(APIView):
         except eBayToken.DoesNotExist:
             return Response({"error": "Please authenticate with eBay first", "redirect": "ebay-auth"},status=status.HTTP_400_BAD_REQUEST)
 
-        listings = UserListing.objects.filter(user=request.user)
-        total_value = sum((l.price_value or 0) * (l.quantity or 0) for l in listings)
-        active_count = listings.filter(status='ACTIVE').count()
-        return Response({"total_listings": listings.count(),"active_listings": active_count,"total_inventory_value": float(total_value),"email": request.user.email})
+        listings_qs = UserListing.objects.filter(user=request.user)
+        total_listings = listings_qs.count()
+        active_count = listings_qs.filter(status='ACTIVE').count()
+        total_value_agg = listings_qs.aggregate(
+            total=Sum(
+                ExpressionWrapper(
+                    (F('price_value') * F('quantity')),
+                    output_field=ModelDecimalField(max_digits=18, decimal_places=2)
+                )
+            )
+        )['total'] or 0
+        return Response({
+            "total_listings": total_listings,
+            "active_listings": active_count,
+            "total_inventory_value": float(total_value_agg),
+            "email": request.user.email
+        })
 
 class MyListingsAPIView(APIView):
     def get(self, request):

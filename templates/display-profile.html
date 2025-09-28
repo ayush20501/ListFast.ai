@@ -747,7 +747,7 @@
         let currentListingsPage = 1;
         let hasMoreListings = false;
 
-        window.addEventListener('load', async () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const response = await fetch('/api/auth-status/');
                 const data = await response.json();
@@ -841,28 +841,33 @@
 
         async function loadProfileData() {
             try {
-                const statsResponse = await fetch('/api/user-stats/');
-                const statsData = await statsResponse.json();
+                const [statsResponse, profileResponse] = await Promise.all([
+                    fetch('/api/user-stats/'),
+                    fetch('/api/fetch-address-imageprofile/')
+                ]);
+
                 if (statsResponse.ok) {
+                    const statsData = await statsResponse.json();
                     document.getElementById('total-listings-stat').textContent = statsData.total_listings;
                     document.getElementById('active-listings-stat').textContent = statsData.active_listings;
                     document.getElementById('inventory-value-stat').textContent = `£${statsData.total_inventory_value.toFixed(2)}`;
                     document.getElementById('profile-email').textContent = statsData.email;
                 }
-                await loadUserProfile();
-                await loadRecentListings();
 
-                // Load profile pictures in navbar
-                try {
-                    const profileResponse = await fetch('/api/fetch-address-imageprofile/');
+                if (profileResponse.ok) {
                     const profileData = await profileResponse.json();
-                    if (profileResponse.ok && profileData.profile_pic_url) {
+                    currentUserProfile = profileData;
+                    displayAddress(profileData);
+                    if (profileData.profile_pic_url) {
                         document.getElementById('user-profile-pic').src = profileData.profile_pic_url;
                         document.getElementById('mobile-user-profile-pic').src = profileData.profile_pic_url;
                     }
-                } catch (error) {
-                    console.error('Error loading profile image:', error);
+                } else {
+                    displayAddress(null);
                 }
+
+                // Do not block on listings; kick it off in parallel
+                loadRecentListings();
             } catch (error) {
                 console.error('Error loading profile data:', error);
             }
