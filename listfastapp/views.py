@@ -1214,6 +1214,9 @@ class StripeWebhookAPIView(APIView):
 
             user = None
             user_id = metadata.get("user_id")
+            print("--------------------------------USER_ID--------------------------------")
+            print(user_id)
+            print("--------------------------------")
             if user_id:
                 try:
                     user = User.objects.get(id=int(user_id))
@@ -1228,9 +1231,18 @@ class StripeWebhookAPIView(APIView):
 
             elif mode == "subscription" and user:
                 subscription_id = session.get("subscription")
+                print("--------------------------------SUBSCRIPTION_ID--------------------------------")
+                print(subscription_id)
+                print("--------------------------------")
                 if subscription_id:
                     subscription = stripe.Subscription.retrieve(subscription_id)
+                    print("--------------------------------SUBSCRIPTION--------------------------------")
+                    print(subscription)
+                    print("--------------------------------")
                     price_id = subscription["items"]["data"][0]["price"]["id"]
+                    print("--------------------------------PRICE_ID--------------------------------")
+                    print(price_id)
+                    print("--------------------------------")
                     period_start = datetime.fromtimestamp(subscription["current_period_start"])
                     period_end = datetime.fromtimestamp(subscription["current_period_end"])
                     try:
