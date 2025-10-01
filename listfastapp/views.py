@@ -1132,11 +1132,12 @@ class UsageStatusAPIView(APIView):
     def get(self, request):
         return Response(_get_user_usage_snapshot(request.user))
 
-
 class CreateCheckoutSessionAPIView(APIView):
     def post(self, request):
-        kind = request.data.get("kind")  # subscription or credits
+        kind = request.data.get("kind") 
         plan_code = request.data.get("plan_code")
+        user = request.user
+
         if kind == "subscription":
             try:
                 plan = Plan.objects.get(code=plan_code)
@@ -1144,54 +1145,56 @@ class CreateCheckoutSessionAPIView(APIView):
                     return Response({"error": "Plan not available for purchase"}, status=400)
             except Plan.DoesNotExist:
                 return Response({"error": "Unknown plan"}, status=400)
+
             session = stripe.checkout.Session.create(
                 mode="subscription",
                 line_items=[{"price": plan.stripe_price_id, "quantity": 1}],
                 success_url=f"{SITE_BASE_URL}/pricing/?success=1",
                 cancel_url=f"{SITE_BASE_URL}/pricing/?canceled=1",
-                client_reference_id=str(request.user.id),
+                metadata={
+                    "user_id": str(user.id),
+                    "kind": "subscription",
+                    "plan_code": plan.code
+                }
             )
-            print("--------------------------------")
-            print(session)
-            print(request.user.id)
-            print("--------------------------------")
-
-
             return Response({"checkout_url": session.url})
+
         elif kind == "credits":
-            # 30 credits £7.99 one-off
             price_data = {
                 "currency": "gbp",
                 "unit_amount": int(7.99 * 100),
                 "product_data": {"name": "30 Listing Credits (30 days)"},
             }
+
             session = stripe.checkout.Session.create(
                 mode="payment",
                 line_items=[{"price_data": price_data, "quantity": 1}],
                 success_url=f"{SITE_BASE_URL}/pricing/?success=1",
                 cancel_url=f"{SITE_BASE_URL}/pricing/?canceled=1",
-                client_reference_id=str(request.user.id),
+                metadata={
+                    "user_id": str(user.id),
+                    "kind": "credits",
+                    "credits": 30
+                }
             )
-            # Create pending credit record linked to session
+
             CreditPurchase.objects.create(
-                user=request.user,
+                user=user,
                 credits_total=30,
                 credits_used=0,
                 expires_at=now() + timedelta(days=30),
                 stripe_session_id=session.id,
                 status="pending",
             )
+
             return Response({"checkout_url": session.url})
+
         else:
             return Response({"error": "Invalid kind"}, status=400)
-
 
 class StripeWebhookAPIView(APIView):
     def post(self, request):
         payload = request.body
-        print("--------------------------------")
-        print(payload)
-        print("--------------------------------")
         sig_header = request.META.get("HTTP_STRIPE_SIGNATURE")
         endpoint_secret = config("STRIPE_WEBHOOK_SECRET", default="")
         try:
