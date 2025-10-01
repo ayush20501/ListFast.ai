@@ -35,6 +35,7 @@ from botocore.exceptions import ClientError
 import boto3
 from django.db.models import F, Sum, ExpressionWrapper, DecimalField as ModelDecimalField
 from django.utils.timezone import now
+from django.contrib.auth import get_user_model
 
 import stripe
 
@@ -1195,57 +1196,44 @@ class CreateCheckoutSessionAPIView(APIView):
 class StripeWebhookAPIView(APIView):
     def post(self, request):
         payload = request.body
-        print("--------------------------------PAYLOAD--------------------------------")
-        print(payload)
-        print("--------------------------------")
         sig_header = request.META.get("HTTP_STRIPE_SIGNATURE")
         endpoint_secret = config("STRIPE_WEBHOOK_SECRET", default="")
-        print("--------------------------------ENDPOINT_SECRET--------------------------------")
-        print(endpoint_secret)
-        print("--------------------------------")
+
         try:
             event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
-            print("--------------------------------EVENT--------------------------------")
-            print(event)
-            print("--------------------------------")
-        except Exception as e:
-            print("--------------------------------ERROR--------------------------------")
-            print(e)
-            print("--------------------------------")
+        except Exception:
             return Response(status=400)
 
         if event["type"] == "checkout.session.completed":
             session = event["data"]["object"]
-            client_ref = session.get("client_reference_id")
             mode = session.get("mode")
-            from django.contrib.auth import get_user_model
+            metadata = session.get("metadata", {})
             User = get_user_model()
-            try:
-                user = User.objects.get(id=int(client_ref)) if client_ref else None
-            except Exception as e:
-                print("--------------------------------ERROR--------------------------------")
-                print(e)
-                print("--------------------------------")
-                user = None
+
+            user = None
+            user_id = metadata.get("user_id")
+            if user_id:
+                try:
+                    user = User.objects.get(id=int(user_id))
+                except User.DoesNotExist:
+                    user = None
 
             if mode == "payment" and user:
-                # mark credit purchase completed
-                CreditPurchase.objects.filter(stripe_session_id=session.get("id"), user=user).update(status="completed")
+                CreditPurchase.objects.filter(
+                    stripe_session_id=session.get("id"),
+                    user=user
+                ).update(status="completed")
+
             elif mode == "subscription" and user:
-                # move user to that plan and reset period
-                line_items = session.get("display_items") or []
-                # We rely on plan_code passed earlier; safer: map by price id
-                price_id = None
-                try:
-                    price_id = session["line_items"]["data"][0]["price"]["id"]
-                except Exception:
-                    pass
-                if price_id:
+                subscription_id = session.get("subscription")
+                if subscription_id:
+                    subscription = stripe.Subscription.retrieve(subscription_id)
+                    price_id = subscription["items"]["data"][0]["price"]["id"]
+                    period_start = datetime.fromtimestamp(subscription["current_period_start"])
+                    period_end = datetime.fromtimestamp(subscription["current_period_end"])
                     try:
                         plan = Plan.objects.get(stripe_price_id=price_id)
-                        period_start = now()
-                        period_end = period_start + timedelta(days=30)
-                        obj, created = UserPlan.objects.update_or_create(
+                        UserPlan.objects.update_or_create(
                             user=user,
                             defaults={
                                 "plan": plan,
@@ -1256,4 +1244,5 @@ class StripeWebhookAPIView(APIView):
                         )
                     except Plan.DoesNotExist:
                         pass
+
         return Response({"received": True})
