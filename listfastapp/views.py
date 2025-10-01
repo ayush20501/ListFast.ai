@@ -1195,11 +1195,17 @@ class CreateCheckoutSessionAPIView(APIView):
 class StripeWebhookAPIView(APIView):
     def post(self, request):
         payload = request.body
+        print("--------------------------------PAYLOAD--------------------------------")
+        print(payload)
+        print("--------------------------------")
         sig_header = request.META.get("HTTP_STRIPE_SIGNATURE")
         endpoint_secret = config("STRIPE_WEBHOOK_SECRET", default="")
+        print("--------------------------------ENDPOINT_SECRET--------------------------------")
+        print(endpoint_secret)
+        print("--------------------------------")
         try:
             event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
-            print("--------------------------------")
+            print("--------------------------------EVENT--------------------------------")
             print(event)
             print("--------------------------------")
         except Exception:
