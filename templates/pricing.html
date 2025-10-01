@@ -8,9 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
         body { font-family: 'Inter', sans-serif; }
-
         .hero-gradient {
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%);
             background-size: 200% 200%;
@@ -20,7 +18,6 @@
             0%, 100% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
         }
-
         .navbar-backdrop {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
@@ -35,22 +32,19 @@
             transition: all 0.3s ease; transform: translateX(-50%);
         }
         .nav-link:hover::before { width: 100%; }
-
         .profile-dropdown { transition: all 0.3s ease; transform: scale(0.95); opacity: 0; visibility: hidden; }
         .profile-dropdown.active { transform: scale(1); opacity: 1; visibility: visible; }
-
         .hamburger-line { width: 24px; height: 3px; background-color: #374151; margin: 3px 0; transition: 0.3s; border-radius: 3px; }
         .hamburger.open .hamburger-line:nth-child(1) { transform: rotate(-45deg) translate(-5px, 6px); }
         .hamburger.open .hamburger-line:nth-child(2) { opacity: 0; }
         .hamburger.open .hamburger-line:nth-child(3) { transform: rotate(45deg) translate(-5px, -6px); }
         .mobile-menu { transition: all 0.3s ease-in-out; max-height: 0; overflow: hidden; }
         .mobile-menu.active { max-height: 500px; }
-
         .card { background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border: 2px solid transparent; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
         .card:hover { border: 2px solid #3b82f6; background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
         .badge { background: rgba(99,102,241,0.1); color: #4f46e5; }
     </style>
-    </head>
+</head>
 <body class="bg-gray-50">
     <nav class="navbar-backdrop fixed w-full top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -61,28 +55,35 @@
                         <span class="text-xl font-bold text-gray-900">ListFast.ai</span>
                     </a>
                 </div>
-
                 <div class="hidden lg:flex items-center space-x-1">
                     <a href="/" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Home</a>
-                    <a href="/services/" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Services</a>
-                    <a href="/pricing/" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Pricing</a>
+                    <a href="/features/" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Features</a>
+                    <a href="/about/" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">About Us</a>
+                    <a href="/blogs/" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Blogs</a>
+                    <a href="/faq/" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Help Center</a>
+                    <a href="/contact/" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Contact</a>
+                    <a href="/legal/" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Legal & Compliance</a>
                 </div>
-
-                <div class="hidden lg:flex items-center space-x-4">
-                    <span id="user-email" class="text-gray-600 text-sm font-medium"></span>
-                    <div id="nav-usage" class="hidden items-center space-x-2 text-xs px-3 py-1 rounded-full bg-gray-100"></div>
-                    <div class="relative">
-                        <button id="profile-dropdown-btn" class="flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 transition-colors">
-                            <img id="user-profile-pic" src="https://via.placeholder.com/32" alt="Profile" class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
-                        </button>
-                        <div id="profile-dropdown" class="profile-dropdown absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
-                            <a href="/display-profile/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">Profile</a>
-                            <hr class="my-1">
-                            <button id="logout-btn" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">Logout</button>
+                <div class="hidden lg:flex items-center space-x-4" id="auth-section">
+                    <div id="profile-section" class="flex items-center space-x-4 hidden">
+                        <span id="user-email" class="text-gray-600 text-sm font-medium"></span>
+                        <div id="nav-usage" class="hidden items-center space-x-2 text-xs px-3 py-1 rounded-full bg-gray-100"></div>
+                        <div class="relative">
+                            <button id="profile-dropdown-btn" class="flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 transition-colors">
+                                <img id="user-profile-pic" src="https://via.placeholder.com/32" alt="Profile" class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
+                            </button>
+                            <div id="profile-dropdown" class="profile-dropdown absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
+                                <a href="/display-profile/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">Profile</a>
+                                <hr class="my-1">
+                                <button id="logout-btn" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">Logout</button>
+                            </div>
                         </div>
                     </div>
+                    <div id="unauthenticated-nav" class="flex items-center space-x-4">
+                        <button id="sign-in-btn" class="text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors">Sign In</button>
+                        <button id="start-free-btn" class="hero-gradient text-white px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity">Start Free</button>
+                    </div>
                 </div>
-
                 <div class="lg:hidden">
                     <button id="hamburger-btn" class="hamburger p-2 focus:outline-none">
                         <div class="hamburger-line"></div>
@@ -91,24 +92,32 @@
                     </button>
                 </div>
             </div>
-
             <div id="mobile-menu" class="mobile-menu lg:hidden bg-white border-t border-gray-100">
                 <div class="px-4 py-4 space-y-4">
                     <a href="/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Home</a>
-                    <a href="/services/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Services</a>
-                    <a href="/pricing/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Pricing</a>
+                    <a href="/features/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Features</a>
+                    <a href="/about/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">About Us</a>
+                    <a href="/blogs/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Blogs</a>
+                    <a href="/faq/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Help Center</a>
+                    <a href="/contact/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Contact</a>
+                    <a href="/legal/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Legal & Compliance</a>
                     <hr class="my-2">
-                    <div class="flex items-center space-x-3 py-2">
-                        <img id="mobile-user-profile-pic" src="https://via.placeholder.com/32" alt="Profile" class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
-                        <span id="mobile-user-email" class="text-gray-600 text-sm font-medium"></span>
+                    <div id="mobile-profile-section" class="hidden">
+                        <div class="flex items-center space-x-3 py-2">
+                            <img id="mobile-user-profile-pic" src="https://via.placeholder.com/32" alt="Profile" class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
+                            <span id="mobile-user-email" class="text-gray-600 text-sm font-medium"></span>
+                        </div>
+                        <a href="/display-profile/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Profile Settings</a>
+                        <button id="mobile-logout-btn" class="w-full text-left text-red-600 hover:text-red-700 font-medium py-2 transition-colors">Logout</button>
                     </div>
-                    <a href="/display-profile/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Profile Settings</a>
-                    <button id="mobile-logout-btn" class="w-full text-left text-red-600 hover:text-red-700 font-medium py-2 transition-colors">Logout</button>
+                    <div id="mobile-unauthenticated-nav" class="flex flex-col space-y-2">
+                        <button id="mobile-sign-in-btn" class="text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors text-left">Sign In</button>
+                        <button id="mobile-start-free-btn" class="hero-gradient text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity text-left">Start Free</button>
+                    </div>
                 </div>
             </div>
         </div>
     </nav>
-
     <main class="pt-20">
         <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-10">
@@ -118,7 +127,6 @@
                 </h1>
                 <p class="text-gray-600 mt-3">Pick a monthly plan or buy one-off credits when you need them.</p>
             </div>
-
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                 {% for p in plans %}
                 <div class="card rounded-2xl p-6 relative">
@@ -134,16 +142,10 @@
                         <div class="text-3xl font-extrabold">£{{ p.price_amount_gbp }}</div>
                         <div class="text-gray-500 mb-1">/mo</div>
                     </div>
-                    <!-- <ul class="mt-6 space-y-2 text-sm text-gray-700">
-                        <li>• AI title & description</li>
-                        <li>• Image enhancement integration</li>
-                        <li>• eBay publish automation</li>
-                    </ul> -->
                     <button data-plan-code="{{ p.code }}" class="buy-sub mt-6 w-full hero-gradient hover:opacity-90 text-white py-2.5 rounded-lg font-semibold">Choose {{ p.name }}</button>
                 </div>
                 {% endfor %}
             </div>
-
             <div class="card rounded-2xl p-6 md:flex md:items-center md:justify-between">
                 <div>
                     <h3 class="text-xl font-semibold">One-off Credits</h3>
@@ -156,9 +158,8 @@
             </div>
         </section>
     </main>
-
     <script>
-        async function createSession(body){
+        async function createSession(body) {
             const getCookie = (name) => {
                 let cookieValue = null;
                 if (document.cookie && document.cookie !== '') {
@@ -180,55 +181,88 @@
                 body: JSON.stringify(body)
             });
             const data = await res.json();
-            if(res.ok && data.checkout_url){
+            if (res.ok && data.checkout_url) {
                 window.location.href = data.checkout_url;
             } else {
                 alert(data.error || 'Unable to start checkout');
             }
         }
-
+        let isLoggedIn = false;
         document.querySelectorAll('.buy-sub').forEach(btn => {
             btn.addEventListener('click', () => {
+                if (!isLoggedIn) {
+                    alert('Please login to purchase a plan');
+                    return;
+                }
                 createSession({ kind: 'subscription', plan_code: btn.dataset.planCode });
             });
         });
         document.getElementById('buy-credits').addEventListener('click', () => {
+            if (!isLoggedIn) {
+                alert('Please login to purchase credits');
+                return;
+            }
             createSession({ kind: 'credits' });
         });
-
-        // Navbar usage badge + auth/profile wiring (consistent with other pages)
-        (async () => {
+        async function checkAuthStatus() {
             try {
                 const authRes = await fetch('/api/auth-status/');
                 const auth = await authRes.json();
-                if (!auth.is_logged_in) { window.location.href = '/login/'; return; }
-                document.getElementById('user-email').textContent = auth.email;
-                document.getElementById('mobile-user-email').textContent = auth.email;
-                try {
-                    const profileResponse = await fetch('/api/fetch-address-imageprofile/');
-                    const profileData = await profileResponse.json();
-                    if (profileResponse.ok && profileData.profile_pic_url) {
-                        document.getElementById('user-profile-pic').src = profileData.profile_pic_url;
-                        document.getElementById('mobile-user-profile-pic').src = profileData.profile_pic_url;
+                isLoggedIn = auth.is_logged_in;
+                const profileSection = document.getElementById('profile-section');
+                const unauthNav = document.getElementById('unauthenticated-nav');
+                const mobileProfileSection = document.getElementById('mobile-profile-section');
+                const mobileUnauthNav = document.getElementById('mobile-unauthenticated-nav');
+                if (isLoggedIn) {
+                    profileSection.classList.remove('hidden');
+                    unauthNav.classList.add('hidden');
+                    mobileProfileSection.classList.remove('hidden');
+                    mobileUnauthNav.classList.add('hidden');
+                    document.getElementById('user-email').textContent = auth.email;
+                    document.getElementById('mobile-user-email').textContent = auth.email;
+                    try {
+                        const profileResponse = await fetch('/api/fetch-address-imageprofile/');
+                        const profileData = await profileResponse.json();
+                        if (profileResponse.ok && profileData.profile_pic_url) {
+                            document.getElementById('user-profile-pic').src = profileData.profile_pic_url;
+                            document.getElementById('mobile-user-profile-pic').src = profileData.profile_pic_url;
+                        }
+                    } catch {}
+                    const res = await fetch('/api/usage/');
+                    const u = await res.json();
+                    if (u && u.plan) {
+                        const el = document.getElementById('nav-usage');
+                        el.classList.remove('hidden');
+                        el.classList.add('flex');
+                        el.textContent = `Plan: ${u.plan} • ${u.used}/${u.quota} (${u.credits_left} cr)`;
                     }
-                } catch {}
-                const res = await fetch('/api/usage/');
-                const u = await res.json();
-                if (u && u.plan) {
-                    const el = document.getElementById('nav-usage');
-                    el.classList.remove('hidden');
-                    el.classList.add('flex');
-                    el.textContent = `Plan: ${u.plan} • ${u.used}/${u.quota} (${u.credits_left} cr)`;
+                } else {
+                    profileSection.classList.add('hidden');
+                    unauthNav.classList.remove('hidden');
+                    mobileProfileSection.classList.add('hidden');
+                    mobileUnauthNav.classList.remove('hidden');
                 }
             } catch (e) {}
-        })();
-
-        // Navbar interactions
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuthStatus();
+            document.getElementById('sign-in-btn').addEventListener('click', () => {
+                window.location.href = '/login/';
+            });
+            document.getElementById('start-free-btn').addEventListener('click', () => {
+                window.location.href = '/signup/';
+            });
+            document.getElementById('mobile-sign-in-btn').addEventListener('click', () => {
+                window.location.href = '/login/';
+            });
+            document.getElementById('mobile-start-free-btn').addEventListener('click', () => {
+                window.location.href = '/signup/';
+            });
+        });
         const hamburgerBtn = document.getElementById('hamburger-btn');
         const mobileMenu = document.getElementById('mobile-menu');
         const profileDropdownBtn = document.getElementById('profile-dropdown-btn');
         const profileDropdown = document.getElementById('profile-dropdown');
-
         if (hamburgerBtn) {
             hamburgerBtn.addEventListener('click', () => {
                 hamburgerBtn.classList.toggle('open');
@@ -246,7 +280,6 @@
                 }
             });
         }
-
         const getCookie = (name) => {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
@@ -263,7 +296,10 @@
         };
         const csrftoken = getCookie('csrftoken');
         const logout = async () => {
-            try { await fetch('/logout/', { method: 'POST', headers: { 'X-CSRFToken': csrftoken } }); window.location.href = '/'; } catch {}
+            try {
+                await fetch('/logout/', { method: 'POST', headers: { 'X-CSRFToken': csrftoken } });
+                window.location.href = '/';
+            } catch {}
         };
         const logoutBtn = document.getElementById('logout-btn');
         const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
@@ -272,5 +308,3 @@
     </script>
 </body>
 </html>
-
-

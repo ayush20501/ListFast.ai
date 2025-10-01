@@ -155,7 +155,7 @@ def services_view(request):
     return render(request, 'services.html')
 
 
-@login_required
+
 def pricing_view(request):
     plans = Plan.objects.filter(code__in=["FREE", "PRO", "BUSINESS"]).order_by("monthly_quota")
     context = {
