@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import UserProfile, eBayToken, OTP, ListingCount, UserListing, TaskRecord
+from .models import *
 
 
 admin.site.register(UserProfile)
@@ -8,3 +8,6 @@ admin.site.register(OTP)
 admin.site.register(ListingCount)
 admin.site.register(UserListing)
 admin.site.register(TaskRecord)
+admin.site.register(Plan)
+admin.site.register(UserPlan)
+admin.site.register(CreditPurchase)

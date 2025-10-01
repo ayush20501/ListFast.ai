@@ -19,7 +19,7 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.serializers import Serializer, CharField, DecimalField, IntegerField, ChoiceField, ListField, URLField
 from decouple import config
-from .models import UserProfile, eBayToken, OTP, ListingCount, UserListing, TaskRecord
+from .models import UserProfile, eBayToken, OTP, ListingCount, UserListing, TaskRecord, Plan, UserPlan, CreditPurchase
 from .tasks import create_single_item_listing_task, create_multipack_listing_task, create_bundle_listing_task
 from . import helpers
 from .mailchimp_service import send_welcome_email_via_mailchimp
@@ -34,6 +34,9 @@ import numpy as np
 from botocore.exceptions import ClientError
 import boto3
 from django.db.models import F, Sum, ExpressionWrapper, DecimalField as ModelDecimalField
+from django.utils.timezone import now
+
+import stripe
 
 
 EBAY_ENV = config("EBAY_ENV", default="PRODUCTION")
@@ -58,6 +61,9 @@ IMGBB_API_KEY = config("IMGBB_API_KEY", default="")
 REMBG_API_KEY = config("REMBG_API_KEY", default="")
 REMBG_API_URL = config("REMBG_API_URL", default="")
 SECRET_KEY = config("SECRET_KEY")
+STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="")
+SITE_BASE_URL = config("SITE_BASE_URL", default="http://localhost:8000")
+stripe.api_key = STRIPE_SECRET_KEY
 
 
 SCOPES = " ".join([
@@ -157,6 +163,19 @@ def single_listing_success_view(request):
 @login_required
 def services_view(request):
     return render(request, 'services.html')
+
+
+@login_required
+def pricing_view(request):
+    plans = Plan.objects.filter(code__in=["FREE", "PRO", "BUSINESS"]).order_by("monthly_quota")
+    context = {
+        "plans": plans,
+        "one_off": {
+            "credits": 30,
+            "price": 7.99,
+        }
+    }
+    return render(request, 'pricing.html', context)
 
 @login_required
 def multi_item_listing_view(request):
@@ -388,11 +407,14 @@ class UserStatsAPIView(APIView):
                 )
             )
         )['total'] or 0
+        # Usage snapshot
+        usage = _get_user_usage_snapshot(request.user)
         return Response({
             "total_listings": total_listings,
             "active_listings": active_count,
             "total_inventory_value": float(total_value_agg),
-            "email": request.user.email
+            "email": request.user.email,
+            "usage": usage,
         })
 
 class MyListingsAPIView(APIView):
@@ -625,6 +647,11 @@ class VerifyOTPAPIView(APIView):
             user.is_active = True
             user.save()
             login(request, user)
+            # ensure default free plan on signup
+            try:
+                _ensure_default_free_plan(user)
+            except Exception:
+                pass
             request.session.pop('signup_data', None)
             
             # Send welcome email via Mailchimp
@@ -844,6 +871,11 @@ class SingleItemListingAPIView(APIView):
         except eBayToken.DoesNotExist:
             return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Check limits before queueing
+        allowed, reason = _can_consume_listing(request.user)
+        if not allowed:
+            return Response({"error": reason, "redirect": "/pricing/"}, status=status.HTTP_402_PAYMENT_REQUIRED)
+
         payload = {
             "raw_text": request.data.get("raw_text", ""),
             "images": request.data.get("images", []),
@@ -936,6 +968,10 @@ class MultipackListingAPIView(APIView):
         except eBayToken.DoesNotExist:
             return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
 
+        allowed, reason = _can_consume_listing(request.user)
+        if not allowed:
+            return Response({"error": reason, "redirect": "/pricing/"}, status=status.HTTP_402_PAYMENT_REQUIRED)
+
         payload = {
             "raw_text": request.data.get("raw_text", ""),
             "images": request.data.get("images", []),
@@ -983,6 +1019,10 @@ class BundleListingAPIView(APIView):
         except eBayToken.DoesNotExist:
             return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
 
+        allowed, reason = _can_consume_listing(request.user)
+        if not allowed:
+            return Response({"error": reason, "redirect": "/pricing/"}, status=status.HTTP_402_PAYMENT_REQUIRED)
+
         payload = {
             "raw_text": request.data.get("raw_text", ""),
             "images": request.data.get("images", []),
@@ -1009,3 +1049,184 @@ class BundleListingAPIView(APIView):
             pass
 
         return Response({"task_id": task.id, "status": "queued", "redirect_url": f"/single-listing-success/?task_id={task.id}"}, status=status.HTTP_202_ACCEPTED)
+
+
+# ----------------------- Usage helpers -----------------------
+
+def _ensure_default_free_plan(user):
+    try:
+        UserPlan.objects.get(user=user)
+        return
+    except UserPlan.DoesNotExist:
+        pass
+    free, _ = Plan.objects.get_or_create(code="FREE", defaults={
+        "name": "Free",
+        "monthly_quota": 2,
+        "price_amount_gbp": 0,
+    })
+    period_start = now()
+    period_end = period_start + timedelta(days=30)
+    UserPlan.objects.create(user=user, plan=free, current_period_start=period_start, current_period_end=period_end, listings_used=0)
+
+
+def _reset_if_period_over(user_plan: UserPlan):
+    if user_plan.current_period_end <= now():
+        user_plan.current_period_start = now()
+        user_plan.current_period_end = now() + timedelta(days=30)
+        user_plan.listings_used = 0
+        user_plan.save(update_fields=["current_period_start", "current_period_end", "listings_used"]) 
+
+
+def _get_user_usage_snapshot(user):
+    _ensure_default_free_plan(user)
+    up = UserPlan.objects.get(user=user)
+    _reset_if_period_over(up)
+    # Credits remaining in active credit packs
+    active_credits = CreditPurchase.objects.filter(user=user, status="completed", expires_at__gt=now())
+    credits_left = sum(max(0, c.credits_total - c.credits_used) for c in active_credits)
+    return {
+        "plan": up.plan.code,
+        "period_end": up.current_period_end.isoformat(),
+        "quota": up.plan.monthly_quota,
+        "used": up.listings_used,
+        "remaining": max(0, up.plan.monthly_quota - up.listings_used),
+        "credits_left": credits_left,
+    }
+
+
+def _can_consume_listing(user):
+    _ensure_default_free_plan(user)
+    up = UserPlan.objects.get(user=user)
+    _reset_if_period_over(up)
+    if up.listings_used < up.plan.monthly_quota:
+        return True, None
+    # try credits
+    credits = CreditPurchase.objects.filter(user=user, status="completed", expires_at__gt=now()).order_by("created_at")
+    for c in credits:
+        if c.credits_used < c.credits_total:
+            return True, None
+    return False, "Usage limit reached. Please upgrade plan or buy credits."
+
+
+def consume_listing_success(user):
+    _ensure_default_free_plan(user)
+    up = UserPlan.objects.get(user=user)
+    _reset_if_period_over(up)
+    if up.listings_used < up.plan.monthly_quota:
+        up.listings_used += 1
+        up.save(update_fields=["listings_used"]) 
+        return
+    # consume from credits FIFO
+    credits = CreditPurchase.objects.filter(user=user, status="completed", expires_at__gt=now()).order_by("created_at")
+    for c in credits:
+        if c.credits_used < c.credits_total:
+            c.credits_used += 1
+            c.save(update_fields=["credits_used"]) 
+            return
+    # If here, nothing to consume; noop
+
+
+# ----------------------- Payments API -----------------------
+
+class UsageStatusAPIView(APIView):
+    def get(self, request):
+        return Response(_get_user_usage_snapshot(request.user))
+
+
+class CreateCheckoutSessionAPIView(APIView):
+    def post(self, request):
+        kind = request.data.get("kind")  # subscription or credits
+        plan_code = request.data.get("plan_code")
+        if kind == "subscription":
+            try:
+                plan = Plan.objects.get(code=plan_code)
+                if not plan.stripe_price_id:
+                    return Response({"error": "Plan not available for purchase"}, status=400)
+            except Plan.DoesNotExist:
+                return Response({"error": "Unknown plan"}, status=400)
+            session = stripe.checkout.Session.create(
+                mode="subscription",
+                line_items=[{"price": plan.stripe_price_id, "quantity": 1}],
+                success_url=f"{SITE_BASE_URL}/pricing/?success=1",
+                cancel_url=f"{SITE_BASE_URL}/pricing/?canceled=1",
+                client_reference_id=str(request.user.id),
+            )
+            return Response({"checkout_url": session.url})
+        elif kind == "credits":
+            # 30 credits £7.99 one-off
+            price_data = {
+                "currency": "gbp",
+                "unit_amount": int(7.99 * 100),
+                "product_data": {"name": "30 Listing Credits (30 days)"},
+            }
+            session = stripe.checkout.Session.create(
+                mode="payment",
+                line_items=[{"price_data": price_data, "quantity": 1}],
+                success_url=f"{SITE_BASE_URL}/pricing/?success=1",
+                cancel_url=f"{SITE_BASE_URL}/pricing/?canceled=1",
+                client_reference_id=str(request.user.id),
+            )
+            # Create pending credit record linked to session
+            CreditPurchase.objects.create(
+                user=request.user,
+                credits_total=30,
+                credits_used=0,
+                expires_at=now() + timedelta(days=30),
+                stripe_session_id=session.id,
+                status="pending",
+            )
+            return Response({"checkout_url": session.url})
+        else:
+            return Response({"error": "Invalid kind"}, status=400)
+
+
+class StripeWebhookAPIView(APIView):
+    def post(self, request):
+        payload = request.body
+        sig_header = request.META.get("HTTP_STRIPE_SIGNATURE")
+        endpoint_secret = config("STRIPE_WEBHOOK_SECRET", default="")
+        try:
+            event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
+        except Exception:
+            return Response(status=400)
+
+        if event["type"] == "checkout.session.completed":
+            session = event["data"]["object"]
+            client_ref = session.get("client_reference_id")
+            mode = session.get("mode")
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            try:
+                user = User.objects.get(id=int(client_ref)) if client_ref else None
+            except Exception:
+                user = None
+
+            if mode == "payment" and user:
+                # mark credit purchase completed
+                CreditPurchase.objects.filter(stripe_session_id=session.get("id"), user=user).update(status="completed")
+            elif mode == "subscription" and user:
+                # move user to that plan and reset period
+                line_items = session.get("display_items") or []
+                # We rely on plan_code passed earlier; safer: map by price id
+                price_id = None
+                try:
+                    price_id = session["line_items"]["data"][0]["price"]["id"]
+                except Exception:
+                    pass
+                if price_id:
+                    try:
+                        plan = Plan.objects.get(stripe_price_id=price_id)
+                        period_start = now()
+                        period_end = period_start + timedelta(days=30)
+                        obj, created = UserPlan.objects.update_or_create(
+                            user=user,
+                            defaults={
+                                "plan": plan,
+                                "current_period_start": period_start,
+                                "current_period_end": period_end,
+                                "listings_used": 0,
+                            }
+                        )
+                    except Plan.DoesNotExist:
+                        pass
+        return Response({"received": True})

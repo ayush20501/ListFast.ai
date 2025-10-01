@@ -8,6 +8,7 @@ urlpatterns = [
     path('profile/', views.profile_view, name='profile'),
     path('image-enhancement/', views.image_enhancement_view, name='image-enhancement'),
     path('display-profile/', views.display_profile_view, name='display-profile'),
+    path('pricing/', views.pricing_view, name='pricing'),
     path('ebay-auth/', views.ebay_auth_view, name='ebay-auth'),
     path('success/', views.success_view, name='success'),
     path('single-listing-success/', views.single_listing_success_view, name='single-listing-success'),
@@ -41,4 +42,7 @@ urlpatterns = [
     path('api/my-tasks/', views.MyTasksAPIView.as_view(), name='api-my-tasks'),
     path('api/multipack-listing/', views.MultipackListingAPIView.as_view(), name='api-multipack-listing'),
     path('api/bundle-listing/', views.BundleListingAPIView.as_view(), name='api-bundle-listing'),
+    path('api/usage/', views.UsageStatusAPIView.as_view(), name='api-usage-local'),
+    path('api/create-checkout-session/', views.CreateCheckoutSessionAPIView.as_view(), name='api-create-checkout-local'),
+    path('api/stripe-webhook/', views.StripeWebhookAPIView.as_view(), name='api-stripe-webhook'),
 ]
