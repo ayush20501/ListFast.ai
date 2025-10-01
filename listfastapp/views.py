@@ -1151,6 +1151,12 @@ class CreateCheckoutSessionAPIView(APIView):
                 cancel_url=f"{SITE_BASE_URL}/pricing/?canceled=1",
                 client_reference_id=str(request.user.id),
             )
+            print("--------------------------------")
+            print(session)
+            print(request.user.id)
+            print("--------------------------------")
+
+
             return Response({"checkout_url": session.url})
         elif kind == "credits":
             # 30 credits £7.99 one-off
@@ -1183,6 +1189,9 @@ class CreateCheckoutSessionAPIView(APIView):
 class StripeWebhookAPIView(APIView):
     def post(self, request):
         payload = request.body
+        print("--------------------------------")
+        print(payload)
+        print("--------------------------------")
         sig_header = request.META.get("HTTP_STRIPE_SIGNATURE")
         endpoint_secret = config("STRIPE_WEBHOOK_SECRET", default="")
         try:
