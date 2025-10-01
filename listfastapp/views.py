@@ -1,7 +1,6 @@
 from decimal import Decimal
 import io
 import os
-
 import random
 from datetime import datetime, timedelta
 from urllib.parse import quote
@@ -23,20 +22,12 @@ from .models import UserProfile, eBayToken, OTP, ListingCount, UserListing, Task
 from .tasks import create_single_item_listing_task, create_multipack_listing_task, create_bundle_listing_task
 from . import helpers
 from .mailchimp_service import send_welcome_email_via_mailchimp
-from werkzeug.utils import secure_filename
 import uuid
-from typing import Any, Dict, Tuple, Optional
-from PIL import Image, ImageDraw, ImageFont, ImageFile, ImageFilter
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import SessionAuthentication
+from PIL import Image, ImageDraw, ImageFile
 from django.contrib.auth.decorators import login_required
-import numpy as np
-from botocore.exceptions import ClientError
-import boto3
 from django.db.models import F, Sum, ExpressionWrapper, DecimalField as ModelDecimalField
 from django.utils.timezone import now
 from django.contrib.auth import get_user_model
-
 import stripe
 
 
@@ -109,8 +100,6 @@ class ListingSerializer(Serializer):
     quantity = IntegerField(min_value=1, max_value=999)
     condition = ChoiceField(choices=["NEW", "USED", "REFURBISHED"], required=False)
 
-
-# ----------------------------------Views----------------------------------
 
 def index_view(request):
     return render(request, 'index.html')
@@ -226,7 +215,6 @@ def custom_404_view(request, invalid_path):
     return render(request, '404.html', status=404)
 
 def logout_view(request):
-    print(request)
     logout(request) 
     return redirect('index') 
 
@@ -289,7 +277,6 @@ def ebay_login_view(request):
 
     print(url)
     return redirect(url)
-# ---------------------------------------APIViews---------------------------------------
 
 class LoginAPIView(APIView):
     def post(self, request):
@@ -408,8 +395,7 @@ class UserStatsAPIView(APIView):
                 )
             )
         )['total'] or 0
-        # Usage snapshot
-        usage = _get_user_usage_snapshot(request.user)
+        usage = helpers._get_user_usage_snapshot(request.user)
         return Response({
             "total_listings": total_listings,
             "active_listings": active_count,
@@ -648,16 +634,13 @@ class VerifyOTPAPIView(APIView):
             user.is_active = True
             user.save()
             login(request, user)
-            # ensure default free plan on signup
             try:
-                _ensure_default_free_plan(user)
+                helpers._ensure_default_free_plan(user)
             except Exception:
                 pass
             request.session.pop('signup_data', None)
             
-            # Send welcome email via Mailchimp
             try:
-                # Extract user name from email (before @ symbol) as fallback
                 user_name = email.split('@')[0].replace('.', ' ').replace('_', ' ').title()
                 mailchimp_success = send_welcome_email_via_mailchimp(email, user_name)
                 if mailchimp_success:
@@ -665,7 +648,6 @@ class VerifyOTPAPIView(APIView):
                 else:
                     print(f"[Registration] Failed to send welcome email to {email} via Mailchimp")
             except Exception as mailchimp_error:
-                # Don't fail registration if Mailchimp fails
                 print(f"[Registration] Mailchimp error for {email}: {str(mailchimp_error)}")
             
             return Response({
@@ -872,8 +854,7 @@ class SingleItemListingAPIView(APIView):
         except eBayToken.DoesNotExist:
             return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Check limits before queueing
-        allowed, reason = _can_consume_listing(request.user)
+        allowed, reason = helpers._can_consume_listing(request.user)
         if not allowed:
             return Response({"error": reason, "redirect": "/pricing/"}, status=status.HTTP_402_PAYMENT_REQUIRED)
 
@@ -948,10 +929,6 @@ class MyTasksAPIView(APIView):
             ]
         })
 
-# --------------------------------------------------------------Multipack View--------------------------------------------------------------
-
-
-
 class MultipackListingAPIView(APIView):
     def post(self, request):
         if request.data.get("action", "publish") != "publish":
@@ -969,7 +946,7 @@ class MultipackListingAPIView(APIView):
         except eBayToken.DoesNotExist:
             return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
 
-        allowed, reason = _can_consume_listing(request.user)
+        allowed, reason = helpers._can_consume_listing(request.user)
         if not allowed:
             return Response({"error": reason, "redirect": "/pricing/"}, status=status.HTTP_402_PAYMENT_REQUIRED)
 
@@ -1000,9 +977,6 @@ class MultipackListingAPIView(APIView):
 
         return Response({"task_id": task.id, "status": "queued", "redirect_url": f"/single-listing-success/?task_id={task.id}"}, status=status.HTTP_202_ACCEPTED)
 
-# --------------------------------------------------------------Bundle View--------------------------------------------------------------
-
-    
 class BundleListingAPIView(APIView):
     def post(self, request):
         if request.data.get("action", "publish") != "publish":
@@ -1020,7 +994,7 @@ class BundleListingAPIView(APIView):
         except eBayToken.DoesNotExist:
             return Response({"error": "Please authenticate with eBay first"}, status=status.HTTP_400_BAD_REQUEST)
 
-        allowed, reason = _can_consume_listing(request.user)
+        allowed, reason = helpers._can_consume_listing(request.user)
         if not allowed:
             return Response({"error": reason, "redirect": "/pricing/"}, status=status.HTTP_402_PAYMENT_REQUIRED)
 
@@ -1052,94 +1026,25 @@ class BundleListingAPIView(APIView):
         return Response({"task_id": task.id, "status": "queued", "redirect_url": f"/single-listing-success/?task_id={task.id}"}, status=status.HTTP_202_ACCEPTED)
 
 
-# ----------------------- Usage helpers -----------------------
-
-def _ensure_default_free_plan(user):
-    try:
-        UserPlan.objects.get(user=user)
-        return
-    except UserPlan.DoesNotExist:
-        pass
-    free, _ = Plan.objects.get_or_create(code="FREE", defaults={
-        "name": "Free",
-        "monthly_quota": 2,
-        "price_amount_gbp": 0,
-    })
-    period_start = now()
-    period_end = period_start + timedelta(days=30)
-    UserPlan.objects.create(user=user, plan=free, current_period_start=period_start, current_period_end=period_end, listings_used=0)
-
-
-def _reset_if_period_over(user_plan: UserPlan):
-    if user_plan.current_period_end <= now():
-        user_plan.current_period_start = now()
-        user_plan.current_period_end = now() + timedelta(days=30)
-        user_plan.listings_used = 0
-        user_plan.save(update_fields=["current_period_start", "current_period_end", "listings_used"]) 
-
-
-def _get_user_usage_snapshot(user):
-    _ensure_default_free_plan(user)
-    up = UserPlan.objects.get(user=user)
-    _reset_if_period_over(up)
-    # Credits remaining in active credit packs
-    active_credits = CreditPurchase.objects.filter(user=user, status="completed", expires_at__gt=now())
-    credits_left = sum(max(0, c.credits_total - c.credits_used) for c in active_credits)
-    return {
-        "plan": up.plan.code,
-        "period_end": up.current_period_end.isoformat(),
-        "quota": up.plan.monthly_quota,
-        "used": up.listings_used,
-        "remaining": max(0, up.plan.monthly_quota - up.listings_used),
-        "credits_left": credits_left,
-    }
-
-
-def _can_consume_listing(user):
-    _ensure_default_free_plan(user)
-    up = UserPlan.objects.get(user=user)
-    _reset_if_period_over(up)
-    if up.listings_used < up.plan.monthly_quota:
-        return True, None
-    # try credits
-    credits = CreditPurchase.objects.filter(user=user, status="completed", expires_at__gt=now()).order_by("created_at")
-    for c in credits:
-        if c.credits_used < c.credits_total:
-            return True, None
-    return False, "Usage limit reached. Please upgrade plan or buy credits."
-
-
-def consume_listing_success(user):
-    _ensure_default_free_plan(user)
-    up = UserPlan.objects.get(user=user)
-    _reset_if_period_over(up)
-    if up.listings_used < up.plan.monthly_quota:
-        up.listings_used += 1
-        up.save(update_fields=["listings_used"]) 
-        return
-    # consume from credits FIFO
-    credits = CreditPurchase.objects.filter(user=user, status="completed", expires_at__gt=now()).order_by("created_at")
-    for c in credits:
-        if c.credits_used < c.credits_total:
-            c.credits_used += 1
-            c.save(update_fields=["credits_used"]) 
-            return
-    # If here, nothing to consume; noop
-
-
-# ----------------------- Payments API -----------------------
-
 class UsageStatusAPIView(APIView):
     def get(self, request):
-        return Response(_get_user_usage_snapshot(request.user))
+        return Response(helpers._get_user_usage_snapshot(request.user))
 
 class CreateCheckoutSessionAPIView(APIView):
     def post(self, request):
         kind = request.data.get("kind") 
         plan_code = request.data.get("plan_code")
         user = request.user
-
         if kind == "subscription":
+            try:
+                up = UserPlan.objects.get(user=user)
+                if up.current_period_start and up.current_period_start > now():
+                    return Response({
+                        "error": "Your current plan is not active yet. Please wait until it becomes active before purchasing another plan."},
+                        status=400
+                    )
+            except UserPlan.DoesNotExist:
+                pass
             try:
                 plan = Plan.objects.get(code=plan_code)
                 if not plan.stripe_price_id:
@@ -1203,9 +1108,6 @@ class StripeWebhookAPIView(APIView):
             event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
         except Exception:
             return Response(status=400)
-        print("--------------------------------EVENT--------------------------------")
-        print(event)
-        print("--------------------------------")
         if event["type"] == "checkout.session.completed":
             session = event["data"]["object"]
             mode = session.get("mode")
@@ -1214,9 +1116,6 @@ class StripeWebhookAPIView(APIView):
 
             user = None
             user_id = metadata.get("user_id")
-            print("--------------------------------USER_ID--------------------------------")
-            print(user_id)
-            print("--------------------------------")
             if user_id:
                 try:
                     user = User.objects.get(id=int(user_id))

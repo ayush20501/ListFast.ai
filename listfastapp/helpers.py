@@ -1,3 +1,4 @@
+from datetime import timedelta
 from decimal import Decimal
 import io
 import os
@@ -12,14 +13,14 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from decouple import config
 from openai import OpenAI
-from .models import UserProfile, eBayToken
+from .models import *
 import uuid
 from typing import Any, Dict, Tuple, Optional
 import numpy as np
 from botocore.exceptions import ClientError
 import boto3
 from jsonschema import validate
-
+from django.utils.timezone import now
 
 
 CATEGORY_PICK_SCHEMA = {
@@ -1735,3 +1736,71 @@ def make_grid_layout(n: int) -> tuple[int, int, list[tuple[float, float]]]:
         rows, cols = 2, 3
         cells = [(0, 0.0), (0, 1.0), (0, 2.0), (1, 0.0), (1, 1.0), (1, 2.0)]
     return rows, cols, cells
+
+def _ensure_default_free_plan(user):
+    try:
+        UserPlan.objects.get(user=user)
+        return
+    except UserPlan.DoesNotExist:
+        pass
+    free, _ = Plan.objects.get_or_create(code="FREE", defaults={
+        "name": "Free",
+        "monthly_quota": 2,
+        "price_amount_gbp": 0,
+    })
+    period_start = now()
+    period_end = period_start + timedelta(days=30)
+    UserPlan.objects.create(user=user, plan=free, current_period_start=period_start, current_period_end=period_end, listings_used=0)
+
+
+def _reset_if_period_over(user_plan: UserPlan):
+    if user_plan.current_period_end <= now():
+        user_plan.current_period_start = now()
+        user_plan.current_period_end = now() + timedelta(days=30)
+        user_plan.listings_used = 0
+        user_plan.save(update_fields=["current_period_start", "current_period_end", "listings_used"]) 
+
+
+def _get_user_usage_snapshot(user):
+    _ensure_default_free_plan(user)
+    up = UserPlan.objects.get(user=user)
+    _reset_if_period_over(up)
+    active_credits = CreditPurchase.objects.filter(user=user, status="completed", expires_at__gt=now())
+    credits_left = sum(max(0, c.credits_total - c.credits_used) for c in active_credits)
+    return {
+        "plan": up.plan.code,
+        "period_end": up.current_period_end.isoformat(),
+        "quota": up.plan.monthly_quota,
+        "used": up.listings_used,
+        "remaining": max(0, up.plan.monthly_quota - up.listings_used),
+        "credits_left": credits_left,
+    }
+
+
+def _can_consume_listing(user):
+    _ensure_default_free_plan(user)
+    up = UserPlan.objects.get(user=user)
+    _reset_if_period_over(up)
+    if up.listings_used < up.plan.monthly_quota:
+        return True, None
+    credits = CreditPurchase.objects.filter(user=user, status="completed", expires_at__gt=now()).order_by("created_at")
+    for c in credits:
+        if c.credits_used < c.credits_total:
+            return True, None
+    return False, "Usage limit reached. Please upgrade plan or buy credits."
+
+
+def consume_listing_success(user):
+    _ensure_default_free_plan(user)
+    up = UserPlan.objects.get(user=user)
+    _reset_if_period_over(up)
+    if up.listings_used < up.plan.monthly_quota:
+        up.listings_used += 1
+        up.save(update_fields=["listings_used"]) 
+        return
+    credits = CreditPurchase.objects.filter(user=user, status="completed", expires_at__gt=now()).order_by("created_at")
+    for c in credits:
+        if c.credits_used < c.credits_total:
+            c.credits_used += 1
+            c.save(update_fields=["credits_used"]) 
+            return
