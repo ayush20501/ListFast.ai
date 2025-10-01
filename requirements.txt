@@ -17,3 +17,4 @@ boto3
 celery
 redis
 mailchimp-marketing
+stripe

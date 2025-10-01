@@ -104,3 +104,51 @@ class TaskRecord(models.Model):
 
     def __str__(self):
         return f"Task {self.name} [{self.task_id}] - {self.status}"
+
+
+# ---------------- Billing/Usage -----------------
+
+class Plan(models.Model):
+    code = models.CharField(max_length=30, unique=True)
+    name = models.CharField(max_length=60)
+    monthly_quota = models.IntegerField(default=0)
+    stripe_price_id = models.CharField(max_length=100, blank=True, null=True)
+    price_amount_gbp = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+
+
+class UserPlan(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
+    plan = models.ForeignKey(Plan, on_delete=models.PROTECT)
+    current_period_start = models.DateTimeField()
+    current_period_end = models.DateTimeField()
+    listings_used = models.IntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.user.email} -> {self.plan.code}"
+
+
+class CreditPurchase(models.Model):
+    STATUS_CHOICES = [
+        ("pending", "pending"),
+        ("completed", "completed"),
+        ("refunded", "refunded"),
+        ("canceled", "canceled"),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    credits_total = models.IntegerField(default=0)
+    credits_used = models.IntegerField(default=0)
+    expires_at = models.DateTimeField()
+    stripe_session_id = models.CharField(max_length=255, blank=True, null=True, unique=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Credits {self.credits_total - self.credits_used}/{self.credits_total} for {self.user.email}"

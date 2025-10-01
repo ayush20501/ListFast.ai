@@ -234,10 +234,12 @@
                         class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">
                         Services
                     </a>
+                    <a href="/pricing/" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Pricing</a>
                 </div>
 
                 <div class="hidden lg:flex items-center space-x-4">
                     <span id="user-email" class="text-gray-600 text-sm font-medium"></span>
+                    <div id="nav-usage" class="hidden items-center space-x-2 text-xs px-3 py-1 rounded-full bg-gray-100"></div>
 
                     <div class="relative">
                         <button id="profile-dropdown-btn"
@@ -293,6 +295,7 @@
                         class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">
                         Services
                     </a>
+                    <a href="/pricing/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Pricing</a>
                     <hr class="my-2">
                     <div class="flex items-center space-x-3 py-2">
                         <img id="mobile-user-profile-pic" src="https://via.placeholder.com/32" alt="Profile"
@@ -852,6 +855,13 @@
                     document.getElementById('active-listings-stat').textContent = statsData.active_listings;
                     document.getElementById('inventory-value-stat').textContent = `£${statsData.total_inventory_value.toFixed(2)}`;
                     document.getElementById('profile-email').textContent = statsData.email;
+                    // Navbar usage badge using statsData.usage
+                    if (statsData.usage && statsData.usage.plan) {
+                        const el = document.getElementById('nav-usage');
+                        el.classList.remove('hidden');
+                        el.classList.add('flex');
+                        el.textContent = `Plan: ${statsData.usage.plan} • ${statsData.usage.used}/${statsData.usage.quota} (${statsData.usage.credits_left} cr)`;
+                    }
                 }
 
                 if (profileResponse.ok) {

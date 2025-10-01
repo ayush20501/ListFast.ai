@@ -203,6 +203,7 @@
                     <a href="/services/" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">
                         Services
                     </a>
+                    <a href="/pricing/" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Pricing</a>
                     <!-- <a href="/my-listings/" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">
                         Dashboard
                     </a> -->
@@ -210,7 +211,7 @@
 
                 <div class="hidden lg:flex items-center space-x-4">
                     <span id="user-email" class="text-gray-600 text-sm font-medium"></span>
-                    
+                    <div id="nav-usage" class="hidden items-center space-x-2 text-xs px-3 py-1 rounded-full bg-gray-100"></div>
                     <div class="relative">
                         <button id="profile-dropdown-btn" class="flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 transition-colors">
                             <img id="user-profile-pic" src="https://via.placeholder.com/32" alt="Profile" class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
@@ -255,6 +256,8 @@
                     <a href="/services/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">
                         Services
                     </a>
+                    <a href="/pricing/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Pricing</a>
+                    <a href="/pricing/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Pricing</a>
                     <!-- <a href="/my-listings/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">
                         Dashboard
                     </a> -->
@@ -502,6 +505,17 @@
                 }
                 document.getElementById('user-email').textContent = data.email;
                 document.getElementById('mobile-user-email').textContent = data.email;
+                // Navbar usage badge
+                try {
+                    const res = await fetch('/api/usage/');
+                    const u = await res.json();
+                    if (u && u.plan) {
+                        const el = document.getElementById('nav-usage');
+                        el.classList.remove('hidden');
+                        el.classList.add('flex');
+                        el.textContent = `Plan: ${u.plan} • ${u.used}/${u.quota} (${u.credits_left} cr)`;
+                    }
+                } catch (e) {}
                 try {
                     const profileResponse = await fetch('/api/fetch-address-imageprofile/');
                     const profileData = await profileResponse.json();

@@ -265,6 +265,12 @@ def create_single_item_listing_task(self, user_id: int, payload: Dict[str, Any])
         "aspects": aspects,
     }
     finish('SUCCESS', result=result)
+    # consume one usage on success
+    try:
+        from .views import consume_listing_success
+        consume_listing_success(user)
+    except Exception:
+        pass
     return result
 
 
@@ -480,6 +486,11 @@ def create_multipack_listing_task(self, user_id: int, payload: Dict[str, Any]) -
         "multipack_quantity": multipack_quantity,
     }
     finish('SUCCESS', result=result)
+    try:
+        from .views import consume_listing_success
+        consume_listing_success(user)
+    except Exception:
+        pass
     return result
 
 
@@ -699,4 +710,9 @@ def create_bundle_listing_task(self, user_id: int, payload: Dict[str, Any]) -> D
         "bundle_quantity": bundle_quantity,
     }
     finish('SUCCESS', result=result)
+    try:
+        from .views import consume_listing_success
+        consume_listing_success(user)
+    except Exception:
+        pass
     return result
