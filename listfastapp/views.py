@@ -1199,6 +1199,9 @@ class StripeWebhookAPIView(APIView):
         endpoint_secret = config("STRIPE_WEBHOOK_SECRET", default="")
         try:
             event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
+            print("--------------------------------")
+            print(event)
+            print("--------------------------------")
         except Exception:
             return Response(status=400)
 
