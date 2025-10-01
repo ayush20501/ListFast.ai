@@ -1208,7 +1208,10 @@ class StripeWebhookAPIView(APIView):
             print("--------------------------------EVENT--------------------------------")
             print(event)
             print("--------------------------------")
-        except Exception:
+        except Exception as e:
+            print("--------------------------------ERROR--------------------------------")
+            print(e)
+            print("--------------------------------")
             return Response(status=400)
 
         if event["type"] == "checkout.session.completed":
@@ -1219,7 +1222,10 @@ class StripeWebhookAPIView(APIView):
             User = get_user_model()
             try:
                 user = User.objects.get(id=int(client_ref)) if client_ref else None
-            except Exception:
+            except Exception as e:
+                print("--------------------------------ERROR--------------------------------")
+                print(e)
+                print("--------------------------------")
                 user = None
 
             if mode == "payment" and user:
