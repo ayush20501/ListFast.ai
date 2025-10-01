@@ -1203,7 +1203,9 @@ class StripeWebhookAPIView(APIView):
             event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
         except Exception:
             return Response(status=400)
-
+        print("--------------------------------EVENT--------------------------------")
+        print(event)
+        print("--------------------------------")
         if event["type"] == "checkout.session.completed":
             session = event["data"]["object"]
             mode = session.get("mode")
