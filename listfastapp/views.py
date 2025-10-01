@@ -1231,20 +1231,13 @@ class StripeWebhookAPIView(APIView):
 
             elif mode == "subscription" and user:
                 subscription_id = session.get("subscription")
-                print("--------------------------------SUBSCRIPTION_ID--------------------------------")
-                print(subscription_id)
-                print("--------------------------------")
                 if subscription_id:
                     subscription = stripe.Subscription.retrieve(subscription_id)
-                    print("--------------------------------SUBSCRIPTION--------------------------------")
-                    print(subscription)
-                    print("--------------------------------")
-                    price_id = subscription["items"]["data"][0]["price"]["id"]
-                    print("--------------------------------PRICE_ID--------------------------------")
-                    print(price_id)
-                    print("--------------------------------")
-                    period_start = datetime.fromtimestamp(subscription["current_period_start"])
-                    period_end = datetime.fromtimestamp(subscription["current_period_end"])
+                    item = subscription["items"]["data"][0]
+                    price_id = item["price"]["id"]
+                    period_start = datetime.fromtimestamp(item["current_period_start"])
+                    period_end = datetime.fromtimestamp(item["current_period_end"])
+
                     try:
                         plan = Plan.objects.get(stripe_price_id=price_id)
                         UserPlan.objects.update_or_create(
