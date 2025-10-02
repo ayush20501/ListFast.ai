@@ -357,21 +357,15 @@
                 </div>
 
                 <div class="hidden lg:flex items-center space-x-1">
+                    <a href="/services/"
+                        class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Services</a>
                     <a href="/features/"
                         class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Features</a>
                     <a href="/about/"
                         class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">About
                         Us</a>
                     <a href="/blogs/"
-                        class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Blogs</a>
-                    <a href="/faq/"
-                        class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Help
-                        Center</a>
-                    <a href="/contact/"
-                        class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Contact</a>
-                    <a href="/legal/"
-                        class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Legal
-                        & Compliance</a>
+                        class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Blogs/Resources</a>
                     <a href="pricing/"
                         class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Pricing</a>
                 </div>
@@ -388,13 +382,10 @@
                         </button>
                     </div>
 
-                    <!-- Replace the authenticated-nav div in your navbar with this updated version -->
                     <div id="authenticated-nav" style="display: none;">
                         <div class="relative">
-                            <!-- Profile Icon Button -->
                             <button id="profile-dropdown-btn"
                                 class="flex items-center space-x-2 text-gray-700 px-3 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors">
-                                <!-- Profile Icon -->
                                 <div
                                     class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
@@ -404,7 +395,6 @@
                                         </path>
                                     </svg>
                                 </div>
-                                <!-- Dropdown Arrow -->
                                 <svg class="w-4 h-4 transition-transform duration-200" id="dropdown-arrow" fill="none"
                                     stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -412,10 +402,8 @@
                                 </svg>
                             </button>
 
-                            <!-- Enhanced Dropdown Menu -->
                             <div id="profile-dropdown"
                                 class="profile-dropdown absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg py-2 z-50 border border-gray-100">
-                                <!-- User Info Section -->
                                 <div class="px-4 py-3 border-b border-gray-100">
                                     <div class="flex items-center space-x-3">
                                         <div
@@ -434,7 +422,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Menu Items -->
                                 <div class="py-1">
                                     <a href="/display-profile/"
                                         class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
@@ -444,15 +431,6 @@
                                             </path>
                                         </svg>
                                         Profile Settings
-                                    </a>
-                                    <a href="/services/"
-                                        class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                                        <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
-                                            </path>
-                                        </svg>
-                                        My Services
                                     </a>
                                     <hr class="my-1">
                                     <button onclick="handleLogout()"
@@ -482,20 +460,14 @@
 
             <div id="mobile-menu" class="mobile-menu lg:hidden bg-white border-t border-gray-100">
                 <div class="px-4 py-4 space-y-4">
+                    <a href="/services/"
+                        class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Services</a>
                     <a href="/features/"
                         class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Features</a>
                     <a href="/about/"
                         class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">About Us</a>
                     <a href="/blogs/"
                         class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Blogs/Resources</a>
-                    <a href="/faq/"
-                        class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">FAQ/Help
-                        Center</a>
-                    <a href="/contact/"
-                        class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Contact</a>
-                    <a href="/legal/"
-                        class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Legal &
-                        Compliance</a>
                     <a href="/pricing/"
                         class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Pricing</a>
                     <hr class="my-2">
@@ -512,8 +484,6 @@
                     <div id="mobile-authenticated-nav" style="display: none;" class="flex flex-col space-y-2">
                         <a href="/profile/"
                             class="text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Profile</a>
-                        <a href="/services/"
-                            class="text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Services</a>
                         <button onclick="handleLogout()"
                             class="text-left text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Sign
                             Out</button>
@@ -813,77 +783,89 @@
 
     <footer class="bg-gray-900 text-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-                <div class="space-y-4 sm:col-span-2 lg:col-span-1">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="space-y-4">
                     <h3 class="text-xl sm:text-2xl font-bold">ListFast.ai</h3>
                     <p class="text-gray-400 text-sm leading-relaxed">
                         Streamline your eBay listings with AI-powered tools for image enhancement, single items,
                         multipacks, and bundles.
                     </p>
+                    <div class="flex space-x-4 pt-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.15z">
+                                </path>
+                            </svg>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-2.596 0-4.194 1.722-4.194 4.6v3.4z">
+                                </path>
+                            </svg>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
+                                <path
+                                    d="M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.9 3.9 0 0 0-1.417.923A3.9 3.9 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444.048 3.297.04.852.174 1.433.372 1.942.205.526.478.972.923 1.417.444.445.89.719 1.416.923.51.198 1.09.333 1.942.372C5.555 15.99 5.827 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.9 3.9 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.197-.509.332-1.09.372-1.942C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.851-.175-1.433-.372-1.941a3.9 3.9 0 0 0-.923-1.417A3.9 3.9 0 0 0 13.24.42c-.51-.198-1.092-.333-1.943-.372C10.443.01 10.172 0 7.998 0zm-.717 1.442h.718c2.136 0 2.389.007 3.232.046.78.035 1.204.166 1.486.275.373.145.64.319.92.599s.453.546.598.92c.11.281.24.705.275 1.485.039.843.047 1.096.047 3.231s-.008 2.389-.047 3.232c-.035.78-.166 1.203-.275 1.485a2.5 2.5 0 0 1-.599.919c-.28.28-.546.453-.92.598-.28.11-.704.24-1.485.276-.843.038-1.096.047-3.232.047s-2.39-.009-3.233-.047c-.78-.036-1.203-.166-1.485-.276a2.5 2.5 0 0 1-.92-.598 2.5 2.5 0 0 1-.6-.92c-.109-.281-.24-.705-.275-1.485-.038-.843-.046-1.096-.046-3.233s.008-2.388.046-3.231c.036-.78.166-1.204.276-1.486.145-.373.319-.64.599-.92s.546-.453.92-.598c.282-.11.705-.24 1.485-.276.738-.034 1.024-.044 2.515-.045zm4.988 1.328a.96.96 0 1 0 0 1.92.96.96 0 0 0 0-1.92m-4.27 1.122a4.109 4.109 0 1 0 0 8.217 4.109 4.109 0 0 0 0-8.217m0 1.441a2.667 2.667 0 1 1 0 5.334 2.667 2.667 0 0 1 0-5.334">
+                                </path>
+                            </svg>
+                        </a>
+                    </div>
                 </div>
+
                 <div>
                     <h4 class="text-base sm:text-lg font-semibold mb-4">Quick Links</h4>
-                    <ul class="space-y-2 text-gray-400 text-sm">
-                        <li><a href="/" class="hover:text-white transition-colors">Home</a></li>
-                        <li><a href="/features/" class="hover:text-white transition-colors">Features</a></li>
-                        <li><a href="/about/" class="hover:text-white transition-colors">About Us</a></li>
-                        <li><a href="/blogs/" class="hover:text-white transition-colors">Blogs/Resources</a></li>
-                        <li><a href="/faq/" class="hover:text-white transition-colors">FAQ/Help Center</a></li>
-                        <li><a href="/contact/" class="hover:text-white transition-colors">Contact</a></li>
-                        <li><a href="/legal/" class="hover:text-white transition-colors">Legal & Compliance</a></li>
-                        <li><a href="/pricing/" class="hover:text-white transition-colors">Pricing</a></li>
+                    <ul class="space-y-3 text-gray-400 text-sm">
+                        <li><a href="/contact/" class="hover:text-white transition-colors flex items-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                                    </path>
+                                </svg>
+                                Contact Us
+                            </a></li>
+                        <li><a href="/legal/" class="hover:text-white transition-colors flex items-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Legal & Compliance Pages
+                            </a></li>
+                        <li><a href="/faq/" class="hover:text-white transition-colors flex items-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                    </path>
+                                </svg>
+                                FAQ/Help Center
+                            </a></li>
                     </ul>
                 </div>
-                <div>
-                    <h4 class="text-base sm:text-lg font-semibold mb-4">Support</h4>
-                    <ul class="space-y-2 text-gray-400 text-sm">
-                        <li><a href="/faq/" class="hover:text-white transition-colors">Help Center</a></li>
-                        <li><a href="/contact/" class="hover:text-white transition-colors">Contact Us</a></li>
-                        <li><a href="/legal/" class="hover:text-white transition-colors">Terms & Conditions</a></li>
-                        <li><a href="/legal/" class="hover:text-white transition-colors">Privacy Policy</a></li>
-                    </ul>
-                </div>
+
                 <div>
                     <h4 class="text-base sm:text-lg font-semibold mb-4">Stay Updated</h4>
-                    <p class="text-gray-400 text-sm mb-4">Subscribe to our newsletter for the latest updates and offers.
-                    </p>
-                    <form class="flex flex-col sm:flex-row gap-2">
+                    <p class="text-gray-400 text-sm mb-4">Get the latest updates and AI listing tips.</p>
+                    <form class="space-y-3">
                         <input type="email" placeholder="Enter your email"
-                            class="flex-1 px-4 py-2 rounded-lg bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                            class="w-full px-4 py-3 rounded-lg bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm border border-gray-700 focus:border-blue-500 transition-colors">
                         <button type="submit"
-                            class="hero-gradient px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity text-sm">Subscribe</button>
+                            class="w-full hero-gradient px-4 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity text-sm">
+                            Subscribe Now
+                        </button>
                     </form>
                 </div>
             </div>
+
             <div
-                class="mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-                <div class="flex space-x-4">
-                    <a href="#" class="text-gray-400 hover:text-white transition-colors">
-                        <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24">
-                            <path
-                                d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.15z">
-                            </path>
-                        </svg>
-                    </a>
-                    <a href="#" class="text-gray-400 hover:text-white transition-colors">
-                        <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24">
-                            <path
-                                d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-2.596 0-4.194 1.722-4.194 4.6v3.4z">
-                            </path>
-                        </svg>
-                    </a>
-                    <a href="#" class="text-gray-400 hover:text-white transition-colors">
-                        <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 16 16">
-                            <path
-                                d="M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.9 3.9 0 0 0-1.417.923A3.9 3.9 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444.048 3.297.04.852.174 1.433.372 1.942.205.526.478.972.923 1.417.444.445.89.719 1.416.923.51.198 1.09.333 1.942.372C5.555 15.99 5.827 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.9 3.9 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.197-.509.332-1.09.372-1.942C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.851-.175-1.433-.372-1.941a3.9 3.9 0 0 0-.923-1.417A3.9 3.9 0 0 0 13.24.42c-.51-.198-1.092-.333-1.943-.372C10.443.01 10.172 0 7.998 0zm-.717 1.442h.718c2.136 0 2.389.007 3.232.046.78.035 1.204.166 1.486.275.373.145.64.319.92.599s.453.546.598.92c.11.281.24.705.275 1.485.039.843.047 1.096.047 3.231s-.008 2.389-.047 3.232c-.035.78-.166 1.203-.275 1.485a2.5 2.5 0 0 1-.599.919c-.28.28-.546.453-.92.598-.28.11-.704.24-1.485.276-.843.038-1.096.047-3.232.047s-2.39-.009-3.233-.047c-.78-.036-1.203-.166-1.485-.276a2.5 2.5 0 0 1-.92-.598 2.5 2.5 0 0 1-.6-.92c-.109-.281-.24-.705-.275-1.485-.038-.843-.046-1.096-.046-3.233s.008-2.388.046-3.231c.036-.78.166-1.204.276-1.486.145-.373.319-.64.599-.92s.546-.453.92-.598c.282-.11.705-.24 1.485-.276.738-.034 1.024-.044 2.515-.045zm4.988 1.328a.96.96 0 1 0 0 1.92.96.96 0 0 0 0-1.92m-4.27 1.122a4.109 4.109 0 1 0 0 8.217 4.109 4.109 0 1 0 0-8.217m0 1.441a2.667 2.667 0 1 1 0 5.334 2.667 2.667 0 0 1 0-5.334">
-                            </path>
-                        </svg>
-                    </a>
-                </div>
+                class="mt-8 pt-6 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
                 <p class="text-gray-400 text-sm">&copy; <span id="year"></span> ListFast.ai. All rights reserved.</p>
+                <p class="text-gray-400 text-sm">Powered by AI • Made with ❤️</p>
             </div>
         </div>
     </footer>
+
 
     <div id="loginModal" class="modal">
         <div class="modal-content">
@@ -1035,25 +1017,25 @@
             mobileMenu.classList.toggle('active');
         });
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             checkAuthenticationStatus();
-            
+
             const profileDropdownBtn = document.getElementById('profile-dropdown-btn');
             const profileDropdown = document.getElementById('profile-dropdown');
             const dropdownArrow = document.getElementById('dropdown-arrow');
-            
+
             if (profileDropdownBtn && profileDropdown) {
-                profileDropdownBtn.addEventListener('click', function(e) {
+                profileDropdownBtn.addEventListener('click', function (e) {
                     e.stopPropagation();
                     const isActive = profileDropdown.classList.contains('active');
                     profileDropdown.classList.toggle('active');
-                    
+
                     if (dropdownArrow) {
                         dropdownArrow.style.transform = isActive ? 'rotate(0deg)' : 'rotate(180deg)';
                     }
                 });
-                
-                document.addEventListener('click', function() {
+
+                document.addEventListener('click', function () {
                     profileDropdown.classList.remove('active');
                     if (dropdownArrow) {
                         dropdownArrow.style.transform = 'rotate(0deg)';
@@ -1092,14 +1074,14 @@
             const unauthNav = document.getElementById('unauthenticated-nav');
             const authNav = document.getElementById('authenticated-nav');
             const userEmailSpan = document.getElementById('dropdown-user-email');
-            
+
             if (unauthNav) unauthNav.style.display = 'none';
             if (authNav) authNav.style.display = 'flex';
             if (userEmailSpan && userEmail) userEmailSpan.textContent = userEmail;
-            
+
             const mobileUnauthNav = document.getElementById('mobile-unauthenticated-nav');
             const mobileAuthNav = document.getElementById('mobile-authenticated-nav');
-            
+
             if (mobileUnauthNav) mobileUnauthNav.style.display = 'none';
             if (mobileAuthNav) mobileAuthNav.style.display = 'flex';
         }
