@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,82 +9,165 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
         .hero-gradient {
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%);
             background-size: 200% 200%;
             animation: gradientShift 8s ease-in-out infinite;
         }
+
         @keyframes gradientShift {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
+
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
         }
+
         .navbar-backdrop {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             border-bottom: 1px solid rgba(229, 231, 235, 0.5);
         }
-        .nav-link { position: relative; overflow: hidden; }
+
+        .nav-link {
+            position: relative;
+            overflow: hidden;
+        }
+
         .nav-link::before {
             content: '';
-            position: absolute; bottom: 0; left: 50%; width: 0; height: 2px;
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 2px;
             background: linear-gradient(135deg, #f093fb 0%, #4facfe 100%);
-            transition: all 0.3s ease; transform: translateX(-50%);
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
         }
-        .nav-link:hover::before { width: 100%; }
-        .profile-dropdown { transition: all 0.3s ease; transform: scale(0.95); opacity: 0; visibility: hidden; }
-        .profile-dropdown.active { transform: scale(1); opacity: 1; visibility: visible; }
-        .hamburger-line { width: 24px; height: 3px; background-color: #374151; margin: 3px 0; transition: 0.3s; border-radius: 3px; }
-        .hamburger.open .hamburger-line:nth-child(1) { transform: rotate(-45deg) translate(-5px, 6px); }
-        .hamburger.open .hamburger-line:nth-child(2) { opacity: 0; }
-        .hamburger.open .hamburger-line:nth-child(3) { transform: rotate(45deg) translate(-5px, -6px); }
-        .mobile-menu { transition: all 0.3s ease-in-out; max-height: 0; overflow: hidden; }
-        .mobile-menu.active { max-height: 500px; }
-        .card { background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border: 2px solid transparent; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-        .card:hover { border: 2px solid #3b82f6; background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
-        .badge { background: rgba(99,102,241,0.1); color: #4f46e5; }
+
+        .nav-link:hover::before {
+            width: 100%;
+        }
+
+        .logo-link {
+            transition: filter 0.3s ease;
+        }
+
+        .logo-link:hover {
+            filter: brightness(1.1);
+        }
+
+        .profile-dropdown {
+            transition: all 0.3s ease;
+            transform: scale(0.95);
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .profile-dropdown.active {
+            transform: scale(1);
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .hamburger-line {
+            width: 24px;
+            height: 3px;
+            background-color: #374151;
+            margin: 3px 0;
+            transition: 0.3s;
+            border-radius: 3px;
+        }
+
+        .hamburger.open .hamburger-line:nth-child(1) {
+            transform: rotate(-45deg) translate(-5px, 6px);
+        }
+
+        .hamburger.open .hamburger-line:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger.open .hamburger-line:nth-child(3) {
+            transform: rotate(45deg) translate(-5px, -6px);
+        }
+
+        .mobile-menu {
+            transition: all 0.3s ease-in-out;
+            max-height: 0;
+            overflow: hidden;
+        }
+
+        .mobile-menu.active {
+            max-height: 500px;
+        }
+
+        .card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 2px solid transparent;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card:hover {
+            border: 2px solid #3b82f6;
+            background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            transform: translateY(-5px);
+        }
+
+        .badge {
+            background: rgba(99, 102, 241, 0.1);
+            color: #4f46e5;
+        }
+
+        .hover-lift {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .hover-lift:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
+
 <body class="bg-gray-50">
     <nav class="navbar-backdrop fixed w-full top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center">
                     <a href="/" class="logo-link flex items-center space-x-3">
-                        <img src="https://i.ibb.co/Nd8Qrwmr/Untitled-design.png" alt="ListFast.ai Logo" class="h-12 w-auto">
+                        <img src="https://i.ibb.co/Nd8Qrwmr/Untitled-design.png" alt="ListFast.ai Logo"
+                            class="h-12 w-auto">
                         <span class="text-xl font-bold text-gray-900">ListFast.ai</span>
                     </a>
                 </div>
+
+                <!-- Desktop Navigation -->
                 <div class="hidden lg:flex items-center space-x-1">
-                    <a href="/" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Home</a>
-                    <a href="/features/" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Features</a>
-                    <a href="/about/" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">About Us</a>
-                    <a href="/blogs/" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Blogs</a>
-                    <a href="/faq/" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Help Center</a>
-                    <a href="/contact/" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Contact</a>
-                    <a href="/legal/" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Legal & Compliance</a>
+                    <a href="/"
+                        class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Home</a>
+                    <a href="/features/"
+                        class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Features</a>
+                    <a href="/about/"
+                        class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">About
+                        Us</a>
+                    <a href="/blogs/"
+                        class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Blogs/Resources</a>
+                    <a href="/services/" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Services</a>
                 </div>
-                <div class="hidden lg:flex items-center space-x-4" id="auth-section">
-                    <div id="profile-section" class="flex items-center space-x-4 hidden">
-                        <span id="user-email" class="text-gray-600 text-sm font-medium"></span>
-                        <div id="nav-usage" class="hidden items-center space-x-2 text-xs px-3 py-1 rounded-full bg-gray-100"></div>
-                        <div class="relative">
-                            <button id="profile-dropdown-btn" class="flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 transition-colors">
-                                <img id="user-profile-pic" src="https://via.placeholder.com/32" alt="Profile" class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
-                            </button>
-                            <div id="profile-dropdown" class="profile-dropdown absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
-                                <a href="/display-profile/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">Profile</a>
-                                <hr class="my-1">
-                                <button id="logout-btn" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">Logout</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="unauthenticated-nav" class="flex items-center space-x-4">
-                        <button id="sign-in-btn" class="text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors">Sign In</button>
-                        <button id="start-free-btn" class="hero-gradient text-white px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity">Start Free</button>
-                    </div>
-                </div>
+
+                <!-- Mobile Hamburger -->
                 <div class="lg:hidden">
                     <button id="hamburger-btn" class="hamburger p-2 focus:outline-none">
                         <div class="hamburger-line"></div>
@@ -92,73 +176,278 @@
                     </button>
                 </div>
             </div>
+
+            <!-- Mobile Menu -->
             <div id="mobile-menu" class="mobile-menu lg:hidden bg-white border-t border-gray-100">
                 <div class="px-4 py-4 space-y-4">
-                    <a href="/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Home</a>
-                    <a href="/features/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Features</a>
-                    <a href="/about/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">About Us</a>
-                    <a href="/blogs/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Blogs</a>
-                    <a href="/faq/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Help Center</a>
-                    <a href="/contact/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Contact</a>
-                    <a href="/legal/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Legal & Compliance</a>
-                    <hr class="my-2">
-                    <div id="mobile-profile-section" class="hidden">
-                        <div class="flex items-center space-x-3 py-2">
-                            <img id="mobile-user-profile-pic" src="https://via.placeholder.com/32" alt="Profile" class="w-8 h-8 rounded-full border-2 border-gray-200 object-cover">
-                            <span id="mobile-user-email" class="text-gray-600 text-sm font-medium"></span>
-                        </div>
-                        <a href="/display-profile/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Profile Settings</a>
-                        <button id="mobile-logout-btn" class="w-full text-left text-red-600 hover:text-red-700 font-medium py-2 transition-colors">Logout</button>
-                    </div>
-                    <div id="mobile-unauthenticated-nav" class="flex flex-col space-y-2">
-                        <button id="mobile-sign-in-btn" class="text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors text-left">Sign In</button>
-                        <button id="mobile-start-free-btn" class="hero-gradient text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity text-left">Start Free</button>
-                    </div>
+                    <a href="/"
+                        class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Home</a>
+                    <a href="/features/"
+                        class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Features</a>
+                    <a href="/about/"
+                        class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">About Us</a>
+                    <a href="/blogs/"
+                        class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">Blogs/Resources</a>
+                    <a href="/services/" class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">Services</a>
                 </div>
             </div>
         </div>
     </nav>
+
+    <!-- Main Content -->
     <main class="pt-20">
-        <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-10">
-                <div class="inline-block px-3 py-1 rounded-full badge text-xs font-semibold">No contracts • Upgrade anytime</div>
-                <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 mt-4">
+        <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="text-center mb-12">
+                <div class="inline-block px-4 py-2 rounded-full badge text-sm font-semibold mb-4">No contracts • Upgrade
+                    anytime</div>
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
                     Choose Your <span class="hero-gradient bg-clip-text text-transparent">Plan</span>
                 </h1>
-                <p class="text-gray-600 mt-3">Pick a monthly plan or buy one-off credits when you need them.</p>
+                <p class="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                    Pick a monthly plan or buy one-off credits when you need them. Start free and scale as you grow.
+                </p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+
+            <!-- Monthly Plans -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 mb-12">
                 {% for p in plans %}
-                <div class="card rounded-2xl p-6 relative">
+                <div class="card rounded-2xl p-6 lg:p-8 relative hover-lift">
                     {% if p.code != 'FREE' %}
-                    <span class="absolute -top-3 right-4 px-3 py-1 text-xs rounded-full bg-indigo-600 text-white">Popular</span>
-                    {% endif %}
-                    <h3 class="text-xl font-semibold flex items-center space-x-2">
-                        <span>{{ p.name }}</span>
-                        {% if p.code == 'FREE' %}<span class="text-xs px-2 py-0.5 rounded bg-gray-100">Starter</span>{% endif %}
-                    </h3>
-                    <p class="text-gray-600 mt-2">{{ p.monthly_quota }} listings / month</p>
-                    <div class="mt-6 flex items-end space-x-1">
-                        <div class="text-3xl font-extrabold">£{{ p.price_amount_gbp }}</div>
-                        <div class="text-gray-500 mb-1">/mo</div>
+                    <div class="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                        <span
+                            class="px-4 py-1 text-xs rounded-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold shadow-lg">
+                            Popular
+                        </span>
                     </div>
-                    <button data-plan-code="{{ p.code }}" class="buy-sub mt-6 w-full hero-gradient hover:opacity-90 text-white py-2.5 rounded-lg font-semibold">Choose {{ p.name }}</button>
+                    {% endif %}
+
+                    <div class="text-center">
+                        <h3 class="text-xl lg:text-2xl font-bold text-gray-900 mb-2">
+                            {{ p.name }}
+                            {% if p.code == 'FREE' %}
+                            <span
+                                class="inline-block text-xs px-3 py-1 rounded-full bg-gray-100 text-gray-600 ml-2">Starter</span>
+                            {% endif %}
+                        </h3>
+
+                        <p class="text-gray-600 mb-6">{{ p.monthly_quota }} listings per month</p>
+
+                        <div class="flex items-center justify-center mb-8">
+                            <span class="text-4xl lg:text-5xl font-bold text-gray-900">£{{ p.price_amount_gbp }}</span>
+                            <span class="text-gray-500 ml-2">/month</span>
+                        </div>
+
+                        <button data-plan-code="{{ p.code }}"
+                            class="buy-sub w-full hero-gradient hover:opacity-90 text-white py-3 px-6 rounded-xl font-semibold text-lg transition-all hover-lift">
+                            Choose {{ p.name }}
+                        </button>
+                    </div>
+
+                    <!-- Plan Features -->
+                    <div class="mt-8 space-y-3">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clip-rule="evenodd"></path>
+                            </svg>
+                            <span class="text-gray-700">AI-powered listing creation</span>
+                        </div>
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clip-rule="evenodd"></path>
+                            </svg>
+                            <span class="text-gray-700">Image enhancement tools</span>
+                        </div>
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clip-rule="evenodd"></path>
+                            </svg>
+                            <span class="text-gray-700">SEO optimization</span>
+                        </div>
+                        {% if p.code != 'FREE' %}
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clip-rule="evenodd"></path>
+                            </svg>
+                            <span class="text-gray-700">Priority support</span>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
                 {% endfor %}
             </div>
-            <div class="card rounded-2xl p-6 md:flex md:items-center md:justify-between">
-                <div>
-                    <h3 class="text-xl font-semibold">One-off Credits</h3>
-                    <p class="text-gray-600 mt-1">{{ one_off.credits }} listings • expires in 30 days</p>
+
+            <!-- One-off Credits -->
+            <div class="card rounded-2xl p-6 lg:p-8 hover-lift">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                    <div class="mb-6 lg:mb-0">
+                        <h3 class="text-xl lg:text-2xl font-bold text-gray-900 mb-2">One-off Credits</h3>
+                        <p class="text-gray-600 mb-4">{{ one_off.credits }} listings • expires in 30 days</p>
+                        <div class="space-y-2">
+                            <div class="flex items-center">
+                                <svg class="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd"
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                        clip-rule="evenodd"></path>
+                                </svg>
+                                <span class="text-sm text-gray-700">Perfect for testing</span>
+                            </div>
+                            <div class="flex items-center">
+                                <svg class="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd"
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                        clip-rule="evenodd"></path>
+                                </svg>
+                                <span class="text-sm text-gray-700">No monthly commitment</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
+                        <div class="text-center">
+                            <div class="text-3xl lg:text-4xl font-bold text-gray-900">£{{ one_off.price }}</div>
+                            <div class="text-sm text-gray-500">one-time</div>
+                        </div>
+                        <button id="buy-credits"
+                            class="hero-gradient hover:opacity-90 text-white px-8 py-3 rounded-xl font-semibold text-lg transition-all hover-lift">
+                            Buy Credits
+                        </button>
+                    </div>
                 </div>
-                <div class="mt-4 md:mt-0 flex items-center space-x-6">
-                    <div class="text-3xl font-extrabold">£{{ one_off.price }}</div>
-                    <button id="buy-credits" class="hero-gradient hover:opacity-90 text-white px-5 py-2.5 rounded-lg font-semibold">Buy Credits</button>
+            </div>
+
+            <!-- FAQ Section -->
+            <div class="mt-16">
+                <h2 class="text-3xl font-bold text-gray-900 text-center mb-8">Frequently Asked Questions</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="space-y-6">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Can I change plans anytime?</h3>
+                            <p class="text-gray-600">Yes, you can upgrade or downgrade your plan at any time. Changes
+                                take effect immediately.</p>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">What happens to unused credits?</h3>
+                            <p class="text-gray-600">Monthly plan credits reset each month. One-off credits expire after
+                                30 days from purchase.</p>
+                        </div>
+                    </div>
+                    <div class="space-y-6">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Is there a free trial?</h3>
+                            <p class="text-gray-600">Yes! Start with our free plan to test ListFast.ai with no credit
+                                card required.</p>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Do you offer refunds?</h3>
+                            <p class="text-gray-600">We offer a 7-day money-back guarantee on all paid plans if you're
+                                not satisfied.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
     </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Company Info -->
+                <div class="space-y-4">
+                    <h3 class="text-xl sm:text-2xl font-bold">ListFast.ai</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        Streamline your eBay listings with AI-powered tools for image enhancement, single items,
+                        multipacks, and bundles.
+                    </p>
+                    <!-- Social Media Icons -->
+                    <div class="flex space-x-4 pt-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.15z">
+                                </path>
+                            </svg>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-2.596 0-4.194 1.722-4.194 4.6v3.4z">
+                                </path>
+                            </svg>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
+                                <path
+                                    d="M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.9 3.9 0 0 0-1.417.923A3.9 3.9 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444.048 3.297.04.852.174 1.433.372 1.942.205.526.478.972.923 1.417.444.445.89.719 1.416.923.51.198 1.09.333 1.942.372C5.555 15.99 5.827 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.9 3.9 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.197-.509.332-1.09.372-1.942C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.851-.175-1.433-.372-1.941a3.9 3.9 0 0 0-.923-1.417A3.9 3.9 0 0 0 13.24.42c-.51-.198-1.092-.333-1.943-.372C10.443.01 10.172 0 7.998 0zm-.717 1.442h.718c2.136 0 2.389.007 3.232.046.78.035 1.204.166 1.486.275.373.145.64.319.92.599s.453.546.598.92c.11.281.24.705.275 1.485.039.843.047 1.096.047 3.231s-.008 2.389-.047 3.232c-.035.78-.166 1.203-.275 1.485a2.5 2.5 0 0 1-.599.919c-.28.28-.546.453-.92.598-.28.11-.704.24-1.485.276-.843.038-1.096.047-3.232.047s-2.39-.009-3.233-.047c-.78-.036-1.203-.166-1.485-.276a2.5 2.5 0 0 1-.92-.598 2.5 2.5 0 0 1-.6-.92c-.109-.281-.24-.705-.275-1.485-.038-.843-.046-1.096-.046-3.233s.008-2.388.046-3.231c.036-.78.166-1.204.276-1.486.145-.373.319-.64.599-.92s.546-.453.92-.598c.282-.11.705-.24 1.485-.276.738-.034 1.024-.044 2.515-.045zm4.988 1.328a.96.96 0 1 0 0 1.92.96.96 0 0 0 0-1.92m-4.27 1.122a4.109 4.109 0 1 0 0 8.217 4.109 4.109 0 0 0 0-8.217m0 1.441a2.667 2.667 0 1 1 0 5.334 2.667 2.667 0 0 1 0-5.334">
+                                </path>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Quick Links -->
+                <div>
+                    <h4 class="text-base sm:text-lg font-semibold mb-4">Quick Links</h4>
+                    <ul class="space-y-3 text-gray-400 text-sm">
+                        <li><a href="/contact/" class="hover:text-white transition-colors flex items-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                                    </path>
+                                </svg>
+                                Contact Us
+                            </a></li>
+                        <li><a href="/legal/" class="hover:text-white transition-colors flex items-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Legal & Compliance Pages
+                            </a></li>
+                        <li><a href="/faq/" class="hover:text-white transition-colors flex items-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                    </path>
+                                </svg>
+                                FAQ/Help Center
+                            </a></li>
+                    </ul>
+                </div>
+
+                <!-- Newsletter -->
+                <div>
+                    <h4 class="text-base sm:text-lg font-semibold mb-4">Stay Updated</h4>
+                    <p class="text-gray-400 text-sm mb-4">Get the latest updates and AI listing tips.</p>
+                    <form class="space-y-3">
+                        <input type="email" placeholder="Enter your email"
+                            class="w-full px-4 py-3 rounded-lg bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm border border-gray-700 focus:border-blue-500 transition-colors">
+                        <button type="submit"
+                            class="w-full hero-gradient px-4 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity text-sm">
+                            Subscribe Now
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Bottom Section -->
+            <div
+                class="mt-8 pt-6 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                <p class="text-gray-400 text-sm">&copy; 2025 ListFast.ai. All rights reserved.</p>
+                <p class="text-gray-400 text-sm">Powered by AI • Made with ❤️</p>
+            </div>
+        </div>
+    </footer>
+
     <script>
+        // Checkout Session Creation
         async function createSession(body) {
             const getCookie = (name) => {
                 let cookieValue = null;
@@ -175,28 +464,45 @@
                 return cookieValue;
             };
             const csrftoken = getCookie('csrftoken');
-            const res = await fetch('/api/create-checkout-session/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
-                body: JSON.stringify(body)
-            });
-            const data = await res.json();
-            if (res.ok && data.checkout_url) {
-                window.location.href = data.checkout_url;
-            } else {
-                alert(data.error || 'Unable to start checkout');
+
+            try {
+                const res = await fetch('/api/create-checkout-session/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+
+                if (res.ok && data.checkout_url) {
+                    window.location.href = data.checkout_url;
+                } else {
+                    alert(data.error || 'Unable to start checkout');
+                }
+            } catch (error) {
+                alert('Error creating checkout session. Please try again.');
             }
         }
+
+        // Auth State Management
         let isLoggedIn = false;
+
+        // Plan Purchase Handlers
         document.querySelectorAll('.buy-sub').forEach(btn => {
             btn.addEventListener('click', () => {
                 if (!isLoggedIn) {
                     alert('Please login to purchase a plan');
                     return;
                 }
-                createSession({ kind: 'subscription', plan_code: btn.dataset.planCode });
+                createSession({
+                    kind: 'subscription',
+                    plan_code: btn.dataset.planCode
+                });
             });
         });
+
         document.getElementById('buy-credits').addEventListener('click', () => {
             if (!isLoggedIn) {
                 alert('Please login to purchase credits');
@@ -204,82 +510,137 @@
             }
             createSession({ kind: 'credits' });
         });
+
+        // Authentication Status Check
         async function checkAuthStatus() {
             try {
                 const authRes = await fetch('/api/auth-status/');
-                const auth = await authRes.json();
-                isLoggedIn = auth.is_logged_in;
-                const profileSection = document.getElementById('profile-section');
-                const unauthNav = document.getElementById('unauthenticated-nav');
-                const mobileProfileSection = document.getElementById('mobile-profile-section');
-                const mobileUnauthNav = document.getElementById('mobile-unauthenticated-nav');
-                if (isLoggedIn) {
-                    profileSection.classList.remove('hidden');
-                    unauthNav.classList.add('hidden');
-                    mobileProfileSection.classList.remove('hidden');
-                    mobileUnauthNav.classList.add('hidden');
-                    document.getElementById('user-email').textContent = auth.email;
-                    document.getElementById('mobile-user-email').textContent = auth.email;
-                    try {
-                        const profileResponse = await fetch('/api/fetch-address-imageprofile/');
-                        const profileData = await profileResponse.json();
-                        if (profileResponse.ok && profileData.profile_pic_url) {
-                            document.getElementById('user-profile-pic').src = profileData.profile_pic_url;
-                            document.getElementById('mobile-user-profile-pic').src = profileData.profile_pic_url;
+
+                if (authRes.ok) {
+                    const auth = await authRes.json();
+                    isLoggedIn = auth.is_logged_in;
+
+                    const profileSection = document.getElementById('profile-section');
+                    const unauthNav = document.getElementById('unauthenticated-nav');
+                    const mobileProfileSection = document.getElementById('mobile-profile-section');
+                    const mobileUnauthNav = document.getElementById('mobile-unauthenticated-nav');
+
+                    if (isLoggedIn) {
+                        profileSection.classList.remove('hidden');
+                        unauthNav.classList.add('hidden');
+                        mobileProfileSection.classList.remove('hidden');
+                        mobileUnauthNav.classList.add('hidden');
+
+                        document.getElementById('user-email').textContent = auth.email;
+                        document.getElementById('mobile-user-email').textContent = auth.email;
+
+                        // Load profile image
+                        try {
+                            const profileResponse = await fetch('/api/fetch-address-imageprofile/');
+                            if (profileResponse.ok) {
+                                const profileData = await profileResponse.json();
+                                if (profileData.profile_pic_url) {
+                                    document.getElementById('user-profile-pic').src = profileData.profile_pic_url;
+                                    document.getElementById('mobile-user-profile-pic').src = profileData.profile_pic_url;
+                                }
+                            }
+                        } catch (error) {
+                            console.log('Profile image not available');
                         }
-                    } catch {}
-                    const res = await fetch('/api/usage/');
-                    const u = await res.json();
-                    if (u && u.plan) {
-                        const el = document.getElementById('nav-usage');
-                        el.classList.remove('hidden');
-                        el.classList.add('flex');
-                        el.textContent = `Plan: ${u.plan} • ${u.used}/${u.quota} (${u.credits_left} cr)`;
+
+                        // Load usage data
+                        try {
+                            const res = await fetch('/api/usage/');
+                            if (res.ok) {
+                                const u = await res.json();
+                                if (u && u.plan) {
+                                    const el = document.getElementById('nav-usage');
+                                    el.classList.remove('hidden');
+                                    el.classList.add('flex');
+                                    el.textContent = `Plan: ${u.plan} • ${u.used}/${u.quota} (${u.credits_left} cr)`;
+                                }
+                            }
+                        } catch (error) {
+                            console.log('Usage data not available');
+                        }
+                    } else {
+                        profileSection.classList.add('hidden');
+                        unauthNav.classList.remove('hidden');
+                        mobileProfileSection.classList.add('hidden');
+                        mobileUnauthNav.classList.remove('hidden');
                     }
                 } else {
-                    profileSection.classList.add('hidden');
-                    unauthNav.classList.remove('hidden');
-                    mobileProfileSection.classList.add('hidden');
-                    mobileUnauthNav.classList.remove('hidden');
+                    // API not available, show guest menu
+                    document.getElementById('profile-section').classList.add('hidden');
+                    document.getElementById('unauthenticated-nav').classList.remove('hidden');
+                    document.getElementById('mobile-profile-section').classList.add('hidden');
+                    document.getElementById('mobile-unauthenticated-nav').classList.remove('hidden');
                 }
-            } catch (e) {}
+            } catch (error) {
+                console.log('Auth check failed, showing guest menu');
+                // Show guest menu on error
+                document.getElementById('profile-section').classList.add('hidden');
+                document.getElementById('unauthenticated-nav').classList.remove('hidden');
+                document.getElementById('mobile-profile-section').classList.add('hidden');
+                document.getElementById('mobile-unauthenticated-nav').classList.remove('hidden');
+            }
         }
+
+        // Navigation Event Listeners
         document.addEventListener('DOMContentLoaded', () => {
             checkAuthStatus();
-            document.getElementById('sign-in-btn').addEventListener('click', () => {
-                window.location.href = '/login/';
+
+            // Sign in/up button handlers
+            const signInBtns = ['sign-in-btn', 'mobile-sign-in-btn'];
+            const startFreeBtns = ['start-free-btn', 'mobile-start-free-btn'];
+
+            signInBtns.forEach(btnId => {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    btn.addEventListener('click', () => {
+                        window.location.href = '/login/';
+                    });
+                }
             });
-            document.getElementById('start-free-btn').addEventListener('click', () => {
-                window.location.href = '/signup/';
-            });
-            document.getElementById('mobile-sign-in-btn').addEventListener('click', () => {
-                window.location.href = '/login/';
-            });
-            document.getElementById('mobile-start-free-btn').addEventListener('click', () => {
-                window.location.href = '/signup/';
+
+            startFreeBtns.forEach(btnId => {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    btn.addEventListener('click', () => {
+                        window.location.href = '/signup/';
+                    });
+                }
             });
         });
+
+        // Mobile Menu Toggle
         const hamburgerBtn = document.getElementById('hamburger-btn');
         const mobileMenu = document.getElementById('mobile-menu');
         const profileDropdownBtn = document.getElementById('profile-dropdown-btn');
         const profileDropdown = document.getElementById('profile-dropdown');
+
         if (hamburgerBtn) {
             hamburgerBtn.addEventListener('click', () => {
                 hamburgerBtn.classList.toggle('open');
                 mobileMenu.classList.toggle('active');
             });
         }
+
+        // Profile Dropdown
         if (profileDropdownBtn) {
             profileDropdownBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 profileDropdown.classList.toggle('active');
             });
+
             document.addEventListener('click', (e) => {
                 if (!profileDropdown.contains(e.target) && !profileDropdownBtn.contains(e.target)) {
                     profileDropdown.classList.remove('active');
                 }
             });
         }
+
+        // Logout Functionality
         const getCookie = (name) => {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
@@ -294,17 +655,27 @@
             }
             return cookieValue;
         };
+
         const csrftoken = getCookie('csrftoken');
+
         const logout = async () => {
             try {
-                await fetch('/logout/', { method: 'POST', headers: { 'X-CSRFToken': csrftoken } });
+                await fetch('/logout/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrftoken }
+                });
                 window.location.href = '/';
-            } catch {}
+            } catch (error) {
+                console.error('Logout failed:', error);
+            }
         };
+
         const logoutBtn = document.getElementById('logout-btn');
         const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+
         if (logoutBtn) logoutBtn.addEventListener('click', logout);
         if (mobileLogoutBtn) mobileLogoutBtn.addEventListener('click', logout);
     </script>
 </body>
+
 </html>

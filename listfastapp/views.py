@@ -170,7 +170,7 @@ def legal(request):
     return render(request, 'legal.html')
 
 def faq(request):
-    return render(request, 'faq.html')
+    return redirect('pricing')
     
 def pricing_view(request):
     plans = Plan.objects.filter(code__in=["FREE", "PRO", "BUSINESS"]).order_by("monthly_quota")
