@@ -154,8 +154,24 @@ def single_listing_success_view(request):
 def services_view(request):
     return render(request, 'services.html')
 
+def about_us(request):
+    return render(request, 'about-us.html')
 
+def blogs_resources(request):
+    return render(request, 'blogs-resources.html')
 
+def features(request):
+    return render(request, 'features.html')
+
+def contact(request):
+    return render(request, 'contact.html')
+
+def legal(request):
+    return render(request, 'legal.html')
+
+def faq(request):
+    return render(request, 'faq.html')
+    
 def pricing_view(request):
     plans = Plan.objects.filter(code__in=["FREE", "PRO", "BUSINESS"]).order_by("monthly_quota")
     context = {

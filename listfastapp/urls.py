@@ -19,6 +19,12 @@ urlpatterns = [
     path('multi-item-listing/', views.multi_item_listing_view, name='multi-item-listing'),
     path('bundle-item-listing/', views.bundle_listing_view, name='bundle-listing'),
     path('logout/', views.logout_view, name='logout'),
+    path('about/', views.about_us, name='about-us'),
+    path('blogs/', views.blogs_resources, name='blogs-resources'),
+    path('features/',views.features, name='features'),
+    path('contact/',views.contact, name='contact'),
+    path('legal/',views.legal, name='legal'),
+    path('faq/',views.faq, name='faq'),
 
 
     path('api/login/', views.LoginAPIView.as_view(), name='api-login'),

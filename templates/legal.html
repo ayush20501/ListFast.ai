@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legal & Compliance - ListFast.ai</title>
+    <link rel="icon" href="data:,">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .hero-gradient {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 8s ease-in-out infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        .navbar-backdrop {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+        }
+
+        .nav-link {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-link::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(135deg, #f093fb 0%, #4facfe 100%);
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+        }
+
+        .nav-link:hover::before {
+            width: 100%;
+        }
+
+        .logo-link {
+            transition: filter 0.3s ease;
+        }
+
+        .logo-link:hover {
+            filter: brightness(1.1);
+            transform: none;
+        }
+
+        .hamburger-line {
+            width: 24px;
+            height: 3px;
+            background-color: #374151;
+            margin: 3px 0;
+            transition: 0.3s;
+            border-radius: 3px;
+        }
+
+        .hamburger.open .hamburger-line:nth-child(1) {
+            transform: rotate(-45deg) translate(-5px, 6px);
+        }
+
+        .hamburger.open .hamburger-line:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger.open .hamburger-line:nth-child(3) {
+            transform: rotate(45deg) translate(-5px, -6px);
+        }
+
+        .mobile-menu {
+            transition: all 0.3s ease-in-out;
+            max-height: 0;
+            overflow: hidden;
+        }
+
+        .mobile-menu.active {
+            max-height: 500px;
+        }
+
+        .content-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .content-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+
+<body class="min-h-screen bg-gray-50">
+    <nav class="navbar-backdrop fixed w-full top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="/" class="logo-link flex items-center space-x-3">
+                        <img src="https://i.ibb.co/Nd8Qrwmr/Untitled-design.png" alt="ListFast.ai Logo"
+                            class="h-12 w-auto">
+                        <span class="text-xl font-bold text-gray-900">ListFast.ai</span>
+                    </a>
+                </div>
+
+                <div class="hidden lg:flex items-center space-x-1">
+                    <a href="/"
+                        class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">
+                        Home
+                    </a>
+                    <a href="/features/"
+                        class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">
+                        Features
+                    </a>
+                    <a href="/about/"
+                        class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">
+                        About Us
+                    </a>
+                    <a href="/blogs/"
+                        class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">
+                        Blogs/Resources
+                    </a>
+                    <a href="/pricing/"
+                        class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">
+                        Pricing
+                    </a>
+                </div>
+
+                <div class="lg:hidden">
+                    <button id="hamburger-btn" class="hamburger p-2 focus:outline-none">
+                        <div class="hamburger-line"></div>
+                        <div class="hamburger-line"></div>
+                        <div class="hamburger-line"></div>
+                    </button>
+                </div>
+            </div>
+
+            <div id="mobile-menu" class="mobile-menu lg:hidden bg-white border-t border-gray-100">
+                <div class="px-4 py-4 space-y-4">
+                    <a href="/" class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">
+                        Home
+                    </a>
+                    <a href="/features/"
+                        class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">
+                        Features
+                    </a>
+                    <a href="/about/"
+                        class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">
+                        About Us
+                    </a>
+                    <a href="/blogs/"
+                        class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">
+                        Blogs/Resources
+                    </a>
+                    <a href="/pricing/"
+                        class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">
+                        Pricing
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+            <div class="text-center mb-12 lg:mb-16">
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
+                    Legal & 
+                    <span class="hero-gradient bg-clip-text text-transparent">Compliance</span>
+                </h1>
+                <p class="text-lg sm:text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto">
+                    Our commitment to transparency and compliance with privacy and service regulations.
+                </p>
+            </div>
+
+            <div class="space-y-12">
+                <!-- Privacy Policy -->
+                <div class="content-card bg-white rounded-2xl shadow-lg p-8 lg:p-12">
+                    <div class="flex items-center mb-6">
+                        <div class="w-12 h-12 hero-gradient rounded-lg flex items-center justify-center text-white text-2xl mr-4">
+                            🔒
+                        </div>
+                        <h2 class="text-3xl lg:text-4xl font-bold text-gray-900">Privacy Policy</h2>
+                    </div>
+                    <div class="prose prose-lg max-w-none text-gray-700 leading-relaxed space-y-4">
+                        <p><strong>Summary Points:</strong></p>
+                        <ul class="list-disc pl-6 space-y-2">
+                            <li>We comply with GDPR (UK/EU).</li>
+                            <li>We only collect essential data for your account and billing.</li>
+                            <li>We do not sell your data to third parties.</li>
+                            <li>You may request data deletion at any time.</li>
+                        </ul>
+                        <p><em>Note: For the full Privacy Policy, please contact us at <a href="mailto:support@listfast.ai" class="text-blue-600 hover:underline">support@listfast.ai</a>.</em></p>
+                    </div>
+                </div>
+
+                <!-- Terms of Service -->
+                <div class="content-card bg-white rounded-2xl shadow-lg p-8 lg:p-12">
+                    <div class="flex items-center mb-6">
+                        <div class="w-12 h-12 hero-gradient rounded-lg flex items-center justify-center text-white text-2xl mr-4">
+                            📜
+                        </div>
+                        <h2 class="text-3xl lg:text-4xl font-bold text-gray-900">Terms of Service</h2>
+                    </div>
+                    <div class="prose prose-lg max-w-none text-gray-700 leading-relaxed space-y-4">
+                        <p><strong>Summary Points:</strong></p>
+                        <ul class="list-disc pl-6 space-y-2">
+                            <li>Subscriptions are billed via Stripe.</li>
+                            <li>You can cancel anytime; refunds handled per plan.</li>
+                            <li>Users are responsible for content uploaded to eBay.</li>
+                            <li>We aim for 99.9% uptime but cannot guarantee uninterrupted service.</li>
+                        </ul>
+                        <p><em>Note: For the full Terms of Service, please contact us at <a href="mailto:support@listfast.ai" class="text-blue-600 hover:underline">support@listfast.ai</a>.</em></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-gray-900 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="space-y-4">
+                    <h3 class="text-xl sm:text-2xl font-bold">ListFast.ai</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        Streamline your eBay listings with AI-powered tools for image enhancement, single items,
+                        multipacks, and bundles.
+                    </p>
+                    <div class="flex space-x-4 pt-4">
+                        <a href="https://www.facebook.com/people/ListFastai/61579912985076/" class="text-gray-400 hover:text-white transition-colors">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-2.596 0-4.194 1.722-4.194 4.6v3.4z">
+                                </path>
+                            </svg>
+                        </a>
+                        <a href="https://www.youtube.com/@listFast" class="text-gray-400 hover:text-white transition-colors">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.016 3.016 0 0 0 .502 6.186 31.247 31.247 0 0 0 0 12a31.247 31.247 0 0 0 .502 5.814 3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.377.505 9.377.505s7.505 0 9.377-.505a3.016 3.016 0 0 0 2.122-2.136A31.247 31.247 0 0 0 24 12a31.247 31.247 0 0 0-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z">
+                                </path>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="text-base sm:text-lg font-semibold mb-4">Quick Links</h4>
+                    <ul class="space-y-3 text-gray-400 text-sm">
+                        <li><a href="/contact/" class="hover:text-white transition-colors flex items-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                                    </path>
+                                </svg>
+                                Contact Us
+                            </a></li>
+                        <li><a href="/legal/" class="hover:text-white transition-colors flex items-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Legal & Compliance
+                            </a></li>
+                        <li><a href="/faq/" class="hover:text-white transition-colors flex items-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                    </path>
+                                </svg>
+                                FAQ/Help Center
+                            </a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-base sm:text-lg font-semibold mb-4">Stay Updated</h4>
+                    <p class="text-gray-400 text-sm mb-4">Get the latest updates and AI listing tips.</p>
+                    <form class="space-y-3">
+                        <input type="email" placeholder="Enter your email"
+                            class="w-full px-4 py-3 rounded-lg bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm border border-gray-700 focus:border-blue-500 transition-colors">
+                        <button type="submit"
+                            class="w-full hero-gradient px-4 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity text-sm">
+                            Subscribe Now
+                        </button>
+                    </form>
+                </div>
