@@ -10,7 +10,7 @@ from django.utils import timezone
 from . import helpers
 from .models import ListingCount, UserListing, UserProfile, eBayToken, TaskRecord
 from decouple import config
-
+from .helpers import *
 
 @shared_task(bind=True, autoretry_for=(requests.exceptions.RequestException,), retry_backoff=True, retry_kwargs={"max_retries": 3})
 def create_single_item_listing_task(self, user_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -265,9 +265,8 @@ def create_single_item_listing_task(self, user_id: int, payload: Dict[str, Any])
         "aspects": aspects,
     }
     finish('SUCCESS', result=result)
-    # consume one usage on success
+    
     try:
-        from .views import consume_listing_success
         consume_listing_success(user)
     except Exception:
         pass
@@ -487,7 +486,7 @@ def create_multipack_listing_task(self, user_id: int, payload: Dict[str, Any]) -
     }
     finish('SUCCESS', result=result)
     try:
-        from .views import consume_listing_success
+        
         consume_listing_success(user)
     except Exception:
         pass
@@ -711,7 +710,7 @@ def create_bundle_listing_task(self, user_id: int, payload: Dict[str, Any]) -> D
     }
     finish('SUCCESS', result=result)
     try:
-        from .views import consume_listing_success
+        
         consume_listing_success(user)
     except Exception:
         pass
