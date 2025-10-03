@@ -1055,7 +1055,7 @@ class UserPlanStatusAPIView(APIView):
     def get(self, request):
         try:
             user_plan = UserPlan.objects.get(user=request.user)
-            is_refundable = user_plan.listings_used == 0
+            is_refundable = user_plan.listings_used == 0 and user_plan.plan.code != "FREE"
             return Response({
                 "plan_name": user_plan.plan.name,
                 "period_start": user_plan.current_period_start,
