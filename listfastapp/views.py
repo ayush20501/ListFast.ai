@@ -1258,3 +1258,16 @@ class StripeWebhookAPIView(APIView):
                             logging.error(f"Plan with stripe_price_id={price_id} not found.")
 
         return Response({"received": True})
+
+class SubscribeToMailchimpAPIView(APIView):
+    def post(self, request):
+        email = request.data.get("email", "").strip().lower()
+        if not email:
+            return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        success = send_welcome_email_via_mailchimp(email)
+
+        if success:
+            return Response({"message": "Successfully subscribed!"}, status=status.HTTP_200_OK)
+        else:
+            return Response({"error": "Failed to subscribe. Please try again later."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -1186,6 +1186,65 @@
         });
 
         document.getElementById('year').textContent = new Date().getFullYear();
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        async function handleSubscription(event) {
+            event.preventDefault();
+            const form = event.target;
+            const emailInput = form.querySelector('input[type="email"]');
+            const email = emailInput.value;
+            const submitBtn = form.querySelector('button[type="submit"]');
+
+            const originalBtnText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Subscribing...';
+
+            try {
+                const response = await fetch('/api/subscribe-mailchimp/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: JSON.stringify({ email }),
+                });
+
+                if (response.ok) {
+                    emailInput.value = '';
+                    submitBtn.textContent = 'Subscribed!';
+                    setTimeout(() => {
+                        submitBtn.textContent = originalBtnText;
+                        submitBtn.disabled = false;
+                    }, 3000);
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'Subscription failed.');
+                    submitBtn.textContent = originalBtnText;
+                    submitBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Subscription error:', error);
+                alert('An error occurred. Please try again.');
+                submitBtn.textContent = originalBtnText;
+                submitBtn.disabled = false;
+            }
+        }
+
+        document.querySelector('footer form').addEventListener('submit', handleSubscription);
     </script>
 </body>
 </html>
