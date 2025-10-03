@@ -239,7 +239,7 @@
                     </a>
                     <a href="/blogs/"
                         class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">
-                        Blogs/Resources
+                        Blogs
                     </a>
                     <a href="/services/"
                         class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">
@@ -341,7 +341,7 @@
                     </a>
                     <a href="/blogs/"
                         class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">
-                        Blogs/Resources
+                        Blogs
                     </a>
                     <a href="/services/"
                         class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">
@@ -352,6 +352,8 @@
                         Pricing
                     </a>
                     <hr class="my-2">
+                    <div id="mobile-nav-usage"
+                        class="hidden text-xs px-3 py-2 rounded-lg bg-gray-100 text-gray-700 font-medium mb-2"></div>
                     <div class="flex items-center space-x-3 py-2">
                         <div
                             class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
@@ -927,6 +929,11 @@
                         el.classList.remove('hidden');
                         el.classList.add('flex');
                         el.textContent = `Plan: ${statsData.usage.plan} • ${statsData.usage.used}/${statsData.usage.quota} (${statsData.usage.credits_left} cr)`;
+                        
+                        const mobileEl = document.getElementById('mobile-nav-usage');
+                        mobileEl.classList.remove('hidden');
+                        mobileEl.classList.add('block');
+                        mobileEl.textContent = `Plan: ${statsData.usage.plan} • ${statsData.usage.used}/${statsData.usage.quota} (${statsData.usage.credits_left} cr)`;
                     }
                 }
 
