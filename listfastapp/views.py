@@ -2,6 +2,7 @@ from decimal import Decimal
 import io
 import os
 import random
+import logging
 from datetime import datetime, timedelta
 from urllib.parse import quote
 from PIL import Image, ImageDraw
@@ -16,9 +17,10 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.serializers import Serializer, CharField, DecimalField, IntegerField, ChoiceField, ListField, URLField
 from decouple import config
-from .models import UserProfile, eBayToken, OTP, ListingCount, UserListing, TaskRecord, Plan, UserPlan, CreditPurchase
+from .models import UserProfile, eBayToken, OTP, ListingCount, UserListing, TaskRecord, Plan, UserPlan, CreditPurchase, CreditPackage
 from .tasks import create_single_item_listing_task, create_multipack_listing_task, create_bundle_listing_task
 from . import helpers
 from .mailchimp_service import send_welcome_email_via_mailchimp
@@ -28,6 +30,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import F, Sum, ExpressionWrapper, DecimalField as ModelDecimalField
 from django.utils.timezone import now
 from django.contrib.auth import get_user_model
+from django.db import transaction
 import stripe
 
 
@@ -1046,12 +1049,77 @@ class UsageStatusAPIView(APIView):
     def get(self, request):
         return Response(helpers._get_user_usage_snapshot(request.user))
 
-class CreateCheckoutSessionAPIView(APIView):
+class UserPlanStatusAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            user_plan = UserPlan.objects.get(user=request.user)
+            is_refundable = user_plan.listings_used == 0
+            return Response({
+                "plan_name": user_plan.plan.name,
+                "period_start": user_plan.current_period_start,
+                "period_end": user_plan.current_period_end,
+                "listings_used": user_plan.listings_used,
+                "listings_quota": user_plan.plan.monthly_quota,
+                "is_refundable": is_refundable,
+            })
+        except UserPlan.DoesNotExist:
+            return Response({"plan_name": "Free Plan"})
+
+
+class RequestRefundAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
-        kind = request.data.get("kind") 
-        plan_code = request.data.get("plan_code")
+        with transaction.atomic():
+            try:
+                user_plan = UserPlan.objects.select_for_update().get(user=request.user)
+            except UserPlan.DoesNotExist:
+                return Response({"error": "No active plan found."}, status=404)
+
+            if user_plan.listings_used != 0:
+                return Response({"error": "Refunds are only available for unused plans."}, status=400)
+
+            if not user_plan.stripe_subscription_id:
+                return Response({"error": "Subscription ID not found."}, status=400)
+
+            try:
+                subscription = stripe.Subscription.retrieve(user_plan.stripe_subscription_id)
+                latest_invoice_id = subscription.get('latest_invoice')
+                if not latest_invoice_id:
+                    return Response({"error": "No invoice found for this subscription."}, status=400)
+                
+                invoice = stripe.Invoice.retrieve(latest_invoice_id)
+                charge_id = invoice.get('charge')
+                if not charge_id:
+                    return Response({"error": "No charge found for this invoice."}, status=400)
+
+                stripe.Refund.create(charge=charge_id)
+                stripe.Subscription.cancel(user_plan.stripe_subscription_id)
+                
+                user_plan.delete()
+                helpers._ensure_default_free_plan(request.user)
+
+                return Response({"message": "Refund processed and subscription cancelled."})
+
+            except stripe.error.StripeError as e:
+                logging.error(f"Stripe error during refund: {e}")
+                return Response({"error": "A Stripe error occurred."}, status=500)
+            except Exception as e:
+                logging.error(f"An unexpected error occurred during refund: {e}")
+                return Response({"error": "An unexpected error occurred."}, status=500)
+
+
+class CreateCheckoutSessionAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        kind = request.data.get("kind")
         user = request.user
+
         if kind == "subscription":
+            plan_code = request.data.get("plan_code")
             try:
                 up = UserPlan.objects.get(user=user)
                 if up.current_period_start and up.current_period_start > now():
@@ -1082,10 +1150,20 @@ class CreateCheckoutSessionAPIView(APIView):
             return Response({"checkout_url": session.url})
 
         elif kind == "credits":
+            usage = helpers._get_user_usage_snapshot(user)
+            if usage["remaining"] > 0:
+                return Response({"error": "You can only purchase credits once you have used all your plan listings."}, status=400)
+            
+            package_code = request.data.get("package_code")
+            try:
+                package = CreditPackage.objects.get(code=package_code, is_active=True)
+            except CreditPackage.DoesNotExist:
+                return Response({"error": "Unknown or inactive credit package"}, status=400)
+
             price_data = {
                 "currency": "gbp",
-                "unit_amount": int(7.99 * 100),
-                "product_data": {"name": "30 Listing Credits (30 days)"},
+                "unit_amount": int(package.price_gbp * 100),
+                "product_data": {"name": package.name},
             }
 
             session = stripe.checkout.Session.create(
@@ -1096,19 +1174,9 @@ class CreateCheckoutSessionAPIView(APIView):
                 metadata={
                     "user_id": str(user.id),
                     "kind": "credits",
-                    "credits": 30
+                    "package_code": package.code,
                 }
             )
-
-            CreditPurchase.objects.create(
-                user=user,
-                credits_total=30,
-                credits_used=0,
-                expires_at=now() + timedelta(days=30),
-                stripe_session_id=session.id,
-                status="pending",
-            )
-
             return Response({"checkout_url": session.url})
 
         else:
@@ -1118,53 +1186,75 @@ class StripeWebhookAPIView(APIView):
     def post(self, request):
         payload = request.body
         sig_header = request.META.get("HTTP_STRIPE_SIGNATURE")
-        endpoint_secret = config("STRIPE_WEBHOOK_SECRET", default="")
+        endpoint_secret = config("STRIPE_WEBHOOK_SECRET")
 
         try:
             event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
-        except Exception:
+        except stripe.error.SignatureVerificationError as e:
+            logging.error(f"Stripe webhook signature verification failed: {e}")
             return Response(status=400)
+        except Exception as e:
+            logging.error(f"Error processing Stripe webhook: {e}")
+            return Response(status=400)
+
         if event["type"] == "checkout.session.completed":
             session = event["data"]["object"]
-            mode = session.get("mode")
             metadata = session.get("metadata", {})
-            User = get_user_model()
-
-            user = None
             user_id = metadata.get("user_id")
-            if user_id:
-                try:
-                    user = User.objects.get(id=int(user_id))
-                except User.DoesNotExist:
-                    user = None
 
-            if mode == "payment" and user:
-                CreditPurchase.objects.filter(
-                    stripe_session_id=session.get("id"),
-                    user=user
-                ).update(status="completed")
+            if not user_id:
+                logging.error("user_id missing from Stripe checkout session metadata")
+                return Response(status=400)
 
-            elif mode == "subscription" and user:
-                subscription_id = session.get("subscription")
-                if subscription_id:
-                    subscription = stripe.Subscription.retrieve(subscription_id)
-                    item = subscription["items"]["data"][0]
-                    price_id = item["price"]["id"]
-                    period_start = datetime.fromtimestamp(item["current_period_start"])
-                    period_end = datetime.fromtimestamp(item["current_period_end"])
+            try:
+                user = get_user_model().objects.get(id=int(user_id))
+            except get_user_model().DoesNotExist:
+                logging.error(f"User with id={user_id} not found for completed checkout session")
+                return Response(status=400)
 
+            with transaction.atomic():
+                if CreditPurchase.objects.filter(stripe_session_id=session.id).exists():
+                    return Response({"message": "Webhook already processed"}, status=200)
+
+                if session.get("mode") == "payment":
+                    package_code = metadata.get("package_code")
                     try:
-                        plan = Plan.objects.get(stripe_price_id=price_id)
-                        UserPlan.objects.update_or_create(
+                        package = CreditPackage.objects.get(code=package_code)
+                        CreditPurchase.objects.create(
                             user=user,
-                            defaults={
-                                "plan": plan,
-                                "current_period_start": period_start,
-                                "current_period_end": period_end,
-                                "listings_used": 0,
-                            }
+                            package=package,
+                            credits_total=package.credits,
+                            credits_used=0,
+                            expires_at=now() + timedelta(days=30),
+                            stripe_session_id=session.id,
+                            status="completed",
                         )
-                    except Plan.DoesNotExist:
-                        pass
+                    except CreditPackage.DoesNotExist:
+                        logging.error(f"CreditPackage with code={package_code} not found.")
+                        return Response(status=400)
+
+                elif session.get("mode") == "subscription":
+                    subscription_id = session.get("subscription")
+                    if subscription_id:
+                        subscription = stripe.Subscription.retrieve(subscription_id)
+                        item = subscription["items"]["data"][0]
+                        price_id = item["price"]["id"]
+                        period_start = datetime.fromtimestamp(subscription.current_period_start)
+                        period_end = datetime.fromtimestamp(subscription.current_period_end)
+
+                        try:
+                            plan = Plan.objects.get(stripe_price_id=price_id)
+                            UserPlan.objects.update_or_create(
+                                user=user,
+                                defaults={
+                                    "plan": plan,
+                                    "current_period_start": period_start,
+                                    "current_period_end": period_end,
+                                    "listings_used": 0,
+                                    "stripe_subscription_id": subscription_id,
+                                }
+                            )
+                        except Plan.DoesNotExist:
+                            logging.error(f"Plan with stripe_price_id={price_id} not found.")
 
         return Response({"received": True})
