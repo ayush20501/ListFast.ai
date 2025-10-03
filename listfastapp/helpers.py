@@ -1509,6 +1509,11 @@ OUTPUT RULES:
 
     print("Building description")
     try:
+        print("raw_text_in",raw_text_in)
+        print("pack_ctx",pack_ctx)
+        print("pack",pack)
+        print("s0",s0)
+        
         desc_bundle = build_description_simple_from_raw(
             raw_text_in, html_mode=True, pack_ctx=pack_ctx, pack=pack, s0=s0
         )
