@@ -1239,8 +1239,8 @@ class StripeWebhookAPIView(APIView):
                         subscription = stripe.Subscription.retrieve(subscription_id)
                         item = subscription["items"]["data"][0]
                         price_id = item["price"]["id"]
-                        period_start = datetime.fromtimestamp(subscription.current_period_start)
-                        period_end = datetime.fromtimestamp(subscription.current_period_end)
+                        period_start = datetime.fromtimestamp(item["current_period_start"])
+                        period_end = datetime.fromtimestamp(item["current_period_end"])
 
                         try:
                             plan = Plan.objects.get(stripe_price_id=price_id)
