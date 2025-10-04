@@ -209,6 +209,17 @@
         .profile-image:hover {
             transform: none !important;
         }
+
+        body {
+            opacity: 0 !important;
+            transition: opacity 0.3s ease-in;
+            visibility: hidden;
+        }
+
+        body.loaded {
+            opacity: 1 !important;
+            visibility: visible;
+        }
     </style>
 </head>
 
@@ -770,22 +781,25 @@
                 const response = await fetch('/api/auth-status/');
                 const data = await response.json();
                 if (!data.is_logged_in) {
-                    window.location.href = '/login/';
+                    window.location.replace('/login/');
                     return;
                 } else if (!data.has_profile) {
-                    window.location.href = '/profile/';
+                    window.location.replace('/profile/');
                     return;
                 } else if (!data.has_ebay_auth) {
-                    window.location.href = '/ebay-auth/';
+                    window.location.replace('/ebay-auth/');
                     return;
                 }
+                
+                document.body.classList.add('loaded');
+                
                 document.getElementById('dropdown-user-email').textContent = data.email;
                 document.getElementById('mobile-user-email').textContent = data.email;
                 await loadProfileData();
                 await loadPlanStatus();
                 await loadOrderHistory();
             } catch (error) {
-                window.location.href = '/login/';
+                window.location.replace('/login/');
             }
         });
 

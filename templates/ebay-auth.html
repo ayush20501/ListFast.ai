@@ -6,6 +6,16 @@
     <title>eBay Authentication  - ListFast.ai</title>
     <link rel="icon" href="data:,">
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            opacity: 0;
+            transition: opacity 0.3s ease-in;
+        }
+
+        body.loaded {
+            opacity: 1;
+        }
+    </style>
 </head>
 <body class="min-h-screen bg-gray-50">
     <div class="min-h-screen flex items-center justify-center">
@@ -63,6 +73,8 @@
                         window.location.href = '/profile/';
                     } else if (data.has_ebay_auth) {
                         window.location.href = '/services/';
+                    } else {
+                        document.body.classList.add('loaded');
                     }
                 });
 

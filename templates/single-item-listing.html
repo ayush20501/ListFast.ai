@@ -238,6 +238,16 @@
                 margin-bottom: 1.5rem;
             }
         }
+
+        /* Prevent flash of content before auth check */
+        body {
+            opacity: 0;
+            transition: opacity 0.3s ease-in;
+        }
+
+        body.loaded {
+            opacity: 1;
+        }
     </style>
 </head>
 
@@ -634,7 +644,6 @@
     </footer>
 
     <script>
-        // Image modal functions
         function openImageModal(imageUrl) {
             document.getElementById('modal-image').src = imageUrl;
             document.getElementById('image-modal').classList.remove('hidden');
@@ -650,7 +659,6 @@
             }
         });
 
-        // Authentication and user setup
         window.addEventListener('load', async () => {
             try {
                 const response = await fetch('/api/auth-status/');
@@ -659,6 +667,9 @@
                     window.location.href = '/login/';
                     return;
                 }
+                
+                document.body.classList.add('loaded');
+                
                 document.getElementById('dropdown-user-email').textContent = data.email;
                 document.getElementById('mobile-user-email').textContent = data.email;
 

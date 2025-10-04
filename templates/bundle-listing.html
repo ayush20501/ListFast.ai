@@ -283,6 +283,15 @@
                 min-height: 44px;
             }
         }
+
+        body {
+            opacity: 0;
+            transition: opacity 0.3s ease-in;
+        }
+
+        body.loaded {
+            opacity: 1;
+        }
     </style>
 </head>
 
@@ -738,6 +747,9 @@
                     window.location.href = '/login/';
                     return;
                 }
+                
+                document.body.classList.add('loaded');
+                
                 document.getElementById('dropdown-user-email').textContent = data.email;
                 document.getElementById('mobile-user-email').textContent = data.email;
 

@@ -72,6 +72,16 @@
         .upload-progress {
             transition: width 0.3s ease;
         }
+
+        /* Prevent flash of content before auth check */
+        body {
+            opacity: 0;
+            transition: opacity 0.3s ease-in;
+        }
+
+        body.loaded {
+            opacity: 1;
+        }
     </style>
 </head>
 <body class="bg-white min-h-screen">
@@ -270,6 +280,8 @@
                     } else {
                         window.location.href = '/ebay-auth/';
                     }
+                } else {
+                    document.body.classList.add('loaded');
                 }
             })
             .catch(error => {
