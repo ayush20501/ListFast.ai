@@ -1076,6 +1076,8 @@ class RequestRefundAPIView(APIView):
 
         try:
             user_plan = UserPlan.objects.get(user=user)
+            print("=== User Plan Details ===")
+            print(user_plan)
         except UserPlan.DoesNotExist:
             return Response({
                 "error": "You don't have an active subscription plan."
