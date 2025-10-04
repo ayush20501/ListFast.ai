@@ -1075,44 +1075,49 @@ class RequestRefundAPIView(APIView):
     def post(self, request):
         try:
             user_plan = UserPlan.objects.get(user=request.user)
-
+            print("--------------------------------")
+            print(user_plan)
+            print("--------------------------------")
             is_refundable = user_plan.listings_used == 0 and user_plan.plan.code != "FREE"
+            print(is_refundable)
+            print("--------------------------------")
             if not is_refundable:
                 return Response(
                     {"error": "This plan is not eligible for a refund."},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-
-            # Cancel the Stripe subscription
+          
             if user_plan.stripe_subscription_id:
                 try:
+                    print("--------------------------------")
+                    print(user_plan.stripe_subscription_id)
+                    print("--------------------------------")
                     stripe.Subscription.delete(user_plan.stripe_subscription_id)
-                except stripe.error.StripeError as e:
+                except stripe.StripeError as e:
                     logging.error(f"Stripe subscription cancellation failed for user {request.user.id}: {e}")
                     return Response(
                         {"error": "Could not cancel your subscription. Please contact support."},
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR
                     )
 
-            # Find the last payment intent and refund it
             if user_plan.stripe_subscription_id:
                 try:
                     invoices = stripe.Invoice.list(subscription=user_plan.stripe_subscription_id, limit=1)
+                    print("--------------------------------")
+                    print(invoices)
+                    print("--------------------------------")
                     if invoices.data:
                         latest_invoice = invoices.data[0]
                         payment_intent_id = latest_invoice.payment_intent
                         if payment_intent_id:
                             stripe.Refund.create(payment_intent=payment_intent_id)
-                except stripe.error.StripeError as e:
+                except stripe.StripeError as e:
                     logging.error(f"Stripe refund failed for user {request.user.id}: {e}")
-                    # Even if refund fails, the subscription is already canceled.
-                    # Inform user to contact support for the refund.
                     return Response(
                         {"error": "Your subscription has been canceled, but the refund failed. Please contact support."},
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR
                     )
 
-            # Revert user to the default free plan
             helpers._ensure_default_free_plan(request.user)
 
             return Response({"message": "Your plan has been successfully canceled and refunded."})
@@ -1202,7 +1207,7 @@ class StripeWebhookAPIView(APIView):
 
         try:
             event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
-        except stripe.error.SignatureVerificationError as e:
+        except stripe.SignatureVerificationError as e:
             logging.error(f"Stripe webhook signature verification failed: {e}")
             return Response(status=400)
         except Exception as e:
