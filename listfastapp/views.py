@@ -1057,10 +1057,15 @@ class UserPlanStatusAPIView(APIView):
             user_plan = UserPlan.objects.get(user=request.user)
             is_refundable = user_plan.listings_used == 0 and user_plan.plan.code != "FREE"
             
-            # Check for pending refund request
             pending_refund = RefundRequest.objects.filter(
                 user=request.user,
                 status="pending"
+            ).first()
+            
+            completed_refund = RefundRequest.objects.filter(
+                user=request.user,
+                status="completed",
+                processed_at__gte=now() - timedelta(days=7)
             ).first()
             
             return Response({
@@ -1072,6 +1077,8 @@ class UserPlanStatusAPIView(APIView):
                 "is_refundable": is_refundable,
                 "has_pending_refund": pending_refund is not None,
                 "refund_requested_at": pending_refund.created_at if pending_refund else None,
+                "has_completed_refund": completed_refund is not None,
+                "refund_completed_at": completed_refund.processed_at if completed_refund else None,
             })
         except UserPlan.DoesNotExist:
             return Response({"plan_name": "Free Plan"})
@@ -1680,6 +1687,20 @@ class StripeWebhookAPIView(APIView):
                 user_plan = UserPlan.objects.get(stripe_subscription_id=subscription_id)
                 user = user_plan.user
                 
+                pending_refund = RefundRequest.objects.filter(
+                    user=user,
+                    subscription_id=subscription_id,
+                    status="pending"
+                ).first()
+                
+                has_refund = pending_refund is not None
+                
+                if pending_refund:
+                    pending_refund.status = "completed"
+                    pending_refund.processed_at = now()
+                    pending_refund.save()
+                    logging.info(f"Refund request marked as completed for user {user.email} - subscription canceled")
+                
                 free_plan, _ = Plan.objects.get_or_create(
                     code="FREE",
                     defaults={
@@ -1700,33 +1721,71 @@ class StripeWebhookAPIView(APIView):
                 
                 logging.info(f"Subscription deleted - User {user.email} downgraded to FREE plan")
                 
-                subject = "Subscription Canceled - ListFast.ai"
-                body_html = f"""
-                <html>
-                    <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
-                            <h1 style="color: white; margin: 0;">ListFast.ai</h1>
-                        </div>
-                        <div style="padding: 40px 30px; background: #f9f9f9;">
-                            <h2 style="color: #333;">Subscription Canceled</h2>
-                            <p style="color: #666; font-size: 16px; line-height: 1.6;">
-                                Your subscription has been canceled. You have been moved to the <strong>Free Plan</strong>.
-                            </p>
-                            <div style="background: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
-                                <p style="color: #666; margin: 0;">
-                                    You can still use <strong>2 listings per month</strong> on the Free plan.
+                if has_refund:
+                    subject = "Refund Completed - ListFast.ai"
+                    body_html = f"""
+                    <html>
+                        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                            <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; text-align: center;">
+                                <h1 style="color: white; margin: 0;">✅ Refund Completed</h1>
+                            </div>
+                            <div style="padding: 40px 30px; background: #f9f9f9;">
+                                <h2 style="color: #333;">Your Refund Has Been Processed</h2>
+                                <p style="color: #666; font-size: 16px; line-height: 1.6;">
+                                    Great news! We have completed the refund from our end.
+                                </p>
+                                <div style="background: white; padding: 30px; border-radius: 10px; margin: 30px 0; border-left: 4px solid #10b981;">
+                                    <p style="color: #666; font-size: 16px; line-height: 1.6; margin: 0;">
+                                        <strong style="color: #10b981;">✓ Refund processed successfully</strong><br>
+                                        The refund may take <strong>1-2 business days</strong> to reflect in your bank account or card statement.
+                                    </p>
+                                </div>
+                                <div style="background: #fef3c7; padding: 20px; border-radius: 10px; border-left: 4px solid #f59e0b; margin: 20px 0;">
+                                    <p style="margin: 0; color: #92400e;">
+                                        Your subscription has been canceled and you've been moved to the <strong>Free Plan</strong>. You can still create <strong>2 listings per month</strong>.
+                                    </p>
+                                </div>
+                                <p style="color: #666; font-size: 14px;">
+                                    Want to upgrade again? <a href="{SITE_BASE_URL}/pricing/" style="color: #10b981; text-decoration: none; font-weight: bold;">View our pricing</a>
+                                </p>
+                                <p style="color: #666; font-size: 14px;">
+                                    Questions? Contact us at <a href="mailto:rahul@listfast.ai">rahul@listfast.ai</a>.
                                 </p>
                             </div>
-                            <p style="color: #666; font-size: 14px;">
-                                Want to upgrade again? Visit our <a href="{SITE_BASE_URL}/pricing/">pricing page</a>.
-                            </p>
-                        </div>
-                        <div style="background: #333; padding: 20px; text-align: center;">
-                            <p style="color: #999; margin: 0; font-size: 12px;">© 2025 ListFast.ai</p>
-                        </div>
-                    </body>
-                </html>
-                """
+                            <div style="background: #333; padding: 20px; text-align: center;">
+                                <p style="color: #999; margin: 0; font-size: 12px;">© 2025 ListFast.ai</p>
+                            </div>
+                        </body>
+                    </html>
+                    """
+                else:
+                    subject = "Subscription Canceled - ListFast.ai"
+                    body_html = f"""
+                    <html>
+                        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+                                <h1 style="color: white; margin: 0;">ListFast.ai</h1>
+                            </div>
+                            <div style="padding: 40px 30px; background: #f9f9f9;">
+                                <h2 style="color: #333;">Subscription Canceled</h2>
+                                <p style="color: #666; font-size: 16px; line-height: 1.6;">
+                                    Your subscription has been canceled. You have been moved to the <strong>Free Plan</strong>.
+                                </p>
+                                <div style="background: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                                    <p style="color: #666; margin: 0;">
+                                        You can still use <strong>2 listings per month</strong> on the Free plan.
+                                    </p>
+                                </div>
+                                <p style="color: #666; font-size: 14px;">
+                                    Want to upgrade again? Visit our <a href="{SITE_BASE_URL}/pricing/">pricing page</a>.
+                                </p>
+                            </div>
+                            <div style="background: #333; padding: 20px; text-align: center;">
+                                <p style="color: #999; margin: 0; font-size: 12px;">© 2025 ListFast.ai</p>
+                            </div>
+                        </body>
+                    </html>
+                    """
                 
                 msg = EmailMultiAlternatives(
                     subject=subject,
@@ -1766,7 +1825,6 @@ class StripeWebhookAPIView(APIView):
                         
                         logging.info(f"Plan updated for user {user_plan.user.email}: {old_plan_name} -> {new_plan.name}")
                         
-                        # Send plan change email to user
                         is_upgrade = new_plan.monthly_quota > Plan.objects.get(name=old_plan_name).monthly_quota
                         subject = f"Plan {'Upgraded' if is_upgrade else 'Changed'} - ListFast.ai"
                         body_html = f"""
@@ -1845,31 +1903,18 @@ class StripeWebhookAPIView(APIView):
             
             logging.info(f"Charge refunded: {charge['id']} - Amount: £{refund_amount}")
             
-            # Mark any pending refund requests as completed
             if customer_email:
-                try:
-                    user = get_user_model().objects.get(email=customer_email)
-                    RefundRequest.objects.filter(
-                        user=user,
-                        status="pending"
-                    ).update(status="completed", processed_at=now())
-                    logging.info(f"Refund request marked as completed for user {customer_email}")
-                except get_user_model().DoesNotExist:
-                    pass
-            
-            # Send refund confirmation email to user
-            if customer_email:
-                subject = "Refund Processed - ListFast.ai"
+                subject = "Refund Initiated - ListFast.ai"
                 body_html = f"""
                 <html>
                     <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                         <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; text-align: center;">
-                            <h1 style="color: white; margin: 0;">💰 Refund Processed</h1>
+                            <h1 style="color: white; margin: 0;">💰 Refund Initiated</h1>
                         </div>
                         <div style="padding: 40px 30px; background: #f9f9f9;">
-                            <h2 style="color: #333;">Your Refund Has Been Processed</h2>
+                            <h2 style="color: #333;">Refund in Progress</h2>
                             <p style="color: #666; font-size: 16px; line-height: 1.6;">
-                                Your refund request has been approved and processed successfully.
+                                Your refund has been initiated by our team.
                             </p>
                             <div style="background: white; padding: 30px; border-radius: 10px; margin: 30px 0;">
                                 <h3 style="color: #10b981; margin-top: 0;">Refund Details</h3>
@@ -1880,27 +1925,15 @@ class StripeWebhookAPIView(APIView):
                                     </tr>
                                     <tr>
                                         <td style="padding: 8px 0; color: #666; font-weight: bold;">Status:</td>
-                                        <td style="padding: 8px 0; color: #10b981;">Processed</td>
-                                    </tr>
-                                    <tr>
-                                        <td style="padding: 8px 0; color: #666; font-weight: bold;">Processing Time:</td>
-                                        <td style="padding: 8px 0; color: #333;">5-10 business days</td>
+                                        <td style="padding: 8px 0; color: #f59e0b;">Initiated</td>
                                     </tr>
                                 </table>
                             </div>
                             <div style="background: #dbeafe; padding: 20px; border-radius: 10px; border-left: 4px solid #3b82f6; margin: 20px 0;">
                                 <p style="margin: 0; color: #1e40af; font-weight: bold;">
-                                    ℹ️ The refund will appear in your original payment method within 5-10 business days.
+                                    ℹ️ Your subscription will be canceled shortly and you'll receive a confirmation email once complete.
                                 </p>
                             </div>
-                            <div style="background: #fef3c7; padding: 20px; border-radius: 10px; border-left: 4px solid #f59e0b; margin: 20px 0;">
-                                <p style="margin: 0; color: #92400e;">
-                                    You have been moved to the <strong>Free Plan</strong>. You can still create 2 listings per month.
-                                </p>
-                            </div>
-                            <p style="color: #666; font-size: 14px;">
-                                Want to continue with a paid plan? <a href="{SITE_BASE_URL}/pricing/">View our pricing</a>.
-                            </p>
                             <p style="color: #666; font-size: 14px;">
                                 Questions? Contact us at <a href="mailto:rahul@listfast.ai">rahul@listfast.ai</a>.
                             </p>
