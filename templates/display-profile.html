@@ -1572,13 +1572,13 @@
         }
 
         async function handleRefundRequest() {
-            if (!confirm('Are you sure you want to request a refund? This will cancel your subscription immediately.')) {
+            if (!confirm('Are you sure you want to request a refund? Our team will review your request within 2-3 business days. You can continue using your plan until the refund is processed.')) {
                 return;
             }
 
             const refundBtn = document.getElementById('request-refund-btn');
             refundBtn.disabled = true;
-            refundBtn.textContent = 'Processing...';
+            refundBtn.textContent = 'Submitting...';
 
             try {
                 const getCookie = (name) => {
@@ -1603,9 +1603,8 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    showRefundMessage('Refund processed successfully. Your subscription has been cancelled.', 'success');
+                    showRefundMessage(data.message || 'Refund request submitted successfully! Our team will review and process it within 2-3 business days. You will receive an email confirmation.', 'success');
                     refundBtn.remove();
-                    loadPlanStatus(); 
                 } else {
                     showRefundMessage(data.error || 'Refund request failed.', 'error');
                     refundBtn.disabled = false;
