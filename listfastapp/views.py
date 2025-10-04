@@ -1069,60 +1069,59 @@ class UserPlanStatusAPIView(APIView):
 
 
 class RequestRefundAPIView(APIView):
+
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        with transaction.atomic():
-            try:
-                user_plan = UserPlan.objects.select_for_update().get(user=request.user)
-            except UserPlan.DoesNotExist:
-                return Response({"error": "No active plan found."}, status=404)
+        try:
+            user_plan = UserPlan.objects.get(user=request.user)
 
-            if user_plan.listings_used != 0:
-                return Response({"error": "Refunds are only available for unused plans."}, status=400)
+            is_refundable = user_plan.listings_used == 0 and user_plan.plan.code != "FREE"
+            if not is_refundable:
+                return Response(
+                    {"error": "This plan is not eligible for a refund."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-            if not user_plan.stripe_subscription_id:
-                return Response({"error": "Subscription ID not found."}, status=400)
+            # Cancel the Stripe subscription
+            if user_plan.stripe_subscription_id:
+                try:
+                    stripe.Subscription.delete(user_plan.stripe_subscription_id)
+                except stripe.error.StripeError as e:
+                    logging.error(f"Stripe subscription cancellation failed for user {request.user.id}: {e}")
+                    return Response(
+                        {"error": "Could not cancel your subscription. Please contact support."},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
 
-            try:
-                charge_id = None
-                if user_plan.stripe_payment_intent_id_initial:
-                    try:
-                        payment_intent = stripe.PaymentIntent.retrieve(user_plan.stripe_payment_intent_id_initial)
-                        charge_id = payment_intent.get('latest_charge')
-                    except stripe.error.StripeError as e:
-                        logging.error(f"Stripe error retrieving payment intent: {e}")
+            # Find the last payment intent and refund it
+            if user_plan.stripe_subscription_id:
+                try:
+                    invoices = stripe.Invoice.list(subscription=user_plan.stripe_subscription_id, limit=1)
+                    if invoices.data:
+                        latest_invoice = invoices.data[0]
+                        payment_intent_id = latest_invoice.payment_intent
+                        if payment_intent_id:
+                            stripe.Refund.create(payment_intent=payment_intent_id)
+                except stripe.error.StripeError as e:
+                    logging.error(f"Stripe refund failed for user {request.user.id}: {e}")
+                    # Even if refund fails, the subscription is already canceled.
+                    # Inform user to contact support for the refund.
+                    return Response(
+                        {"error": "Your subscription has been canceled, but the refund failed. Please contact support."},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
 
-                if not charge_id:
-                    subscription = stripe.Subscription.retrieve(user_plan.stripe_subscription_id)
-                    latest_invoice_id = subscription.get('latest_invoice')
-                    if latest_invoice_id:
-                        invoice = stripe.Invoice.retrieve(latest_invoice_id)
-                        charge_id = invoice.get('charge')
-                        if not charge_id:
-                            payment_intent_id = invoice.get('payment_intent')
-                            if payment_intent_id:
-                                payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id)
-                                charge_id = payment_intent.get('latest_charge')
+            # Revert user to the default free plan
+            helpers._ensure_default_free_plan(request.user)
 
-                if not charge_id:
-                    return Response({"error": "No payment information could be found for this subscription's initial invoice."}, status=400)
+            return Response({"message": "Your plan has been successfully canceled and refunded."})
 
-                stripe.Refund.create(charge=charge_id)
-                stripe.Subscription.cancel(user_plan.stripe_subscription_id)
-
-                user_plan.delete()
-                helpers._ensure_default_free_plan(request.user)
-
-                return Response({"message": "Refund processed and subscription cancelled."})
-
-            except stripe.error.StripeError as e:
-                logging.error(f"Stripe error during refund: {e}")
-                return Response({"error": "A Stripe error occurred."}, status=500)
-            except Exception as e:
-                logging.error(f"An unexpected error occurred during refund: {e}")
-                return Response({"error": "An unexpected error occurred."}, status=500)
-
+        except UserPlan.DoesNotExist:
+            return Response(
+                {"error": "No active plan found to refund."},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
 class CreateCheckoutSessionAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -1248,7 +1247,6 @@ class StripeWebhookAPIView(APIView):
 
                 elif session.get("mode") == "subscription":
                     subscription_id = session.get("subscription")
-                    payment_intent_id = session.get("payment_intent")
                     if subscription_id:
                         subscription = stripe.Subscription.retrieve(subscription_id)
                         item = subscription["items"]["data"][0]
@@ -1266,7 +1264,6 @@ class StripeWebhookAPIView(APIView):
                                     "current_period_end": period_end,
                                     "listings_used": 0,
                                     "stripe_subscription_id": subscription_id,
-                                    "stripe_payment_intent_id_initial": payment_intent_id,
                                 }
                             )
                         except Plan.DoesNotExist:
