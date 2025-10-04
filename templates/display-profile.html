@@ -1382,7 +1382,7 @@
                          html += `<p class="text-xs text-gray-500 mt-2">Renews on: ${new Date(data.period_end).toLocaleDateString()}</p>`;
                     }
                     if (data.has_pending_refund && data.refund_requested_at) {
-                        html += `<p class="text-xs text-yellow-600 mt-2">⏳ Refund requested on ${new Date(data.refund_requested_at).toLocaleDateString()} - Under review</p>`;
+                        html += `<p class="text-xs text-yellow-600 mt-2">⏳ Refund requested on ${new Date(data.refund_requested_at).toLocaleDateString()}</p>`;
                     }
                     if (data.has_completed_refund && data.refund_completed_at) {
                         html += `<p class="text-xs text-green-600 mt-2">✅ Refund completed on ${new Date(data.refund_completed_at).toLocaleDateString()} - We have completed the refund from our end. It may take 1-2 business days to reflect in your bank.</p>`;
@@ -1474,7 +1474,7 @@
 
                 if (response.ok) {
                     showRefundMessage(data.message || 'Refund request submitted successfully! Our team will review and process it within 2-3 business days. You will receive an email confirmation.', 'success');
-                    loadPlanStatus(); // Reload to show "Refund Requested" status
+                    loadPlanStatus(); 
                 } else {
                     showRefundMessage(data.error || 'Refund request failed.', 'error');
                     refundBtn.disabled = false;
