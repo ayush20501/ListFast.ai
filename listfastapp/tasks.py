@@ -351,8 +351,29 @@ def create_multipack_listing_task(self, user_id: int, payload: Dict[str, Any]) -
             except Exception:
                 pass
 
-    pack_ctx = {'type': 'multipack', 'quantity': multipack_quantity, 'unit': ''}
-    pack = f"MULTIPACK: Pack of {multipack_quantity}"
+    # pack_ctx = {'type': 'multipack', 'quantity': multipack_quantity, 'unit': ''}
+    # pack = f"MULTIPACK: Pack of {multipack_quantity}"
+
+    # def make_pack_info(multipack_quantity):
+    try:
+        qty = int(multipack_quantity or 1)
+    except (TypeError, ValueError):
+        qty = 1
+
+    if qty >= 2:
+        pack_info = {"type": "multipack", "quantity": qty, "unit": ""}
+        pack_note = f"Pack of {qty}"  # for UI only, don't pass as `pack`
+    else:
+        pack_info = {"type": "single"}
+        pack_note = ""
+
+    # return pack_info, pack_note
+
+    # Usage
+    # pack_info, pack_note = make_pack_info(multipack_quantity)
+    pack_ctx = pack_info              # dict
+    pack = dict(pack_info)            # also a dict, no strings here
+
 
     prep = helpers.prepare_listing_components(
         images=images,
@@ -575,8 +596,33 @@ def create_bundle_listing_task(self, user_id: int, payload: Dict[str, Any]) -> D
             except Exception:
                 pass
 
-    pack_ctx = {'type': 'bundle', 'bundle_size': bundle_quantity, 'components': []}
-    pack = f"BUNDLE: {bundle_quantity} items"
+    # pack_ctx = {'type': 'bundle', 'bundle_size': bundle_quantity, 'components': []}
+    # pack = f"BUNDLE: {bundle_quantity} items"
+
+    # Normalize quantity
+    try:
+        qty = int(bundle_quantity) if bundle_quantity is not None else 0
+    except (TypeError, ValueError):
+        qty = 0
+    if qty < 0:
+        qty = 0
+    
+    # Normalize components (if you have a `components` var, keep only non-empty strings)
+    components_norm = []
+    if "components" in locals() and isinstance(components, list):
+        components_norm = [c.strip() for c in components if isinstance(c, str) and c.strip()]
+    
+    # Use dicts for both pack_ctx and pack (avoid the '.get' on a string crash)
+    pack_ctx = {
+        "type": "bundle",
+        "bundle_size": qty,
+        "quantity": qty,       # helpful standard key if other code expects it
+        "components": components_norm,
+    }
+    pack = dict(pack_ctx)      # NOT a string
+    
+
+
 
     prep = helpers.prepare_listing_components(
         images=images,
