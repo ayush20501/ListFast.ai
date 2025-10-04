@@ -599,37 +599,28 @@ def create_bundle_listing_task(self, user_id: int, payload: Dict[str, Any]) -> D
     # pack_ctx = {'type': 'bundle', 'bundle_size': bundle_quantity, 'components': []}
     # pack = f"BUNDLE: {bundle_quantity} items"
 
-    # def make_pack_info_bundle(bundle_quantity, components=None):
-    # """
-    # Normalize bundle info.
-    # Returns: (pack_info_dict, pack_note_str)
-    # """
-    components=None
-    comps = components or []
+    # Normalize quantity
     try:
         qty = int(bundle_quantity) if bundle_quantity is not None else 0
     except (TypeError, ValueError):
         qty = 0
-
-    # If qty not provided, fall back to number of components
-    if qty <= 0 and comps:
-        qty = len(comps)
-
-    pack_info = {
+    if qty < 0:
+        qty = 0
+    
+    # Normalize components (if you have a `components` var, keep only non-empty strings)
+    components_norm = []
+    if "components" in locals() and isinstance(components, list):
+        components_norm = [c.strip() for c in components if isinstance(c, str) and c.strip()]
+    
+    # Use dicts for both pack_ctx and pack (avoid the '.get' on a string crash)
+    pack_ctx = {
         "type": "bundle",
-        "bundle_size": qty,   # keep your original key
-        "quantity": qty,      # add a standard key (handy if other code expects 'quantity')
-        "components": comps,  # e.g., ["2× tuna 160g", "1× sweetcorn 200g"]
+        "bundle_size": qty,
+        "quantity": qty,       # helpful standard key if other code expects it
+        "components": components_norm,
     }
-
-    pack_note = f"Bundle: {qty} item{'s' if qty != 1 else ''}" if qty else "Bundle"
-
-    # return pack_info, pack_note
-
-# Usage
-    # pack_info, pack_note = make_pack_info_bundle(bundle_quantity, components=[])
-    pack_ctx = pack_info           # dict
-    pack = dict(pack_info)         # dict (NOT a string)
+    pack = dict(pack_ctx)      # NOT a string
+    
 
 
 
