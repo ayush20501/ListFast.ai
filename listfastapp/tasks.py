@@ -596,8 +596,41 @@ def create_bundle_listing_task(self, user_id: int, payload: Dict[str, Any]) -> D
             except Exception:
                 pass
 
-    pack_ctx = {'type': 'bundle', 'bundle_size': bundle_quantity, 'components': []}
-    pack = f"BUNDLE: {bundle_quantity} items"
+    # pack_ctx = {'type': 'bundle', 'bundle_size': bundle_quantity, 'components': []}
+    # pack = f"BUNDLE: {bundle_quantity} items"
+
+    # def make_pack_info_bundle(bundle_quantity, components=None):
+    # """
+    # Normalize bundle info.
+    # Returns: (pack_info_dict, pack_note_str)
+    # """
+    comps = components or []
+    try:
+        qty = int(bundle_quantity) if bundle_quantity is not None else 0
+    except (TypeError, ValueError):
+        qty = 0
+
+    # If qty not provided, fall back to number of components
+    if qty <= 0 and comps:
+        qty = len(comps)
+
+    pack_info = {
+        "type": "bundle",
+        "bundle_size": qty,   # keep your original key
+        "quantity": qty,      # add a standard key (handy if other code expects 'quantity')
+        "components": comps,  # e.g., ["2× tuna 160g", "1× sweetcorn 200g"]
+    }
+
+    pack_note = f"Bundle: {qty} item{'s' if qty != 1 else ''}" if qty else "Bundle"
+
+    # return pack_info, pack_note
+
+# Usage
+    # pack_info, pack_note = make_pack_info_bundle(bundle_quantity, components=[])
+    pack_ctx = pack_info           # dict
+    pack = dict(pack_info)         # dict (NOT a string)
+
+
 
     prep = helpers.prepare_listing_components(
         images=images,
