@@ -1049,8 +1049,6 @@ class UsageStatusAPIView(APIView):
     def get(self, request):
         return Response(helpers._get_user_usage_snapshot(request.user))
 
-from stripe.error import InvalidRequestError, StripeError
-
 class UserPlanStatusAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1130,22 +1128,10 @@ class RequestRefundAPIView(APIView):
                 "message": "Refund and cancellation simulated. No changes have been made."
             }, status=status.HTTP_200_OK)
 
-        except InvalidRequestError as e:
-            print(f"Stripe InvalidRequestError: {str(e)}")
-            return Response({
-                "error": "Failed to process refund simulation."
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        except StripeError as e:
-            print(f"Stripe error during simulation: {str(e)}")
-            return Response({
-                "error": "Stripe error during refund simulation."
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
         except Exception as e:
-            print(f"Unexpected error during refund simulation: {str(e)}")
+            print(f"Error during refund simulation: {str(e)}")
             return Response({
-                "error": "Unexpected error during simulation."
+                "error": "Error during refund simulation."
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
