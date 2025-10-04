@@ -50,30 +50,7 @@
             width: 50%;
             transition: width 0.5s ease;
         }
-        .image-upload-area {
-            border: 2px dashed #d1d5db;
-            transition: all 0.3s ease;
-        }
-        .image-upload-area:hover {
-            border-color: #3b82f6;
-            background-color: #f8fafc;
-        }
-        .image-upload-area.drag-over {
-            border-color: #3b82f6;
-            background-color: #dbeafe;
-        }
-        .profile-preview {
-            width: 120px;
-            height: 120px;
-            object-fit: cover;
-            border-radius: 50%;
-            border: 4px solid #e5e7eb;
-        }
-        .upload-progress {
-            transition: width 0.3s ease;
-        }
 
-        /* Prevent flash of content before auth check */
         body {
             opacity: 0;
             transition: opacity 0.3s ease-in;
@@ -134,11 +111,11 @@
                                 <div>
                                     <p class="text-blue-900 font-semibold mb-2">Why do we need this?</p>
                                     <ul class="text-blue-800 text-sm space-y-1">
-                                        <li>• Professional profile appearance</li>
                                         <li>• Calculate accurate shipping costs</li>
                                         <li>• Optimize listings for local buyers</li>
                                         <li>• Set appropriate delivery timeframes</li>
                                         <li>• Improve your eBay SEO ranking</li>
+                                        <li>• Ensure compliance with eBay policies</li>
                                     </ul>
                                 </div>
                             </div>
@@ -149,37 +126,6 @@
                     <div id="error-message" class="hidden error-message px-4 py-3 rounded-lg mb-6 text-sm"></div>
                     <div id="success-message" class="hidden success-message px-4 py-3 rounded-lg mb-6 text-sm font-medium"></div>
                     <form id="profile-form" class="space-y-6">
-                        <div class="text-center">
-                            <div class="mb-4">
-                                <div class="relative inline-block">
-                                    <img id="profile-preview" src="https://via.placeholder.com/120x120/e5e7eb/6b7280?text=Upload"
-                                        alt="Profile Preview" class="profile-preview mx-auto">
-                                    <button type="button" id="remove-image" class="hidden absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 transition-colors">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                            <div id="upload-area" class="image-upload-area rounded-lg p-6 cursor-pointer">
-                                <input type="file" id="profile-image" accept="image/*" class="hidden">
-                                <div id="upload-content">
-                                    <svg class="mx-auto h-12 w-12 text-gray-400 mb-3" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                    <p class="text-gray-600 text-sm">
-                                        <span class="font-semibold text-blue-600">Click to upload</span> or drag and drop
-                                    </p>
-                                    <p class="text-gray-400 text-xs mt-1">PNG, JPG up to 5MB</p>
-                                </div>
-                                <div id="upload-progress" class="hidden mt-4">
-                                    <div class="bg-gray-200 rounded-full h-2">
-                                        <div id="progress-bar" class="upload-progress bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
-                                    </div>
-                                    <p class="text-sm text-gray-600 mt-2">Uploading image...</p>
-                                </div>
-                            </div>
-                        </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-3">
                                 Street Address *
@@ -258,7 +204,7 @@
                             <div>
                                 <h3 class="font-semibold text-gray-900 text-sm mb-1">Your Data is Secure</h3>
                                 <p class="text-sm text-gray-600">
-                                    Your address and profile picture are encrypted and secured. We never share your personal information.
+                                    Your address is encrypted and secured. We never share your personal information.
                                 </p>
                             </div>
                         </div>
@@ -268,7 +214,6 @@
         </div>
     </main>
     <script>
-        let uploadedImageUrl = null;
         fetch('/api/auth-status')
             .then(response => response.json())
             .then(data => {
@@ -287,110 +232,7 @@
             .catch(error => {
                 console.error('Auth check failed:', error);
             });
-        const uploadArea = document.getElementById('upload-area');
-        const fileInput = document.getElementById('profile-image');
-        const profilePreview = document.getElementById('profile-preview');
-        const removeImageBtn = document.getElementById('remove-image');
-        const uploadProgress = document.getElementById('upload-progress');
-        const progressBar = document.getElementById('progress-bar');
-        const uploadContent = document.getElementById('upload-content');
-        uploadArea.addEventListener('click', () => {
-            fileInput.click();
-        });
-        fileInput.addEventListener('change', handleFileSelect);
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('drag-over');
-        });
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('drag-over');
-        });
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('drag-over');
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleFile(files[0]);
-            }
-        });
-        removeImageBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            resetImageUpload();
-        });
-        function handleFileSelect(e) {
-            const file = e.target.files[0];
-            if (file) {
-                handleFile(file);
-            }
-        }
-        function handleFile(file) {
-            if (!file.type.startsWith('image/')) {
-                showError('Please select a valid image file.');
-                return;
-            }
-            if (file.size > 5 * 1024 * 1024) {
-                showError('Image size must be less than 5MB.');
-                return;
-            }
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                profilePreview.src = e.target.result;
-                removeImageBtn.classList.remove('hidden');
-            };
-            reader.readAsDataURL(file);
-            uploadToImgBB(file);
-        }
-        async function uploadToImgBB(file) {
-            const formData = new FormData();
-            formData.append('image', file);
-            uploadContent.classList.add('hidden');
-            uploadProgress.classList.remove('hidden');
-            let progress = 0;
-            const progressInterval = setInterval(() => {
-                progress += Math.random() * 15;
-                if (progress > 90) progress = 90;
-                progressBar.style.width = `${progress}%`;
-            }, 100);
-            try {
-                const response = await fetch('/api/upload-profile-image/', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-CSRFToken': document.querySelector('[name=csrf-token]').content,
-                    },
-                    credentials: 'include',
-                });
-                clearInterval(progressInterval);
-                progressBar.style.width = '100%';
-                if (response.ok) {
-                    const data = await response.json();
-                    uploadedImageUrl = data.image_url;
-                    setTimeout(() => {
-                        uploadProgress.classList.add('hidden');
-                        uploadContent.classList.remove('hidden');
-                        showSuccess('Profile picture uploaded successfully!');
-                    }, 500);
-                } else {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Upload failed');
-                }
-            } catch (error) {
-                clearInterval(progressInterval);
-                uploadProgress.classList.add('hidden');
-                uploadContent.classList.remove('hidden');
-                showError('Failed to upload image: ' + error.message);
-                resetImageUpload();
-            }
-        }
-        function resetImageUpload() {
-            profilePreview.src = 'https://via.placeholder.com/120x120/e5e7eb/6b7280?text=Upload';
-            removeImageBtn.classList.add('hidden');
-            fileInput.value = '';
-            uploadedImageUrl = null;
-            uploadProgress.classList.add('hidden');
-            uploadContent.classList.remove('hidden');
-            progressBar.style.width = '0%';
-        }
+        
         document.getElementById('postal_code').addEventListener('input', function(e) {
             let value = e.target.value.toUpperCase().replace(/\s/g, '');
             if (value.length > 3) {
@@ -404,8 +246,7 @@
                 address_line1: document.getElementById('address_line1').value.trim(),
                 city: document.getElementById('city').value.trim(),
                 postal_code: document.getElementById('postal_code').value.trim().toUpperCase(),
-                country: 'GB',
-                profile_pic_url: uploadedImageUrl
+                country: 'GB'
             };
             if (!formData.address_line1 || !formData.city || !formData.postal_code) {
                 showError('Please fill in all required fields.');
