@@ -351,8 +351,29 @@ def create_multipack_listing_task(self, user_id: int, payload: Dict[str, Any]) -
             except Exception:
                 pass
 
-    pack_ctx = {'type': 'multipack', 'quantity': multipack_quantity, 'unit': ''}
-    pack = f"MULTIPACK: Pack of {multipack_quantity}"
+    # pack_ctx = {'type': 'multipack', 'quantity': multipack_quantity, 'unit': ''}
+    # pack = f"MULTIPACK: Pack of {multipack_quantity}"
+
+    # def make_pack_info(multipack_quantity):
+    try:
+        qty = int(multipack_quantity or 1)
+    except (TypeError, ValueError):
+        qty = 1
+
+    if qty >= 2:
+        pack_info = {"type": "multipack", "quantity": qty, "unit": ""}
+        pack_note = f"Pack of {qty}"  # for UI only, don't pass as `pack`
+    else:
+        pack_info = {"type": "single"}
+        pack_note = ""
+
+    # return pack_info, pack_note
+
+    # Usage
+    # pack_info, pack_note = make_pack_info(multipack_quantity)
+    pack_ctx = pack_info              # dict
+    pack = dict(pack_info)            # also a dict, no strings here
+
 
     prep = helpers.prepare_listing_components(
         images=images,
