@@ -604,6 +604,7 @@ def create_bundle_listing_task(self, user_id: int, payload: Dict[str, Any]) -> D
     # Normalize bundle info.
     # Returns: (pack_info_dict, pack_note_str)
     # """
+    components=None
     comps = components or []
     try:
         qty = int(bundle_quantity) if bundle_quantity is not None else 0
