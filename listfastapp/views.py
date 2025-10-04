@@ -20,10 +20,9 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.serializers import Serializer, CharField, DecimalField, IntegerField, ChoiceField, ListField, URLField
 from decouple import config
-from .models import UserProfile, eBayToken, OTP, ListingCount, UserListing, TaskRecord, Plan, UserPlan, CreditPurchase, CreditPackage, RefundRequest, Order
+from .models import UserProfile, eBayToken, OTP, ListingCount, UserListing, TaskRecord, Plan, UserPlan, CreditPurchase, CreditPackage, RefundRequest, Order, NewsletterSubscriber
 from .tasks import create_single_item_listing_task, create_multipack_listing_task, create_bundle_listing_task
 from . import helpers
-from .mailchimp_service import send_welcome_email_via_mailchimp
 import uuid
 from PIL import Image, ImageDraw, ImageFile
 from django.contrib.auth.decorators import login_required
@@ -660,14 +659,90 @@ class VerifyOTPAPIView(APIView):
             request.session.pop('signup_data', None)
             
             try:
-                user_name = email.split('@')[0].replace('.', ' ').replace('_', ' ').title()
-                mailchimp_success = send_welcome_email_via_mailchimp(email, user_name)
-                if mailchimp_success:
-                    print(f"[Registration] Welcome email sent to {email} via Mailchimp")
-                else:
-                    print(f"[Registration] Failed to send welcome email to {email} via Mailchimp")
-            except Exception as mailchimp_error:
-                print(f"[Registration] Mailchimp error for {email}: {str(mailchimp_error)}")
+                youtube_video_link = "https://www.youtube.com/watch?v=nN_qZ81V4y8" 
+                
+                subject = "Welcome to ListFast.ai 🎉"
+                body_html = f"""
+                <html>
+                    <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9f9f9;">
+                        <
+                        <div style="width: 100%; overflow: hidden;">
+                            <img src="https://i.ibb.co/XxYB2v7g/066f480f-54d1-23f3-bb62-83225a12a32f.jpg" 
+                                 alt="Welcome to ListFast.ai" 
+                                 style="width: 100%; max-width: 600px; height: auto; display: block;">
+                        </div>
+                        
+                        
+                        <div style="padding: 40px 30px; background: white;">
+                            <h2 style="color: #333; font-size: 24px; margin-bottom: 20px;">
+                                Welcome to ListFast.ai 🎉 — you're just one step away from creating your first lightning-fast eBay listing.
+                            </h2>
+                            
+                            <p style="color: #666; font-size: 16px; line-height: 1.8; margin: 20px 0;">
+                                To make sure your listings publish correctly, you'll need to set up <strong>eBay Business Policies</strong> (shipping, returns, and payment). Don't worry — it only takes a few minutes.
+                            </p>
+                            
+                            <p style="color: #666; font-size: 16px; line-height: 1.8; margin: 20px 0;">
+                                👉 We've created a simple video guide to walk you through it:
+                            </p>
+                            
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a href="{youtube_video_link}" 
+                                   style="display: inline-block; background: #FF0000; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                                    📺 Watch the setup video on YouTube
+                                </a>
+                            </div>
+                            
+                            <p style="color: #666; font-size: 16px; line-height: 1.8; margin: 20px 0;">
+                                Once you're done, you'll be ready to:
+                            </p>
+                            
+                            <div style="background: #f0f7ff; padding: 25px; border-radius: 10px; border-left: 4px solid #667eea; margin: 25px 0;">
+                                <p style="margin: 0 0 12px 0; color: #333; font-size: 16px; line-height: 1.8;">
+                                    🚀 <strong>Create listings in under 60 seconds</strong>
+                                </p>
+                                <p style="margin: 0 0 12px 0; color: #333; font-size: 16px; line-height: 1.8;">
+                                    🖼️ <strong>Enhance product images automatically</strong>
+                                </p>
+                                <p style="margin: 0; color: #333; font-size: 16px; line-height: 1.8;">
+                                    🔎 <strong>Publish eBay-compliant listings with AI-optimized titles & descriptions</strong>
+                                </p>
+                            </div>
+                            
+                            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+                            
+                            <p style="color: #666; font-size: 15px; line-height: 1.6; margin: 20px 0;">
+                                If you need any help, reply to this email or reach us at 
+                                <a href="mailto:rahul@listfast.ai" style="color: #667eea; text-decoration: none; font-weight: bold;">rahul@listfast.ai</a> 
+                                — we're here for you.
+                            </p>
+                            
+                            <p style="color: #666; font-size: 15px; line-height: 1.6; margin: 20px 0;">
+                                <strong>Happy selling,</strong><br>
+                                The ListFast.ai Team
+                            </p>
+                        </div>
+                        
+                        <!-- Footer -->
+                        <div style="background: #333; padding: 20px; text-align: center;">
+                            <p style="color: #999; margin: 0; font-size: 12px;">© 2025 ListFast.ai. All rights reserved.</p>
+                        </div>
+                    </body>
+                </html>
+                """
+                
+                msg = EmailMultiAlternatives(
+                    subject=subject,
+                    body="Welcome to ListFast.ai! You're just one step away from creating your first lightning-fast eBay listing.",
+                    from_email=EMAIL_USER,
+                    to=[email]
+                )
+                msg.attach_alternative(body_html, "text/html")
+                msg.send()
+                
+                logging.info(f"Welcome email sent to {email}")
+            except Exception as e:
+                logging.error(f"Failed to send welcome email to {email}: {str(e)}")
             
             return Response({
                 'message': 'Email verified successfully! Account created.',
@@ -1449,7 +1524,6 @@ class StripeWebhookAPIView(APIView):
                             )
                             logging.info(f"Subscription created for user {user.email} - Plan: {plan.name}")
                             
-                            # Create order record
                             Order.objects.create(
                                 user=user,
                                 order_type="subscription",
@@ -1543,7 +1617,6 @@ class StripeWebhookAPIView(APIView):
                     
                     logging.info(f"Invoice paid for user {user_plan.user.email} - Period reset: {period_start} to {period_end}")
                     
-                    # Create order record for renewal
                     amount_paid = invoice.get("amount_paid", 0) / 100
                     Order.objects.create(
                         user=user_plan.user,
@@ -1556,7 +1629,6 @@ class StripeWebhookAPIView(APIView):
                         status="completed"
                     )
                     
-                    # Send payment success email to user
                     subject = "Payment Successful - ListFast.ai"
                     body_html = f"""
                     <html>
@@ -1986,9 +2058,24 @@ class SubscribeToMailchimpAPIView(APIView):
         if not email:
             return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        success = send_welcome_email_via_mailchimp(email)
-
-        if success:
+        try:
+            subscriber, created = NewsletterSubscriber.objects.get_or_create(
+                email=email,
+                defaults={"is_active": True}
+            )
+            
+            if not created:
+                if not subscriber.is_active:
+                    subscriber.is_active = True
+                    subscriber.save()
+                    logging.info(f"Newsletter subscription reactivated for: {email}")
+                    return Response({"message": "Successfully resubscribed!"}, status=status.HTTP_200_OK)
+                else:
+                    return Response({"message": "You're already subscribed!"}, status=status.HTTP_200_OK)
+            
+            logging.info(f"New newsletter subscription from: {email}")
             return Response({"message": "Successfully subscribed!"}, status=status.HTTP_200_OK)
-        else:
+            
+        except Exception as e:
+            logging.error(f"Error subscribing {email} to newsletter: {str(e)}")
             return Response({"error": "Failed to subscribe. Please try again later."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

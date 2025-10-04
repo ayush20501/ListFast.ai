@@ -223,3 +223,15 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Order #{self.id} - {self.user.email} - {self.description}"
+
+
+class NewsletterSubscriber(models.Model):
+    email = models.EmailField(unique=True)
+    subscribed_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        ordering = ["-subscribed_at"]
+    
+    def __str__(self):
+        return f"{self.email} - {'Active' if self.is_active else 'Unsubscribed'}"
