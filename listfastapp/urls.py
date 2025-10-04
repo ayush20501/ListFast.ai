@@ -34,7 +34,6 @@ urlpatterns = [
     path('api/user-stats/', views.UserStatsAPIView.as_view(), name='api-user-stats'),
     path('api/my-listings/', views.MyListingsAPIView.as_view(), name='api-my-listings'),
     path('api/fetch-address-imageprofile/', views.FetchAddressImageProfileAPIView.as_view(), name='api-fetch-address-imageprofile'),
-    path('api/upload-profile-image/', views.UploadProfileImageAPIView.as_view(), name='api-upload-profile-image'),
     path('api/send-password-otp/', views.SendPasswordChangeOTPAPIView.as_view(), name='api-send-password-otp'),
     path('api/change-password/', views.ChangePasswordAPIView.as_view(), name='api-change-password'),
     path('api/signup/', views.SignupAPIView.as_view(), name='api-signup'),

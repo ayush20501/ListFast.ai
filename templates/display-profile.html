@@ -213,8 +213,6 @@
 </head>
 
 <body class="min-h-screen bg-gray-50">
-    <img id="user-profile-pic" src="" alt="" style="display: none;">
-    <img id="mobile-user-profile-pic" src="" alt="" style="display: none;">
     <nav class="navbar-backdrop fixed w-full top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
@@ -245,7 +243,7 @@
                     </a>
                     <a href="/services/"
                         class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">
-                        Services
+                        Snap & List
                     </a>
                     <a href="/pricing/"
                         class="nav-link text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">
@@ -347,7 +345,7 @@
                     </a>
                     <a href="/services/"
                         class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">
-                        Services
+                        Snap & List
                     </a>
                     <a href="/pricing/"
                         class="block text-gray-700 hover:text-gray-900 font-medium py-2 transition-colors">
@@ -543,70 +541,6 @@
                                     </form>
                                 </div>
                                 <div id="password-change-message" class="hidden mt-4 text-sm p-3 rounded-lg"></div>
-                            </div>
-                        </div>
-
-                        <div class="bg-gray-50 p-4 sm:p-6 rounded-2xl">
-                            <div class="flex items-center justify-between mb-4">
-                                <h4 class="font-semibold text-gray-900 text-lg">Store Logo</h4>
-                                <button id="edit-profile-pic-btn"
-                                    class="text-blue-600 hover:text-blue-800 font-medium transition-colors px-3 py-1 rounded-lg hover:bg-blue-50">
-                                    Change Picture
-                                </button>
-                            </div>
-                            <div id="profile-pic-display" class="flex items-center space-x-4 p-3 bg-white rounded-lg">
-                                <img id="profile-pic-modal" src="https://via.placeholder.com/80" alt="Profile Picture"
-                                    class="profile-image w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-gray-200 object-cover">
-                                <div>
-                                    <p class="font-semibold text-gray-900">Store Logo</p>
-                                    <p class="text-sm text-gray-600">Current store branding image</p>
-                                </div>
-                            </div>
-                            <div id="profile-pic-edit-form" class="hidden">
-                                <form id="profile-pic-form" class="space-y-4" enctype="multipart/form-data">
-                                    <div>
-                                        <label class="block text-sm font-semibold text-gray-700 mb-3">Upload Store
-                                            Logo</label>
-                                        <div class="flex items-center justify-center w-full">
-                                            <label for="profile-pic-file"
-                                                class="upload-area flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                                                <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                                                    <svg class="w-8 h-8 mb-4 text-gray-500" fill="none"
-                                                        viewBox="0 0 20 16">
-                                                        <path stroke="currentColor" stroke-linecap="round"
-                                                            stroke-linejoin="round" stroke-width="2"
-                                                            d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2" />
-                                                    </svg>
-                                                    <p class="mb-2 text-sm text-gray-500">
-                                                        <span class="font-semibold">Click to upload</span> or drag and
-                                                        drop
-                                                    </p>
-                                                    <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
-                                                </div>
-                                                <input id="profile-pic-file" type="file" class="hidden"
-                                                    accept="image/*" />
-                                            </label>
-                                        </div>
-                                        <div id="image-preview" class="hidden mt-4 p-4 bg-white rounded-lg">
-                                            <p class="text-sm font-semibold text-gray-700 mb-2">Preview:</p>
-                                            <img id="preview-img" src="" alt="Preview"
-                                                class="profile-image w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-gray-200 object-cover">
-                                        </div>
-                                        <p class="text-xs text-gray-500 mt-2">Upload a store logo (JPEG, PNG, GIF format
-                                            supported)</p>
-                                    </div>
-                                    <div class="flex flex-col sm:flex-row gap-3 pt-2">
-                                        <button type="submit"
-                                            class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 ">
-                                            Save Picture
-                                        </button>
-                                        <button type="button" id="cancel-profile-pic-edit"
-                                            class="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-300 ">
-                                            Cancel
-                                        </button>
-                                    </div>
-                                </form>
-                                <div id="profile-pic-update-message" class="hidden mt-4 text-sm p-3 rounded-lg"></div>
                             </div>
                         </div>
 
@@ -963,10 +897,6 @@
                     const profileData = await profileResponse.json();
                     currentUserProfile = profileData;
                     displayAddress(profileData);
-                    if (profileData.profile_pic_url) {
-                        document.getElementById('user-profile-pic').src = profileData.profile_pic_url;
-                        document.getElementById('mobile-user-profile-pic').src = profileData.profile_pic_url;
-                    }
                 } else {
                     displayAddress(null);
                 }
@@ -999,14 +929,11 @@
                 document.getElementById('display-city').textContent = profile.city;
                 document.getElementById('display-postal-code').textContent = profile.postal_code;
                 document.getElementById('display-country').textContent = profile.country === 'GB' ? 'United Kingdom' : profile.country;
-                const profilePicUrl = profile.profile_pic_url || 'https://via.placeholder.com/80';
-                document.getElementById('profile-pic-modal').src = profilePicUrl;
             } else {
                 document.getElementById('display-address-line1').textContent = 'No address set';
                 document.getElementById('display-city').textContent = '-';
                 document.getElementById('display-postal-code').textContent = '-';
                 document.getElementById('display-country').textContent = '-';
-                document.getElementById('profile-pic-modal').src = 'https://via.placeholder.com/80';
             }
         }
 
@@ -1247,126 +1174,6 @@
 
         function showAddressMessage(message, type) {
             const messageEl = document.getElementById('address-update-message');
-            messageEl.textContent = message;
-            messageEl.className = `mt-4 text-sm p-3 rounded-lg ${type === 'success' ? 'text-green-800 bg-green-50 border border-green-200' : 'text-red-800 bg-red-50 border border-red-200'}`;
-            messageEl.classList.remove('hidden');
-        }
-
-        document.getElementById('edit-profile-pic-btn').addEventListener('click', () => {
-            showProfilePicEditForm();
-        });
-        document.getElementById('cancel-profile-pic-edit').addEventListener('click', () => {
-            resetProfilePicForm();
-        });
-        document.getElementById('profile-pic-file').addEventListener('change', function (e) {
-            const file = e.target.files[0];
-            if (file) {
-                if (!file.type.startsWith('image/')) {
-                    showProfilePicMessage('Please select a valid image file.', 'error'); return;
-                }
-                if (file.size > 10 * 1024 * 1024) {
-                    showProfilePicMessage('File size must be less than 10MB.', 'error'); return;
-                }
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    document.getElementById('preview-img').src = e.target.result;
-                    document.getElementById('image-preview').classList.remove('hidden');
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-        function showProfilePicEditForm() {
-            document.getElementById('profile-pic-display').classList.add('hidden');
-            document.getElementById('profile-pic-edit-form').classList.remove('hidden');
-            document.getElementById('edit-profile-pic-btn').classList.add('hidden');
-            document.getElementById('profile-pic-file').value = '';
-            document.getElementById('image-preview').classList.add('hidden');
-        }
-        function resetProfilePicForm() {
-            document.getElementById('profile-pic-edit-form').classList.add('hidden');
-            document.getElementById('profile-pic-display').classList.remove('hidden');
-            document.getElementById('edit-profile-pic-btn').classList.remove('hidden');
-            document.getElementById('profile-pic-file').value = '';
-            document.getElementById('image-preview').classList.add('hidden');
-            const messageEl = document.getElementById('profile-pic-update-message');
-            messageEl.classList.add('hidden');
-            messageEl.textContent = '';
-        }
-        document.getElementById('profile-pic-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const fileInput = document.getElementById('profile-pic-file');
-            const file = fileInput.files[0];
-            if (!file) {
-                showProfilePicMessage('Please select an image file.', 'error'); return;
-            }
-            if (!file.type.startsWith('image/')) {
-                showProfilePicMessage('Please select a valid image file.', 'error'); return;
-            }
-            if (file.size > 10 * 1024 * 1024) {
-                showProfilePicMessage('File size must be less than 10MB.', 'error'); return;
-            }
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            const originalText = submitBtn.textContent;
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Uploading...';
-            try {
-                const getCookie = (name) => {
-                    let cookieValue = null;
-                    if (document.cookie && document.cookie !== '') {
-                        const cookies = document.cookie.split(';');
-                        for (let i = 0; i < cookies.length; i++) {
-                            const cookie = cookies[i].trim();
-                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                                break;
-                            }
-                        }
-                    }
-                    return cookieValue;
-                };
-                const csrftoken = getCookie('csrftoken');
-                const formData = new FormData();
-                formData.append('image', file);
-                const response = await fetch('/api/upload-profile-image/', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-CSRFToken': csrftoken
-                    }
-                });
-                const data = await response.json();
-                if (response.ok && data.status === 'success') {
-                    const profileResponse = await fetch('/api/profile/', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
-                        body: JSON.stringify({
-                            ...currentUserProfile,
-                            profile_pic_url: data.image_url
-                        }),
-                    });
-                    const profileData = await profileResponse.json();
-                    if (profileResponse.ok) {
-                        showProfilePicMessage('Profile picture updated successfully!', 'success');
-                        currentUserProfile = { ...currentUserProfile, profile_pic_url: data.image_url };
-                        displayAddress(currentUserProfile);
-                        document.getElementById('user-profile-pic').src = data.image_url;
-                        document.getElementById('mobile-user-profile-pic').src = data.image_url;
-                        setTimeout(() => { resetProfilePicForm(); }, 1500);
-                    } else {
-                        showProfilePicMessage(profileData.error || 'Failed to update profile picture.', 'error');
-                    }
-                } else {
-                    showProfilePicMessage(data.error || 'Failed to upload image.', 'error');
-                }
-            } catch (error) {
-                console.error('Upload error:', error);
-                showProfilePicMessage('Network error. Please try again.', 'error');
-            }
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
-        });
-        function showProfilePicMessage(message, type) {
-            const messageEl = document.getElementById('profile-pic-update-message');
             messageEl.textContent = message;
             messageEl.className = `mt-4 text-sm p-3 rounded-lg ${type === 'success' ? 'text-green-800 bg-green-50 border border-green-200' : 'text-red-800 bg-red-50 border border-red-200'}`;
             messageEl.classList.remove('hidden');

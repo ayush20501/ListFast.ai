@@ -455,47 +455,11 @@ class FetchAddressImageProfileAPIView(APIView):
                 'address_line1': profile.address_line1,
                 'city': profile.city,
                 'postal_code': profile.postal_code,
-                'country': profile.country,
-                'profile_pic_url': profile.profile_pic_url
+                'country': profile.country
             }
             return Response(profile_data, status=status.HTTP_200_OK)
         except UserProfile.DoesNotExist:
             return Response({'error': 'User profile not found'},status=status.HTTP_404_NOT_FOUND)
-
-class UploadProfileImageAPIView(APIView):
-    def post(self, request):
-        file = request.FILES.get("image")
-        if not file:
-            return Response({"error": "No image file provided"}, status=400)
-        if getattr(file, "size", 0) > MAX_FILE_SIZE:
-            return Response({"error": "File too large"}, status=400)
-
-        output_path = None
-        try:
-            os.makedirs("media", exist_ok=True)
-            output_path = f"media/single_{uuid.uuid4().hex}.jpg"
-
-            with open(output_path, "wb") as out:
-                for chunk in file.chunks():
-                    out.write(chunk)
-
-            processed_image_url = helpers.upload_to_s3(output_path)
-            if not processed_image_url:
-                return Response({"error": "Upload failed. Please try again later."},
-                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-            if os.path.exists(output_path):
-                os.remove(output_path)
-
-            return Response({"status": "success", "image_url": processed_image_url})
-
-        except Exception as e:
-            try:
-                if output_path and os.path.exists(output_path):
-                    os.remove(output_path)
-            except Exception:
-                pass
-            return Response({"error": f"Upload failed. Please try again later."},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class SendPasswordChangeOTPAPIView(APIView):
@@ -665,7 +629,6 @@ class VerifyOTPAPIView(APIView):
                 body_html = f"""
                 <html>
                     <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9f9f9;">
-                        <
                         <div style="width: 100%; overflow: hidden;">
                             <img src="https://i.ibb.co/XxYB2v7g/066f480f-54d1-23f3-bb62-83225a12a32f.jpg" 
                                  alt="Welcome to ListFast.ai" 
