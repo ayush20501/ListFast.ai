@@ -468,46 +468,11 @@ class SendPasswordChangeOTPAPIView(APIView):
         expires_at = timezone.now() + timedelta(seconds=600)
         OTP.objects.filter(user=request.user).delete()
         OTP.objects.create(user=request.user, otp=otp, expires_at=expires_at)
-        body = f"""
-        <html>
-            <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
-                    <h1 style="color: white; margin: 0;">ListFast.ai</h1>
-                </div>
-                <div style="padding: 40px 30px; background: #f9f9f9;">
-                    <h2 style="color: #333; margin-bottom: 20px;">Password Reset Request</h2>
-                    <p style="color: #666; font-size: 16px; line-height: 1.6;">
-                        Use the OTP below to reset your password:
-                    </p>
-                    <div style="background: white; padding: 30px; border-radius: 10px; text-align: center; margin: 30px 0;">
-                        <div style="font-size: 32px; font-weight: bold; color: #667eea; letter-spacing: 8px; font-family: monospace;">
-                            {otp}
-                        </div>
-                        <p style="color: #888; font-size: 14px; margin-top: 15px;">
-                            This OTP is valid for 10 minutes.
-                        </p>
-                    </div>
-                    <p style="color: #666; font-size: 14px;">
-                        If you did not request this, contact <a href="mailto:rahul@listfast.ai">rahul@listfast.ai</a>.
-                    </p>
-                </div>
-                <div style="background: #333; padding: 20px; text-align: center;">
-                    <p style="color: #999; margin: 0; font-size: 12px;">
-                        © 2025 ListFast.ai. All rights reserved.
-                    </p>
-                </div>
-            </body>
-        </html>
-        """
-        msg = EmailMultiAlternatives(
-            subject="ListFast.ai Password Reset OTP",
-            body="Your OTP is: " + otp,
-            from_email=os.getenv("EMAIL_USER"),
-            to=[request.user.email]
-        )
-        msg.attach_alternative(body, "text/html")
+        
+        # Send password reset email asynchronously
         try:
-            msg.send()
+            from .tasks import send_password_reset_email_task
+            send_password_reset_email_task.delay(request.user.email, otp)
             return Response({"status": "success", "message": "Verification code sent"})
         except Exception as e:
             return Response({"error": "Failed to send verification code"}, status=500)
@@ -543,49 +508,12 @@ class SignupAPIView(APIView):
             return Response({"error": "User with this email already exists"}, status=400)
         otp = str(random.randint(100000, 999999))
         request.session['signup_data'] = {'email': email, 'password': password, 'otp': otp, 'timestamp': timezone.now().isoformat(), 'attempts': 0}
-        body = f"""
-        <html>
-            <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
-                    <h1 style="color: white; margin: 0;">ListFast.ai</h1>
-                </div>
-                <div style="padding: 40px 30px; background: #f9f9f9;">
-                    <h2 style="color: #333; margin-bottom: 20px;">Welcome to ListFast.ai!</h2>
-                    <p style="color: #666; font-size: 16px; line-height: 1.6;">
-                        Use the verification code below to complete your registration:
-                    </p>
-                    <div style="background: white; padding: 30px; border-radius: 10px; text-align: center; margin: 30px 0;">
-                        <div style="font-size: 32px; font-weight: bold; color: #667eea; letter-spacing: 8px; font-family: monospace;">
-                            {otp}
-                        </div>
-                        <p style="color: #888; font-size: 14px; margin-top: 15px;">
-                            This code will expire in 10 minutes
-                        </p>
-                    </div>
-                    <p style="color: #666; font-size: 14px;">
-                        If you didn't request this code, please ignore this email.
-                    </p>
-                </div>
-                <div style="background: #333; padding: 20px; text-align: center;">
-                    <p style="color: #999; margin: 0; font-size: 12px;">
-                        © 2025 ListFast.ai. All rights reserved.
-                    </p>
-                </div>
-            </body>
-        </html>
-        """
-        msg = EmailMultiAlternatives(
-            subject="ListFast.ai Verification Code",
-            body="Your OTP is: " + otp,
-            from_email=os.getenv("EMAIL_USER"),
-            to=[email]
-        )
-        msg.attach_alternative(body, "text/html")
         try:
-            msg.send()
+            from .tasks import send_verification_email_task
+            send_verification_email_task.delay(email, otp)
             return Response({'message': 'Verification code sent to your email'})
         except Exception as e:
-            print(f"[Registration] Error sending verification email: {str(e)}")
+            print(f"[Registration] Error queuing verification email: {str(e)}")
             return Response({"error": "Failed to send verification email. Please try again later."}, status=500)
 
 class VerifyOTPAPIView(APIView):
@@ -622,90 +550,13 @@ class VerifyOTPAPIView(APIView):
                 pass
             request.session.pop('signup_data', None)
             
+            # Send welcome email asynchronously
             try:
-                youtube_video_link = "https://www.youtube.com/watch?v=nN_qZ81V4y8" 
-                
-                subject = "Welcome to ListFast.ai 🎉"
-                body_html = f"""
-                <html>
-                    <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9f9f9;">
-                        <div style="width: 100%; overflow: hidden;">
-                            <img src="https://i.ibb.co/XxYB2v7g/066f480f-54d1-23f3-bb62-83225a12a32f.jpg" 
-                                 alt="Welcome to ListFast.ai" 
-                                 style="width: 100%; max-width: 600px; height: auto; display: block;">
-                        </div>
-                        
-                        
-                        <div style="padding: 40px 30px; background: white;">
-                            <h2 style="color: #333; font-size: 24px; margin-bottom: 20px;">
-                                Welcome to ListFast.ai 🎉 — you're just one step away from creating your first lightning-fast eBay listing.
-                            </h2>
-                            
-                            <p style="color: #666; font-size: 16px; line-height: 1.8; margin: 20px 0;">
-                                To make sure your listings publish correctly, you'll need to set up <strong>eBay Business Policies</strong> (shipping, returns, and payment). Don't worry — it only takes a few minutes.
-                            </p>
-                            
-                            <p style="color: #666; font-size: 16px; line-height: 1.8; margin: 20px 0;">
-                                👉 We've created a simple video guide to walk you through it:
-                            </p>
-                            
-                            <div style="text-align: center; margin: 30px 0;">
-                                <a href="{youtube_video_link}" 
-                                   style="display: inline-block; background: #FF0000; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
-                                    📺 Watch the setup video on YouTube
-                                </a>
-                            </div>
-                            
-                            <p style="color: #666; font-size: 16px; line-height: 1.8; margin: 20px 0;">
-                                Once you're done, you'll be ready to:
-                            </p>
-                            
-                            <div style="background: #f0f7ff; padding: 25px; border-radius: 10px; border-left: 4px solid #667eea; margin: 25px 0;">
-                                <p style="margin: 0 0 12px 0; color: #333; font-size: 16px; line-height: 1.8;">
-                                    🚀 <strong>Create listings in under 60 seconds</strong>
-                                </p>
-                                <p style="margin: 0 0 12px 0; color: #333; font-size: 16px; line-height: 1.8;">
-                                    🖼️ <strong>Enhance product images automatically</strong>
-                                </p>
-                                <p style="margin: 0; color: #333; font-size: 16px; line-height: 1.8;">
-                                    🔎 <strong>Publish eBay-compliant listings with AI-optimized titles & descriptions</strong>
-                                </p>
-                            </div>
-                            
-                            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
-                            
-                            <p style="color: #666; font-size: 15px; line-height: 1.6; margin: 20px 0;">
-                                If you need any help, reply to this email or reach us at 
-                                <a href="mailto:rahul@listfast.ai" style="color: #667eea; text-decoration: none; font-weight: bold;">rahul@listfast.ai</a> 
-                                — we're here for you.
-                            </p>
-                            
-                            <p style="color: #666; font-size: 15px; line-height: 1.6; margin: 20px 0;">
-                                <strong>Happy selling,</strong><br>
-                                The ListFast.ai Team
-                            </p>
-                        </div>
-                        
-                        <!-- Footer -->
-                        <div style="background: #333; padding: 20px; text-align: center;">
-                            <p style="color: #999; margin: 0; font-size: 12px;">© 2025 ListFast.ai. All rights reserved.</p>
-                        </div>
-                    </body>
-                </html>
-                """
-                
-                msg = EmailMultiAlternatives(
-                    subject=subject,
-                    body="Welcome to ListFast.ai! You're just one step away from creating your first lightning-fast eBay listing.",
-                    from_email=EMAIL_USER,
-                    to=[email]
-                )
-                msg.attach_alternative(body_html, "text/html")
-                msg.send()
-                
-                logging.info(f"Welcome email sent to {email}")
+                from .tasks import send_welcome_email_task
+                send_welcome_email_task.delay(email)
+                logging.info(f"Welcome email queued for {email}")
             except Exception as e:
-                logging.error(f"Failed to send welcome email to {email}: {str(e)}")
+                logging.error(f"Failed to queue welcome email for {email}: {str(e)}")
             
             return Response({
                 'message': 'Email verified successfully! Account created.',
@@ -729,46 +580,11 @@ class ResendOTPAPIView(APIView):
             'attempts': 0
         })
         request.session['signup_data'] = signup_data
-        body = f"""
-        <html>
-            <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
-                    <h1 style="color: white; margin: 0;">ListFast.ai</h1>
-                </div>
-                <div style="padding: 40px 30px; background: #f9f9f9;">
-                    <h2 style="color: #333; margin-bottom: 20px;">Welcome to ListFast.ai!</h2>
-                    <p style="color: #666; font-size: 16px; line-height: 1.6;">
-                        Use the new verification code below to complete your registration:
-                    </p>
-                    <div style="background: white; padding: 30px; border-radius: 10px; text-align: center; margin: 30px 0;">
-                        <div style="font-size: 32px; font-weight: bold; color: #667eea; letter-spacing: 8px; font-family: monospace;">
-                            {new_otp}
-                        </div>
-                        <p style="color: #888; font-size: 14px; margin-top: 15px;">
-                            This code will expire in 10 minutes
-                        </p>
-                    </div>
-                    <p style="color: #666; font-size: 14px;">
-                        If you didn't request this code, please ignore this email.
-                    </p>
-                </div>
-                <div style="background: #333; padding: 20px; text-align: center;">
-                    <p style="color: #999; margin: 0; font-size: 12px;">
-                        © 2025 ListFast.ai. All rights reserved.
-                    </p>
-                </div>
-            </body>
-        </html>
-        """
-        msg = EmailMultiAlternatives(
-            subject="ListFast.ai Verification Code",
-            body="Your OTP is: " + new_otp,
-            from_email=os.getenv("EMAIL_USER"),
-            to=[email]
-        )
-        msg.attach_alternative(body, "text/html")
+        
+        # Send verification email asynchronously
         try:
-            msg.send()
+            from .tasks import send_verification_email_task
+            send_verification_email_task.delay(email, new_otp)
             return Response({'message': 'New verification code sent'})
         except Exception:
             return Response({"error": "Failed to send verification email"}, status=500)
@@ -1169,153 +985,21 @@ class RequestRefundAPIView(APIView):
                 "listings_used": user_plan.listings_used,
             }
 
-            team_email = "rahul@listfast.ai"
-            subject = f"Refund Request - {user.email} ({user_plan.plan.name})"
-            
-            body_html = f"""
-            <html>
-                <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
-                        <h1 style="color: white; margin: 0;">ListFast.ai Refund Request</h1>
-                    </div>
-                    <div style="padding: 40px 30px; background: #f9f9f9;">
-                        <h2 style="color: #333; margin-bottom: 20px;">New Refund Request</h2>
-                        
-                        <div style="background: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
-                            <h3 style="color: #667eea; margin-top: 0;">User Details</h3>
-                            <table style="width: 100%; border-collapse: collapse;">
-                                <tr>
-                                    <td style="padding: 8px 0; color: #666; font-weight: bold;">Email:</td>
-                                    <td style="padding: 8px 0; color: #333;">{refund_details['user_email']}</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 8px 0; color: #666; font-weight: bold;">User ID:</td>
-                                    <td style="padding: 8px 0; color: #333;">{refund_details['user_id']}</td>
-                                </tr>
-                            </table>
-                        </div>
-                        
-                        <div style="background: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
-                            <h3 style="color: #667eea; margin-top: 0;">Subscription Details</h3>
-                            <table style="width: 100%; border-collapse: collapse;">
-                                <tr>
-                                    <td style="padding: 8px 0; color: #666; font-weight: bold;">Plan:</td>
-                                    <td style="padding: 8px 0; color: #333;">{refund_details['plan_name']} ({refund_details['plan_code']})</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 8px 0; color: #666; font-weight: bold;">Subscription ID:</td>
-                                    <td style="padding: 8px 0; color: #333; font-family: monospace; font-size: 12px;">{refund_details['subscription_id']}</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 8px 0; color: #666; font-weight: bold;">Period Start:</td>
-                                    <td style="padding: 8px 0; color: #333;">{refund_details['period_start']}</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 8px 0; color: #666; font-weight: bold;">Period End:</td>
-                                    <td style="padding: 8px 0; color: #333;">{refund_details['period_end']}</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 8px 0; color: #666; font-weight: bold;">Listings Used:</td>
-                                    <td style="padding: 8px 0; color: #333;">{refund_details['listings_used']}</td>
-                                </tr>
-                            </table>
-                        </div>
-                        
-                        <div style="background: #fff3cd; padding: 20px; border-radius: 10px; border-left: 4px solid #ffc107; margin: 20px 0;">
-                            <p style="margin: 0; color: #856404; font-weight: bold;">
-                                ⚠️ Action Required: Please review and process this refund request in Stripe.
-                            </p>
-                        </div>
-                        
-                        <p style="color: #666; font-size: 14px; margin-top: 30px;">
-                            To process this refund, log in to your Stripe dashboard and issue the refund for subscription ID: <strong>{refund_details['subscription_id']}</strong>
-                        </p>
-                    </div>
-                    <div style="background: #333; padding: 20px; text-align: center;">
-                        <p style="color: #999; margin: 0; font-size: 12px;">
-                            © 2025 ListFast.ai. All rights reserved.
-                        </p>
-                    </div>
-                </body>
-            </html>
-            """
-            
-            body_text = f"""
-            New Refund Request - ListFast.ai
-            
-            User Details:
-            - Email: {refund_details['user_email']}
-            - User ID: {refund_details['user_id']}
-            
-            Subscription Details:
-            - Plan: {refund_details['plan_name']} ({refund_details['plan_code']})
-            - Subscription ID: {refund_details['subscription_id']}
-            - Period Start: {refund_details['period_start']}
-            - Period End: {refund_details['period_end']}
-            - Listings Used: {refund_details['listings_used']}
-            
-            Action Required: Please review and process this refund request in Stripe.
-            """
-            
-            msg = EmailMultiAlternatives(
-                subject=subject,
-                body=body_text,
-                from_email=EMAIL_USER,
-                to=[team_email]
-            )
-            msg.attach_alternative(body_html, "text/html")
-            
+            # Send refund request emails asynchronously
             try:
-                msg.send()
-                logging.info(f"Refund request email sent for user {user.email} (Plan: {user_plan.plan.code})")
+                from .tasks import send_refund_request_emails_task
+                send_refund_request_emails_task.delay(
+                    user_email=user.email,
+                    user_name=user.username or user.email,
+                    plan_name=user_plan.plan.name,
+                    plan_code=user_plan.plan.code,
+                    amount=float(user_plan.plan.price_amount_gbp),
+                    reason=request.data.get("reason", "User requested refund")
+                )
+                logging.info(f"Refund request emails queued for user {user.email} (Plan: {user_plan.plan.code})")
             except Exception as email_error:
-                logging.error(f"Failed to send refund request email: {str(email_error)}")
-                return Response({
-                    "error": "Failed to submit refund request. Please contact support at rahul@listfast.ai"
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-            user_subject = "Refund Request Received - ListFast.ai"
-            user_body_html = f"""
-            <html>
-                <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
-                        <h1 style="color: white; margin: 0;">ListFast.ai</h1>
-                    </div>
-                    <div style="padding: 40px 30px; background: #f9f9f9;">
-                        <h2 style="color: #333; margin-bottom: 20px;">Refund Request Received</h2>
-                        <p style="color: #666; font-size: 16px; line-height: 1.6;">
-                            We have received your refund request for your <strong>{user_plan.plan.name}</strong> subscription.
-                        </p>
-                        <div style="background: white; padding: 30px; border-radius: 10px; margin: 30px 0;">
-                            <p style="color: #666; font-size: 16px; line-height: 1.6; margin: 0;">
-                                Our team will review your request and process it within <strong>2-3 business days</strong>. 
-                                Once approved, the refund will be processed and you will receive it within 5-10 business days.
-                            </p>
-                        </div>
-                        <p style="color: #666; font-size: 14px;">
-                            If you have any questions, please contact us at <a href="mailto:rahul@listfast.ai">rahul@listfast.ai</a>.
-                        </p>
-                    </div>
-                    <div style="background: #333; padding: 20px; text-align: center;">
-                        <p style="color: #999; margin: 0; font-size: 12px;">
-                            © 2025 ListFast.ai. All rights reserved.
-                        </p>
-                    </div>
-                </body>
-            </html>
-            """
-            
-            user_msg = EmailMultiAlternatives(
-                subject=user_subject,
-                body=f"Your refund request for {user_plan.plan.name} has been received and will be processed within 2-3 business days.",
-                from_email=EMAIL_USER,
-                to=[user.email]
-            )
-            user_msg.attach_alternative(user_body_html, "text/html")
-            
-            try:
-                user_msg.send()
-            except Exception:
+                logging.error(f"Failed to queue refund request emails: {str(email_error)}")
+                # Continue with the refund request even if email fails
                 pass 
 
             # Create refund request record
@@ -1498,62 +1182,10 @@ class StripeWebhookAPIView(APIView):
                                 status="completed"
                             )
                             
-                            subject = f"Welcome to {plan.name} - ListFast.ai"
-                            body_html = f"""
-                            <html>
-                                <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
-                                        <h1 style="color: white; margin: 0;">ListFast.ai</h1>
-                                    </div>
-                                    <div style="padding: 40px 30px; background: #f9f9f9;">
-                                        <h2 style="color: #333; margin-bottom: 20px;">🎉 Welcome to {plan.name}!</h2>
-                                        <p style="color: #666; font-size: 16px; line-height: 1.6;">
-                                            Thank you for subscribing to <strong>{plan.name}</strong>! Your subscription is now active.
-                                        </p>
-                                        <div style="background: white; padding: 30px; border-radius: 10px; margin: 30px 0;">
-                                            <h3 style="color: #667eea; margin-top: 0;">Subscription Details</h3>
-                                            <table style="width: 100%; border-collapse: collapse;">
-                                                <tr>
-                                                    <td style="padding: 8px 0; color: #666; font-weight: bold;">Plan:</td>
-                                                    <td style="padding: 8px 0; color: #333;">{plan.name}</td>
-                                                </tr>
-                                                <tr>
-                                                    <td style="padding: 8px 0; color: #666; font-weight: bold;">Monthly Quota:</td>
-                                                    <td style="padding: 8px 0; color: #333;">{plan.monthly_quota} listings</td>
-                                                </tr>
-                                                <tr>
-                                                    <td style="padding: 8px 0; color: #666; font-weight: bold;">Billing Period:</td>
-                                                    <td style="padding: 8px 0; color: #333;">{period_start.strftime("%b %d, %Y")} - {period_end.strftime("%b %d, %Y")}</td>
-                                                </tr>
-                                            </table>
-                                        </div>
-                                        <div style="background: #e0f2fe; padding: 20px; border-radius: 10px; border-left: 4px solid #0284c7; margin: 20px 0;">
-                                            <p style="margin: 0; color: #075985; font-weight: bold;">
-                                                🚀 Ready to get started? Head to your dashboard and create your first listing!
-                                            </p>
-                                        </div>
-                                        <p style="color: #666; font-size: 14px;">
-                                            If you have any questions, contact us at <a href="mailto:rahul@listfast.ai">rahul@listfast.ai</a>.
-                                        </p>
-                                    </div>
-                                    <div style="background: #333; padding: 20px; text-align: center;">
-                                        <p style="color: #999; margin: 0; font-size: 12px;">© 2025 ListFast.ai</p>
-                                    </div>
-                                </body>
-                            </html>
-                            """
-                            
-                            msg = EmailMultiAlternatives(
-                                subject=subject,
-                                body=f"Welcome to {plan.name}! Your subscription is now active with {plan.monthly_quota} listings per month.",
-                                from_email=EMAIL_USER,
-                                to=[user.email]
-                            )
-                            msg.attach_alternative(body_html, "text/html")
-                            
                             try:
-                                msg.send()
-                                logging.info(f"Welcome subscription email sent to {user.email}")
+                                from .tasks import send_subscription_welcome_email_task
+                                send_subscription_welcome_email_task.delay(user.email, plan.name, plan.monthly_quota)
+                                logging.info(f"Welcome subscription email queued for {user.email}")
                             except Exception:
                                 pass
                                 
@@ -1592,66 +1224,15 @@ class StripeWebhookAPIView(APIView):
                         status="completed"
                     )
                     
-                    subject = "Payment Successful - ListFast.ai"
-                    body_html = f"""
-                    <html>
-                        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                            <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; text-align: center;">
-                                <h1 style="color: white; margin: 0;">✅ Payment Successful</h1>
-                            </div>
-                            <div style="padding: 40px 30px; background: #f9f9f9;">
-                                <h2 style="color: #333;">Thank You for Your Payment!</h2>
-                                <p style="color: #666; font-size: 16px; line-height: 1.6;">
-                                    Your payment for <strong>{user_plan.plan.name}</strong> has been processed successfully.
-                                </p>
-                                <div style="background: white; padding: 30px; border-radius: 10px; margin: 30px 0;">
-                                    <h3 style="color: #10b981; margin-top: 0;">Payment Details</h3>
-                                    <table style="width: 100%; border-collapse: collapse;">
-                                        <tr>
-                                            <td style="padding: 8px 0; color: #666; font-weight: bold;">Amount Paid:</td>
-                                            <td style="padding: 8px 0; color: #333;">£{amount_paid:.2f}</td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding: 8px 0; color: #666; font-weight: bold;">Plan:</td>
-                                            <td style="padding: 8px 0; color: #333;">{user_plan.plan.name}</td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding: 8px 0; color: #666; font-weight: bold;">Billing Period:</td>
-                                            <td style="padding: 8px 0; color: #333;">{period_start.strftime("%b %d, %Y")} - {period_end.strftime("%b %d, %Y")}</td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding: 8px 0; color: #666; font-weight: bold;">Next Billing Date:</td>
-                                            <td style="padding: 8px 0; color: #333;">{period_end.strftime("%b %d, %Y")}</td>
-                                        </tr>
-                                    </table>
-                                </div>
-                                <div style="background: #dbeafe; padding: 20px; border-radius: 10px; border-left: 4px solid #3b82f6; margin: 20px 0;">
-                                    <p style="margin: 0; color: #1e40af; font-weight: bold;">
-                                        🎉 Your listing quota has been reset to {user_plan.plan.monthly_quota} listings for this month!
-                                    </p>
-                                </div>
-                                <p style="color: #666; font-size: 14px;">
-                                    Questions? Contact us at <a href="mailto:rahul@listfast.ai">rahul@listfast.ai</a>.
-                                </p>
-                            </div>
-                            <div style="background: #333; padding: 20px; text-align: center;">
-                                <p style="color: #999; margin: 0; font-size: 12px;">© 2025 ListFast.ai</p>
-                            </div>
-                        </body>
-                    </html>
-                    """
-                    
-                    msg = EmailMultiAlternatives(
-                        subject=subject,
-                        body=f"Your payment of £{amount_paid:.2f} for {user_plan.plan.name} has been processed successfully.",
-                        from_email=EMAIL_USER,
-                        to=[user_plan.user.email]
-                    )
-                    msg.attach_alternative(body_html, "text/html")
-                    
                     try:
-                        msg.send()
-                        logging.info(f"Payment success email sent to {user_plan.user.email}")
+                        from .tasks import send_payment_success_email_task
+                        send_payment_success_email_task.delay(
+                            user_plan.user.email,
+                            user_plan.plan.name,
+                            float(amount_paid),
+                            user_plan.plan.monthly_quota
+                        )
+                        logging.info(f"Payment success email queued for {user_plan.user.email}")
                     except Exception:
                         pass
                         
@@ -1668,45 +1249,10 @@ class StripeWebhookAPIView(APIView):
                     user_plan = UserPlan.objects.get(stripe_subscription_id=subscription_id)
                     user = user_plan.user
                     
-                    subject = "Payment Failed - ListFast.ai Subscription"
-                    body_html = f"""
-                    <html>
-                        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                            <div style="background: #dc3545; padding: 30px; text-align: center;">
-                                <h1 style="color: white; margin: 0;">Payment Failed</h1>
-                            </div>
-                            <div style="padding: 40px 30px; background: #f9f9f9;">
-                                <h2 style="color: #333;">Action Required</h2>
-                                <p style="color: #666; font-size: 16px; line-height: 1.6;">
-                                    We were unable to process your payment for your <strong>{user_plan.plan.name}</strong> subscription.
-                                </p>
-                                <div style="background: #fff3cd; padding: 20px; border-radius: 10px; border-left: 4px solid #ffc107; margin: 20px 0;">
-                                    <p style="margin: 0; color: #856404;">
-                                        Please update your payment method to avoid service interruption.
-                                    </p>
-                                </div>
-                                <p style="color: #666; font-size: 14px;">
-                                    If you have questions, contact us at <a href="mailto:rahul@listfast.ai">rahul@listfast.ai</a>.
-                                </p>
-                            </div>
-                            <div style="background: #333; padding: 20px; text-align: center;">
-                                <p style="color: #999; margin: 0; font-size: 12px;">© 2025 ListFast.ai</p>
-                            </div>
-                        </body>
-                    </html>
-                    """
-                    
-                    msg = EmailMultiAlternatives(
-                        subject=subject,
-                        body="Your payment for ListFast.ai subscription failed. Please update your payment method.",
-                        from_email=EMAIL_USER,
-                        to=[user.email]
-                    )
-                    msg.attach_alternative(body_html, "text/html")
-                    
                     try:
-                        msg.send()
-                        logging.info(f"Payment failed email sent to {user.email}")
+                        from .tasks import send_payment_failed_email_task
+                        send_payment_failed_email_task.delay(user.email)
+                        logging.info(f"Payment failed email queued for {user.email}")
                     except Exception:
                         pass
                         
@@ -1756,82 +1302,10 @@ class StripeWebhookAPIView(APIView):
                 
                 logging.info(f"Subscription deleted - User {user.email} downgraded to FREE plan")
                 
-                if has_refund:
-                    subject = "Refund Completed - ListFast.ai"
-                    body_html = f"""
-                    <html>
-                        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                            <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; text-align: center;">
-                                <h1 style="color: white; margin: 0;">✅ Refund Completed</h1>
-                            </div>
-                            <div style="padding: 40px 30px; background: #f9f9f9;">
-                                <h2 style="color: #333;">Your Refund Has Been Processed</h2>
-                                <p style="color: #666; font-size: 16px; line-height: 1.6;">
-                                    Great news! We have completed the refund from our end.
-                                </p>
-                                <div style="background: white; padding: 30px; border-radius: 10px; margin: 30px 0; border-left: 4px solid #10b981;">
-                                    <p style="color: #666; font-size: 16px; line-height: 1.6; margin: 0;">
-                                        <strong style="color: #10b981;">✓ Refund processed successfully</strong><br>
-                                        The refund may take <strong>1-2 business days</strong> to reflect in your bank account or card statement.
-                                    </p>
-                                </div>
-                                <div style="background: #fef3c7; padding: 20px; border-radius: 10px; border-left: 4px solid #f59e0b; margin: 20px 0;">
-                                    <p style="margin: 0; color: #92400e;">
-                                        Your subscription has been canceled and you've been moved to the <strong>Free Plan</strong>. You can still create <strong>2 listings per month</strong>.
-                                    </p>
-                                </div>
-                                <p style="color: #666; font-size: 14px;">
-                                    Want to upgrade again? <a href="{SITE_BASE_URL}/pricing/" style="color: #10b981; text-decoration: none; font-weight: bold;">View our pricing</a>
-                                </p>
-                                <p style="color: #666; font-size: 14px;">
-                                    Questions? Contact us at <a href="mailto:rahul@listfast.ai">rahul@listfast.ai</a>.
-                                </p>
-                            </div>
-                            <div style="background: #333; padding: 20px; text-align: center;">
-                                <p style="color: #999; margin: 0; font-size: 12px;">© 2025 ListFast.ai</p>
-                            </div>
-                        </body>
-                    </html>
-                    """
-                else:
-                    subject = "Subscription Canceled - ListFast.ai"
-                    body_html = f"""
-                    <html>
-                        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
-                                <h1 style="color: white; margin: 0;">ListFast.ai</h1>
-                            </div>
-                            <div style="padding: 40px 30px; background: #f9f9f9;">
-                                <h2 style="color: #333;">Subscription Canceled</h2>
-                                <p style="color: #666; font-size: 16px; line-height: 1.6;">
-                                    Your subscription has been canceled. You have been moved to the <strong>Free Plan</strong>.
-                                </p>
-                                <div style="background: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
-                                    <p style="color: #666; margin: 0;">
-                                        You can still use <strong>2 listings per month</strong> on the Free plan.
-                                    </p>
-                                </div>
-                                <p style="color: #666; font-size: 14px;">
-                                    Want to upgrade again? Visit our <a href="{SITE_BASE_URL}/pricing/">pricing page</a>.
-                                </p>
-                            </div>
-                            <div style="background: #333; padding: 20px; text-align: center;">
-                                <p style="color: #999; margin: 0; font-size: 12px;">© 2025 ListFast.ai</p>
-                            </div>
-                        </body>
-                    </html>
-                    """
-                
-                msg = EmailMultiAlternatives(
-                    subject=subject,
-                    body="Your ListFast.ai subscription has been canceled. You've been moved to the Free plan.",
-                    from_email=EMAIL_USER,
-                    to=[user.email]
-                )
-                msg.attach_alternative(body_html, "text/html")
-                
                 try:
-                    msg.send()
+                    from .tasks import send_subscription_canceled_email_task
+                    send_subscription_canceled_email_task.delay(user.email)
+                    logging.info(f"Subscription canceled email queued for {user.email}")
                 except Exception:
                     pass
                     
@@ -1861,66 +1335,16 @@ class StripeWebhookAPIView(APIView):
                         logging.info(f"Plan updated for user {user_plan.user.email}: {old_plan_name} -> {new_plan.name}")
                         
                         is_upgrade = new_plan.monthly_quota > Plan.objects.get(name=old_plan_name).monthly_quota
-                        subject = f"Plan {'Upgraded' if is_upgrade else 'Changed'} - ListFast.ai"
-                        body_html = f"""
-                        <html>
-                            <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
-                                    <h1 style="color: white; margin: 0;">{'🚀' if is_upgrade else '📋'} Plan {'Upgraded' if is_upgrade else 'Changed'}</h1>
-                                </div>
-                                <div style="padding: 40px 30px; background: #f9f9f9;">
-                                    <h2 style="color: #333;">Your Plan Has Been {'Upgraded' if is_upgrade else 'Changed'}!</h2>
-                                    <p style="color: #666; font-size: 16px; line-height: 1.6;">
-                                        Your subscription has been {'upgraded' if is_upgrade else 'changed'} from <strong>{old_plan_name}</strong> to <strong>{new_plan.name}</strong>.
-                                    </p>
-                                    <div style="background: white; padding: 30px; border-radius: 10px; margin: 30px 0;">
-                                        <h3 style="color: #667eea; margin-top: 0;">New Plan Details</h3>
-                                        <table style="width: 100%; border-collapse: collapse;">
-                                            <tr>
-                                                <td style="padding: 8px 0; color: #666; font-weight: bold;">Previous Plan:</td>
-                                                <td style="padding: 8px 0; color: #999; text-decoration: line-through;">{old_plan_name}</td>
-                                            </tr>
-                                            <tr>
-                                                <td style="padding: 8px 0; color: #666; font-weight: bold;">Current Plan:</td>
-                                                <td style="padding: 8px 0; color: #10b981; font-weight: bold;">{new_plan.name}</td>
-                                            </tr>
-                                            <tr>
-                                                <td style="padding: 8px 0; color: #666; font-weight: bold;">Monthly Quota:</td>
-                                                <td style="padding: 8px 0; color: #333;">{new_plan.monthly_quota} listings</td>
-                                            </tr>
-                                            <tr>
-                                                <td style="padding: 8px 0; color: #666; font-weight: bold;">Billing Period:</td>
-                                                <td style="padding: 8px 0; color: #333;">{period_start.strftime("%b %d, %Y")} - {period_end.strftime("%b %d, %Y")}</td>
-                                            </tr>
-                                        </table>
-                                    </div>
-                                    <div style="background: {'#dbeafe' if is_upgrade else '#fef3c7'}; padding: 20px; border-radius: 10px; border-left: 4px solid {'#3b82f6' if is_upgrade else '#f59e0b'}; margin: 20px 0;">
-                                        <p style="margin: 0; color: {'#1e40af' if is_upgrade else '#92400e'}; font-weight: bold;">
-                                            {'🎉 Enjoy your increased quota!' if is_upgrade else 'ℹ️ Your new plan is now active.'}
-                                        </p>
-                                    </div>
-                                    <p style="color: #666; font-size: 14px;">
-                                        Questions? Contact us at <a href="mailto:rahul@listfast.ai">rahul@listfast.ai</a>.
-                                    </p>
-                                </div>
-                                <div style="background: #333; padding: 20px; text-align: center;">
-                                    <p style="color: #999; margin: 0; font-size: 12px;">© 2025 ListFast.ai</p>
-                                </div>
-                            </body>
-                        </html>
-                        """
-                        
-                        msg = EmailMultiAlternatives(
-                            subject=subject,
-                            body=f"Your plan has been {'upgraded' if is_upgrade else 'changed'} from {old_plan_name} to {new_plan.name}.",
-                            from_email=EMAIL_USER,
-                            to=[user_plan.user.email]
-                        )
-                        msg.attach_alternative(body_html, "text/html")
                         
                         try:
-                            msg.send()
-                            logging.info(f"Plan change email sent to {user_plan.user.email}")
+                            from .tasks import send_plan_change_email_task
+                            send_plan_change_email_task.delay(
+                                user_plan.user.email,
+                                old_plan_name,
+                                new_plan.name,
+                                is_upgrade
+                            )
+                            logging.info(f"Plan change email queued for {user_plan.user.email}")
                         except Exception:
                             pass
                             
@@ -1939,60 +1363,12 @@ class StripeWebhookAPIView(APIView):
             logging.info(f"Charge refunded: {charge['id']} - Amount: £{refund_amount}")
             
             if customer_email:
-                subject = "Refund Initiated - ListFast.ai"
-                body_html = f"""
-                <html>
-                    <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; text-align: center;">
-                            <h1 style="color: white; margin: 0;">💰 Refund Initiated</h1>
-                        </div>
-                        <div style="padding: 40px 30px; background: #f9f9f9;">
-                            <h2 style="color: #333;">Refund in Progress</h2>
-                            <p style="color: #666; font-size: 16px; line-height: 1.6;">
-                                Your refund has been initiated by our team.
-                            </p>
-                            <div style="background: white; padding: 30px; border-radius: 10px; margin: 30px 0;">
-                                <h3 style="color: #10b981; margin-top: 0;">Refund Details</h3>
-                                <table style="width: 100%; border-collapse: collapse;">
-                                    <tr>
-                                        <td style="padding: 8px 0; color: #666; font-weight: bold;">Refund Amount:</td>
-                                        <td style="padding: 8px 0; color: #10b981; font-weight: bold; font-size: 18px;">£{refund_amount:.2f}</td>
-                                    </tr>
-                                    <tr>
-                                        <td style="padding: 8px 0; color: #666; font-weight: bold;">Status:</td>
-                                        <td style="padding: 8px 0; color: #f59e0b;">Initiated</td>
-                                    </tr>
-                                </table>
-                            </div>
-                            <div style="background: #dbeafe; padding: 20px; border-radius: 10px; border-left: 4px solid #3b82f6; margin: 20px 0;">
-                                <p style="margin: 0; color: #1e40af; font-weight: bold;">
-                                    ℹ️ Your subscription will be canceled shortly and you'll receive a confirmation email once complete.
-                                </p>
-                            </div>
-                            <p style="color: #666; font-size: 14px;">
-                                Questions? Contact us at <a href="mailto:rahul@listfast.ai">rahul@listfast.ai</a>.
-                            </p>
-                        </div>
-                        <div style="background: #333; padding: 20px; text-align: center;">
-                            <p style="color: #999; margin: 0; font-size: 12px;">© 2025 ListFast.ai</p>
-                        </div>
-                    </body>
-                </html>
-                """
-                
-                msg = EmailMultiAlternatives(
-                    subject=subject,
-                    body=f"Your refund of £{refund_amount:.2f} has been processed and will appear in your account within 5-10 business days.",
-                    from_email=EMAIL_USER,
-                    to=[customer_email]
-                )
-                msg.attach_alternative(body_html, "text/html")
-                
                 try:
-                    msg.send()
-                    logging.info(f"Refund confirmation email sent to {customer_email}")
+                    from .tasks import send_refund_processed_email_task
+                    send_refund_processed_email_task.delay(customer_email, float(refund_amount))
+                    logging.info(f"Refund confirmation email queued for {customer_email}")
                 except Exception as e:
-                    logging.error(f"Failed to send refund email: {str(e)}")
+                    logging.error(f"Failed to queue refund email: {str(e)}")
 
         return Response({"received": True})
 
@@ -2068,91 +1444,10 @@ class ContactFormAPIView(APIView):
             
             logging.info(f"Contact form submission saved with ID: {contact_submission.id}")
             
-            team_subject = f"New Contact Form Submission from {name}"
-            team_body_html = f"""
-            <html>
-                <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
-                        <h1 style="color: white; margin: 0;">📬 New Contact Form Submission</h1>
-                    </div>
-                    <div style="padding: 40px 30px; background: #f9f9f9;">
-                        <h2 style="color: #333; margin-bottom: 20px;">Contact Details</h2>
-                        <div style="background: white; padding: 25px; border-radius: 10px; margin: 20px 0;">
-                            <p style="margin: 10px 0; color: #666;"><strong style="color: #333;">Name:</strong> {name}</p>
-                            <p style="margin: 10px 0; color: #666;"><strong style="color: #333;">Email:</strong> <a href="mailto:{email}" style="color: #667eea; text-decoration: none;">{email}</a></p>
-                        </div>
-                        <h3 style="color: #333; margin-top: 30px;">Message:</h3>
-                        <div style="background: white; padding: 25px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #667eea;">
-                            <p style="color: #666; line-height: 1.6; white-space: pre-wrap;">{message}</p>
-                        </div>
-                        <div style="background: #dbeafe; padding: 20px; border-radius: 10px; border-left: 4px solid #3b82f6; margin: 20px 0;">
-                            <p style="margin: 0; color: #1e40af; font-size: 14px;">
-                                Please respond to this inquiry at your earliest convenience.
-                            </p>
-                        </div>
-                    </div>
-                    <div style="background: #333; padding: 20px; text-align: center;">
-                        <p style="color: #999; margin: 0; font-size: 12px;">© 2025 ListFast.ai. All rights reserved.</p>
-                    </div>
-                </body>
-            </html>
-            """
+            from .tasks import send_contact_form_emails_task
+            send_contact_form_emails_task.delay(name, email, message)
             
-            team_msg = EmailMultiAlternatives(
-                subject=team_subject,
-                body=f"New contact form submission from {name} ({email}): {message}",
-                from_email=EMAIL_USER,
-                to=["rahul@listfast.ai"]
-            )
-            team_msg.attach_alternative(team_body_html, "text/html")
-            team_msg.send()
-            
-            user_subject = "Thank You for Contacting ListFast.ai"
-            user_body_html = f"""
-            <html>
-                <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
-                        <h1 style="color: white; margin: 0;">✅ Message Received!</h1>
-                    </div>
-                    <div style="padding: 40px 30px; background: #f9f9f9;">
-                        <h2 style="color: #333; margin-bottom: 20px;">Hi {name},</h2>
-                        <p style="color: #666; font-size: 16px; line-height: 1.6;">
-                            Thank you for reaching out to ListFast.ai! We've received your message and our team will get back to you as soon as possible.
-                        </p>
-                        <div style="background: white; padding: 25px; border-radius: 10px; margin: 30px 0; border-left: 4px solid #10b981;">
-                            <h3 style="color: #333; margin-top: 0;">Your Message:</h3>
-                            <p style="color: #666; line-height: 1.6; white-space: pre-wrap;">{message}</p>
-                        </div>
-                        <div style="background: #dbeafe; padding: 20px; border-radius: 10px; border-left: 4px solid #3b82f6; margin: 20px 0;">
-                            <p style="margin: 0; color: #1e40af; font-size: 14px;">
-                                <strong>Expected Response Time:</strong> We typically respond within 24-48 hours during business days.
-                            </p>
-                        </div>
-                        <p style="color: #666; font-size: 14px; margin-top: 30px;">
-                            In the meantime, feel free to explore our <a href="{SITE_BASE_URL}/" style="color: #667eea; text-decoration: none; font-weight: bold;">platform</a> or check out our <a href="{SITE_BASE_URL}/faq/" style="color: #667eea; text-decoration: none; font-weight: bold;">FAQ</a> for instant answers.
-                        </p>
-                        <p style="color: #666; font-size: 14px;">
-                            Best regards,<br>
-                            <strong>The ListFast.ai Team</strong>
-                        </p>
-                    </div>
-                    <div style="background: #333; padding: 20px; text-align: center;">
-                        <p style="color: #999; margin: 0; font-size: 12px;">© 2025 ListFast.ai. All rights reserved.</p>
-                    </div>
-                </body>
-            </html>
-            """
-            
-            user_msg = EmailMultiAlternatives(
-                subject=user_subject,
-                body=f"Thank you for contacting ListFast.ai. We'll get back to you soon.",
-                from_email=EMAIL_USER,
-                to=[email]
-            )
-            user_msg.attach_alternative(user_body_html, "text/html")
-            user_msg.send()
-            
-            logging.info(f"Contact form submission from {name} ({email})")
+            logging.info(f"Contact form emails queued for {name} ({email})")
             return Response({"message": "Thank you! Your message has been sent successfully."}, status=status.HTTP_200_OK)
             
         except Exception as e:
