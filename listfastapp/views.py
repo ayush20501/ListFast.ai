@@ -1090,31 +1090,45 @@ class RequestRefundAPIView(APIView):
             if user_plan.stripe_subscription_id:
                 try:
                     print("--------------------------------")
-                    print(user_plan.stripe_subscription_id)
+                    print(f"Attempting to retrieve invoices for subscription: {user_plan.stripe_subscription_id}")
                     print("--------------------------------")
-                    stripe.Subscription.delete(user_plan.stripe_subscription_id)
-                except stripe.StripeError as e:
-                    logging.error(f"Stripe subscription cancellation failed for user {request.user.id}: {e}")
-                    return Response(
-                        {"error": "Could not cancel your subscription. Please contact support."},
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                    )
-
-            if user_plan.stripe_subscription_id:
-                try:
+                    # Get invoices BEFORE canceling the subscription
                     invoices = stripe.Invoice.list(subscription=user_plan.stripe_subscription_id, limit=1)
                     print("--------------------------------")
                     print(invoices)
                     print("--------------------------------")
+                    
+                    # Process refund if there's a payment intent
+                    payment_intent_id = None
                     if invoices.data:
                         latest_invoice = invoices.data[0]
                         payment_intent_id = latest_invoice.payment_intent
                         if payment_intent_id:
+                            print(f"Creating refund for payment intent: {payment_intent_id}")
                             stripe.Refund.create(payment_intent=payment_intent_id)
-                except stripe.StripeError as e:
-                    logging.error(f"Stripe refund failed for user {request.user.id}: {e}")
+                            print("Refund created successfully")
+                    
+                    # Cancel the subscription after refund
+                    print(f"Canceling subscription: {user_plan.stripe_subscription_id}")
+                    stripe.Subscription.delete(user_plan.stripe_subscription_id)
+                    print("Subscription canceled successfully")
+                    
+                except stripe.error.InvalidRequestError as e:
+                    logging.error(f"Stripe invalid request for user {request.user.id}: {e}")
                     return Response(
-                        {"error": "Your subscription has been canceled, but the refund failed. Please contact support."},
+                        {"error": f"Invalid subscription or payment data: {str(e)}. Please contact support."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                except stripe.error.PermissionError as e:
+                    logging.error(f"Stripe permission error for user {request.user.id}: {e}")
+                    return Response(
+                        {"error": "Could not process refund due to permission issues. Please contact support."},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+                except stripe.StripeError as e:
+                    logging.error(f"Stripe error for user {request.user.id}: {e}")
+                    return Response(
+                        {"error": f"Could not cancel your subscription: {str(e)}. Please contact support."},
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR
                     )
 
