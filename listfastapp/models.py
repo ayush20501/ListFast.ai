@@ -167,3 +167,59 @@ class CreditPurchase(models.Model):
 
     def __str__(self):
         return f"Credits {self.credits_total - self.credits_used}/{self.credits_total} for {self.user.email}"
+
+
+class RefundRequest(models.Model):
+    STATUS_CHOICES = [
+        ("pending", "pending"),
+        ("approved", "approved"),
+        ("rejected", "rejected"),
+        ("completed", "completed"),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    subscription_id = models.CharField(max_length=255)
+    plan_name = models.CharField(max_length=100)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    reason = models.TextField(blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    created_at = models.DateTimeField(auto_now_add=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Refund Request - {self.user.email} ({self.status})"
+
+
+class Order(models.Model):
+    ORDER_TYPE_CHOICES = [
+        ("subscription", "subscription"),
+        ("credits", "credits"),
+    ]
+    
+    STATUS_CHOICES = [
+        ("pending", "pending"),
+        ("completed", "completed"),
+        ("refunded", "refunded"),
+        ("failed", "failed"),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    order_type = models.CharField(max_length=20, choices=ORDER_TYPE_CHOICES)
+    stripe_session_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
+    stripe_subscription_id = models.CharField(max_length=255, null=True, blank=True)
+    stripe_invoice_id = models.CharField(max_length=255, null=True, blank=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=3, default="gbp")
+    description = models.CharField(max_length=255)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Order #{self.id} - {self.user.email} - {self.description}"

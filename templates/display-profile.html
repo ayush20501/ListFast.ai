@@ -726,6 +726,16 @@
                         </div>
                         <div id="refund-message" class="hidden mt-4 text-sm p-3 rounded-lg"></div>
                     </div>
+
+                    <div class="bg-gray-50 p-4 sm:p-6 rounded-2xl">
+                        <h4 class="font-semibold text-gray-900 text-lg mb-4">Order History</h4>
+                        <div id="order-history" class="space-y-3">
+                            <div class="text-center text-gray-500 py-4">
+                                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                                Loading orders...
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -839,6 +849,7 @@
                 document.getElementById('mobile-user-email').textContent = data.email;
                 await loadProfileData();
                 await loadPlanStatus();
+                await loadOrderHistory();
             } catch (error) {
                 window.location.href = '/login/';
             }
@@ -1541,7 +1552,13 @@
                             </div>
                     `;
 
-                    if (data.is_refundable) {
+                    if (data.has_pending_refund) {
+                        html += `
+                            <button disabled class="bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium cursor-not-allowed text-sm opacity-75">
+                                Refund Requested
+                            </button>
+                        `;
+                    } else if (data.is_refundable) {
                         html += `
                             <button id="request-refund-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 font-medium transition-all duration-300 shadow-lg hover:shadow-xl text-sm">
                                 Request Refund
@@ -1557,10 +1574,13 @@
                     if (data.period_end) {
                          html += `<p class="text-xs text-gray-500 mt-2">Renews on: ${new Date(data.period_end).toLocaleDateString()}</p>`;
                     }
+                    if (data.has_pending_refund && data.refund_requested_at) {
+                        html += `<p class="text-xs text-yellow-600 mt-2">⏳ Refund requested on ${new Date(data.refund_requested_at).toLocaleDateString()} - Under review</p>`;
+                    }
 
                     container.innerHTML = html;
                     
-                    if (data.is_refundable) {
+                    if (data.is_refundable && !data.has_pending_refund) {
                         document.getElementById('request-refund-btn').addEventListener('click', handleRefundRequest);
                     }
                 } else {
@@ -1568,6 +1588,46 @@
                 }
             } catch (error) {
                 document.getElementById('plan-details').innerHTML = '<p class="text-center text-red-500">Error loading plan details.</p>';
+            }
+        }
+
+        async function loadOrderHistory() {
+            try {
+                const response = await fetch('/api/order-history/');
+                const data = await response.json();
+                const container = document.getElementById('order-history');
+
+                if (response.ok && data.orders && data.orders.length > 0) {
+                    container.innerHTML = data.orders.map(order => {
+                        const statusColor = {
+                            'completed': 'bg-green-100 text-green-800',
+                            'refunded': 'bg-yellow-100 text-yellow-800',
+                            'pending': 'bg-blue-100 text-blue-800',
+                            'failed': 'bg-red-100 text-red-800'
+                        }[order.status] || 'bg-gray-100 text-gray-800';
+
+                        return `
+                            <div class="bg-white p-4 rounded-lg border border-gray-200">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1">
+                                        <p class="font-semibold text-gray-900">${order.description}</p>
+                                        <p class="text-xs text-gray-500 mt-1">${new Date(order.created_at).toLocaleString()}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="font-bold text-gray-900">£${order.amount.toFixed(2)}</p>
+                                        <span class="inline-block px-2 py-1 text-xs font-medium rounded-full ${statusColor} mt-1">
+                                            ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    container.innerHTML = '<p class="text-center text-gray-500 py-8">No orders found</p>';
+                }
+            } catch (error) {
+                document.getElementById('order-history').innerHTML = '<p class="text-center text-red-500 py-4">Error loading order history</p>';
             }
         }
 
@@ -1604,7 +1664,7 @@
 
                 if (response.ok) {
                     showRefundMessage(data.message || 'Refund request submitted successfully! Our team will review and process it within 2-3 business days. You will receive an email confirmation.', 'success');
-                    refundBtn.remove();
+                    loadPlanStatus(); // Reload to show "Refund Requested" status
                 } else {
                     showRefundMessage(data.error || 'Refund request failed.', 'error');
                     refundBtn.disabled = false;

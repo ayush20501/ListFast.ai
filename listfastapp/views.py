@@ -20,7 +20,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.serializers import Serializer, CharField, DecimalField, IntegerField, ChoiceField, ListField, URLField
 from decouple import config
-from .models import UserProfile, eBayToken, OTP, ListingCount, UserListing, TaskRecord, Plan, UserPlan, CreditPurchase, CreditPackage
+from .models import UserProfile, eBayToken, OTP, ListingCount, UserListing, TaskRecord, Plan, UserPlan, CreditPurchase, CreditPackage, RefundRequest, Order
 from .tasks import create_single_item_listing_task, create_multipack_listing_task, create_bundle_listing_task
 from . import helpers
 from .mailchimp_service import send_welcome_email_via_mailchimp
@@ -1056,6 +1056,13 @@ class UserPlanStatusAPIView(APIView):
         try:
             user_plan = UserPlan.objects.get(user=request.user)
             is_refundable = user_plan.listings_used == 0 and user_plan.plan.code != "FREE"
+            
+            # Check for pending refund request
+            pending_refund = RefundRequest.objects.filter(
+                user=request.user,
+                status="pending"
+            ).first()
+            
             return Response({
                 "plan_name": user_plan.plan.name,
                 "period_start": user_plan.current_period_start,
@@ -1063,6 +1070,8 @@ class UserPlanStatusAPIView(APIView):
                 "listings_used": user_plan.listings_used,
                 "listings_quota": user_plan.plan.monthly_quota,
                 "is_refundable": is_refundable,
+                "has_pending_refund": pending_refund is not None,
+                "refund_requested_at": pending_refund.created_at if pending_refund else None,
             })
         except UserPlan.DoesNotExist:
             return Response({"plan_name": "Free Plan"})
@@ -1264,6 +1273,15 @@ class RequestRefundAPIView(APIView):
             except Exception:
                 pass 
 
+            # Create refund request record
+            RefundRequest.objects.create(
+                user=user,
+                subscription_id=user_plan.stripe_subscription_id,
+                plan_name=user_plan.plan.name,
+                amount=user_plan.plan.price_amount_gbp,
+                status="pending"
+            )
+
             return Response({
                 "status": "success",
                 "message": "Your refund request has been submitted successfully. Our team will review and process it within 2-3 business days. You will receive an email confirmation once processed."
@@ -1319,11 +1337,10 @@ class CreateCheckoutSessionAPIView(APIView):
             if usage["remaining"] > 0:
                 return Response({"error": "You can only purchase credits once you have used all your plan listings."}, status=400)
             
-            package_code = request.data.get("package_code")
             try:
-                package = CreditPackage.objects.get(code=package_code, is_active=True)
+                package = CreditPackage.objects.get(is_active=True)
             except CreditPackage.DoesNotExist:
-                return Response({"error": "Unknown or inactive credit package"}, status=400)
+                return Response({"error": "No active credit package found"}, status=400)
 
             price_data = {
                 "currency": "gbp",
@@ -1425,6 +1442,18 @@ class StripeWebhookAPIView(APIView):
                             )
                             logging.info(f"Subscription created for user {user.email} - Plan: {plan.name}")
                             
+                            # Create order record
+                            Order.objects.create(
+                                user=user,
+                                order_type="subscription",
+                                stripe_session_id=session.id,
+                                stripe_subscription_id=subscription_id,
+                                amount=plan.price_amount_gbp,
+                                currency="gbp",
+                                description=f"{plan.name} Subscription",
+                                status="completed"
+                            )
+                            
                             subject = f"Welcome to {plan.name} - ListFast.ai"
                             body_html = f"""
                             <html>
@@ -1507,9 +1536,21 @@ class StripeWebhookAPIView(APIView):
                     
                     logging.info(f"Invoice paid for user {user_plan.user.email} - Period reset: {period_start} to {period_end}")
                     
+                    # Create order record for renewal
+                    amount_paid = invoice.get("amount_paid", 0) / 100
+                    Order.objects.create(
+                        user=user_plan.user,
+                        order_type="subscription",
+                        stripe_subscription_id=subscription_id,
+                        stripe_invoice_id=invoice.get("id"),
+                        amount=amount_paid,
+                        currency=invoice.get("currency", "gbp"),
+                        description=f"{user_plan.plan.name} Renewal",
+                        status="completed"
+                    )
+                    
                     # Send payment success email to user
                     subject = "Payment Successful - ListFast.ai"
-                    amount_paid = invoice.get("amount_paid", 0) / 100
                     body_html = f"""
                     <html>
                         <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -1804,6 +1845,18 @@ class StripeWebhookAPIView(APIView):
             
             logging.info(f"Charge refunded: {charge['id']} - Amount: £{refund_amount}")
             
+            # Mark any pending refund requests as completed
+            if customer_email:
+                try:
+                    user = get_user_model().objects.get(email=customer_email)
+                    RefundRequest.objects.filter(
+                        user=user,
+                        status="pending"
+                    ).update(status="completed", processed_at=now())
+                    logging.info(f"Refund request marked as completed for user {customer_email}")
+                except get_user_model().DoesNotExist:
+                    pass
+            
             # Send refund confirmation email to user
             if customer_email:
                 subject = "Refund Processed - ListFast.ai"
@@ -1874,6 +1927,25 @@ class StripeWebhookAPIView(APIView):
                     logging.error(f"Failed to send refund email: {str(e)}")
 
         return Response({"received": True})
+
+class OrderHistoryAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        orders = Order.objects.filter(user=request.user).order_by('-created_at')[:20]
+        
+        return Response({
+            "orders": [{
+                "id": order.id,
+                "order_type": order.order_type,
+                "amount": float(order.amount),
+                "currency": order.currency.upper(),
+                "description": order.description,
+                "status": order.status,
+                "created_at": order.created_at.isoformat(),
+            } for order in orders]
+        })
+
 
 class SubscribeToMailchimpAPIView(APIView):
     def post(self, request):

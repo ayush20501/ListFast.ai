@@ -51,6 +51,7 @@ urlpatterns = [
     path('api/usage/', views.UsageStatusAPIView.as_view(), name='api-usage-local'),
     path('api/plan-status/', views.UserPlanStatusAPIView.as_view(), name='api-plan-status'),
     path('api/request-refund/', views.RequestRefundAPIView.as_view(), name='api-request-refund'),
+    path('api/order-history/', views.OrderHistoryAPIView.as_view(), name='api-order-history'),
     path('api/create-checkout-session/', views.CreateCheckoutSessionAPIView.as_view(), name='api-create-checkout-local'),
     path('api/stripe-webhook/', views.StripeWebhookAPIView.as_view(), name='api-stripe-webhook'),
     path('api/subscribe-mailchimp/', views.SubscribeToMailchimpAPIView.as_view(), name='api-subscribe-mailchimp'),
