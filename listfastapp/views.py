@@ -1098,21 +1098,90 @@ class RequestRefundAPIView(APIView):
                     print(invoices)
                     print("--------------------------------")
                     
-                    # Process refund if there's a payment intent
-                    payment_intent_id = None
+                    # Process refund if there's a payment intent or charge
+                    refund_processed = False
                     if invoices.data:
                         latest_invoice = invoices.data[0]
-                        payment_intent_id = latest_invoice.payment_intent
+                        print(f"Latest invoice ID: {latest_invoice.id}, Status: {latest_invoice.status}")
+                        
+                        # Retrieve the full invoice object with expanded charge data
+                        full_invoice = stripe.Invoice.retrieve(
+                            latest_invoice.id,
+                            expand=['charge', 'payment_intent']
+                        )
+                        print(f"Full invoice retrieved with expanded data")
+                        print(f"Invoice keys available: {list(full_invoice.keys())}")
+                        
+                        # Try to get payment_intent first (preferred method)
+                        payment_intent_id = full_invoice.get('payment_intent')
                         if payment_intent_id:
-                            print(f"Creating refund for payment intent: {payment_intent_id}")
+                            print(f"Found payment_intent: {payment_intent_id}")
+                            print(f"Creating refund for payment intent...")
                             stripe.Refund.create(payment_intent=payment_intent_id)
-                            print("Refund created successfully")
+                            print("Refund created successfully via payment intent")
+                            refund_processed = True
+                        else:
+                            # If no payment_intent, try to get the charge directly
+                            print("No payment_intent found, looking for charge...")
+                            charge_id = full_invoice.get('charge')
+                            
+                            if charge_id:
+                                # charge might be an object or a string ID
+                                if isinstance(charge_id, str):
+                                    actual_charge_id = charge_id
+                                else:
+                                    actual_charge_id = charge_id.id if hasattr(charge_id, 'id') else str(charge_id)
+                                
+                                print(f"Found charge: {actual_charge_id}")
+                                print(f"Creating refund for charge...")
+                                stripe.Refund.create(charge=actual_charge_id)
+                                print("Refund created successfully via charge")
+                                refund_processed = True
+                            else:
+                                # Last resort: Look for charges associated with the customer
+                                print("No charge found on invoice, searching customer charges...")
+                                customer_id = full_invoice.get('customer')
+                                if customer_id:
+                                    # Get recent charges for this customer
+                                    charges = stripe.Charge.list(
+                                        customer=customer_id,
+                                        limit=5
+                                    )
+                                    print(f"Found {len(charges.data)} charges for customer")
+                                    
+                                    # Find charge matching the invoice amount
+                                    invoice_amount = full_invoice.get('amount_paid')
+                                    for charge in charges.data:
+                                        if charge.amount == invoice_amount and charge.paid and not charge.refunded:
+                                            print(f"Found matching charge: {charge.id} for amount {charge.amount}")
+                                            print(f"Creating refund for charge...")
+                                            stripe.Refund.create(charge=charge.id)
+                                            print("Refund created successfully via customer charge lookup")
+                                            refund_processed = True
+                                            break
+                                
+                                if not refund_processed:
+                                    print("No refundable payment method found after exhaustive search.")
+                                    print("Invoice is paid but automatic refund cannot be processed.")
+                    
+                    if not refund_processed:
+                        print("=" * 50)
+                        print("WARNING: Could not process automatic refund")
+                        print("Subscription will be canceled")
+                        print("MANUAL REFUND REQUIRED via Stripe Dashboard")
+                        print("=" * 50)
                     
                     # Cancel the subscription after refund
                     print(f"Canceling subscription: {user_plan.stripe_subscription_id}")
                     stripe.Subscription.delete(user_plan.stripe_subscription_id)
                     print("Subscription canceled successfully")
                     
+                except AttributeError as e:
+                    logging.error(f"Attribute error accessing Stripe object for user {request.user.id}: {e}")
+                    return Response(
+                        {"error": f"Could not access payment information: {str(e)}. Please contact support for a manual refund."},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
                 except stripe.error.InvalidRequestError as e:
                     logging.error(f"Stripe invalid request for user {request.user.id}: {e}")
                     return Response(
@@ -1129,6 +1198,12 @@ class RequestRefundAPIView(APIView):
                     logging.error(f"Stripe error for user {request.user.id}: {e}")
                     return Response(
                         {"error": f"Could not cancel your subscription: {str(e)}. Please contact support."},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+                except Exception as e:
+                    logging.error(f"Unexpected error during refund for user {request.user.id}: {e}")
+                    return Response(
+                        {"error": f"An unexpected error occurred: {str(e)}. Please contact support."},
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR
                     )
 
