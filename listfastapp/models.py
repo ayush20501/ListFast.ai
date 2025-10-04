@@ -235,3 +235,17 @@ class NewsletterSubscriber(models.Model):
     
     def __str__(self):
         return f"{self.email} - {'Active' if self.is_active else 'Unsubscribed'}"
+
+
+class ContactFormSubmission(models.Model):
+    name = models.CharField(max_length=200)
+    email = models.EmailField()
+    message = models.TextField()
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Contact from {self.name} ({self.email})"

@@ -20,7 +20,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.serializers import Serializer, CharField, DecimalField, IntegerField, ChoiceField, ListField, URLField
 from decouple import config
-from .models import UserProfile, eBayToken, OTP, ListingCount, UserListing, TaskRecord, Plan, UserPlan, CreditPurchase, CreditPackage, RefundRequest, Order, NewsletterSubscriber
+from .models import UserProfile, eBayToken, OTP, ListingCount, UserListing, TaskRecord, Plan, UserPlan, CreditPurchase, CreditPackage, RefundRequest, Order, NewsletterSubscriber, ContactFormSubmission
 from .tasks import create_single_item_listing_task, create_multipack_listing_task, create_bundle_listing_task
 from . import helpers
 import uuid
@@ -2042,3 +2042,119 @@ class SubscribeToMailchimpAPIView(APIView):
         except Exception as e:
             logging.error(f"Error subscribing {email} to newsletter: {str(e)}")
             return Response({"error": "Failed to subscribe. Please try again later."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ContactFormAPIView(APIView):
+    def post(self, request):
+        name = request.data.get("name", "").strip()
+        email = request.data.get("email", "").strip().lower()
+        message = request.data.get("message", "").strip()
+        
+        if not name or not email or not message:
+            return Response({"error": "All fields are required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if len(message) < 10:
+            return Response({"error": "Message must be at least 10 characters"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = request.user if request.user.is_authenticated else None
+            
+            contact_submission = ContactFormSubmission.objects.create(
+                name=name,
+                email=email,
+                message=message,
+                user=user
+            )
+            
+            logging.info(f"Contact form submission saved with ID: {contact_submission.id}")
+            
+            team_subject = f"New Contact Form Submission from {name}"
+            team_body_html = f"""
+            <html>
+                <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+                        <h1 style="color: white; margin: 0;">📬 New Contact Form Submission</h1>
+                    </div>
+                    <div style="padding: 40px 30px; background: #f9f9f9;">
+                        <h2 style="color: #333; margin-bottom: 20px;">Contact Details</h2>
+                        <div style="background: white; padding: 25px; border-radius: 10px; margin: 20px 0;">
+                            <p style="margin: 10px 0; color: #666;"><strong style="color: #333;">Name:</strong> {name}</p>
+                            <p style="margin: 10px 0; color: #666;"><strong style="color: #333;">Email:</strong> <a href="mailto:{email}" style="color: #667eea; text-decoration: none;">{email}</a></p>
+                        </div>
+                        <h3 style="color: #333; margin-top: 30px;">Message:</h3>
+                        <div style="background: white; padding: 25px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #667eea;">
+                            <p style="color: #666; line-height: 1.6; white-space: pre-wrap;">{message}</p>
+                        </div>
+                        <div style="background: #dbeafe; padding: 20px; border-radius: 10px; border-left: 4px solid #3b82f6; margin: 20px 0;">
+                            <p style="margin: 0; color: #1e40af; font-size: 14px;">
+                                Please respond to this inquiry at your earliest convenience.
+                            </p>
+                        </div>
+                    </div>
+                    <div style="background: #333; padding: 20px; text-align: center;">
+                        <p style="color: #999; margin: 0; font-size: 12px;">© 2025 ListFast.ai. All rights reserved.</p>
+                    </div>
+                </body>
+            </html>
+            """
+            
+            team_msg = EmailMultiAlternatives(
+                subject=team_subject,
+                body=f"New contact form submission from {name} ({email}): {message}",
+                from_email=EMAIL_USER,
+                to=["rahul@listfast.ai"]
+            )
+            team_msg.attach_alternative(team_body_html, "text/html")
+            team_msg.send()
+            
+            user_subject = "Thank You for Contacting ListFast.ai"
+            user_body_html = f"""
+            <html>
+                <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+                        <h1 style="color: white; margin: 0;">✅ Message Received!</h1>
+                    </div>
+                    <div style="padding: 40px 30px; background: #f9f9f9;">
+                        <h2 style="color: #333; margin-bottom: 20px;">Hi {name},</h2>
+                        <p style="color: #666; font-size: 16px; line-height: 1.6;">
+                            Thank you for reaching out to ListFast.ai! We've received your message and our team will get back to you as soon as possible.
+                        </p>
+                        <div style="background: white; padding: 25px; border-radius: 10px; margin: 30px 0; border-left: 4px solid #10b981;">
+                            <h3 style="color: #333; margin-top: 0;">Your Message:</h3>
+                            <p style="color: #666; line-height: 1.6; white-space: pre-wrap;">{message}</p>
+                        </div>
+                        <div style="background: #dbeafe; padding: 20px; border-radius: 10px; border-left: 4px solid #3b82f6; margin: 20px 0;">
+                            <p style="margin: 0; color: #1e40af; font-size: 14px;">
+                                <strong>Expected Response Time:</strong> We typically respond within 24-48 hours during business days.
+                            </p>
+                        </div>
+                        <p style="color: #666; font-size: 14px; margin-top: 30px;">
+                            In the meantime, feel free to explore our <a href="{SITE_BASE_URL}/" style="color: #667eea; text-decoration: none; font-weight: bold;">platform</a> or check out our <a href="{SITE_BASE_URL}/faq/" style="color: #667eea; text-decoration: none; font-weight: bold;">FAQ</a> for instant answers.
+                        </p>
+                        <p style="color: #666; font-size: 14px;">
+                            Best regards,<br>
+                            <strong>The ListFast.ai Team</strong>
+                        </p>
+                    </div>
+                    <div style="background: #333; padding: 20px; text-align: center;">
+                        <p style="color: #999; margin: 0; font-size: 12px;">© 2025 ListFast.ai. All rights reserved.</p>
+                    </div>
+                </body>
+            </html>
+            """
+            
+            user_msg = EmailMultiAlternatives(
+                subject=user_subject,
+                body=f"Thank you for contacting ListFast.ai. We'll get back to you soon.",
+                from_email=EMAIL_USER,
+                to=[email]
+            )
+            user_msg.attach_alternative(user_body_html, "text/html")
+            user_msg.send()
+            
+            logging.info(f"Contact form submission from {name} ({email})")
+            return Response({"message": "Thank you! Your message has been sent successfully."}, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logging.error(f"Error processing contact form: {str(e)}")
+            return Response({"error": "Failed to send message. Please try again later."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
