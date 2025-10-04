@@ -1049,6 +1049,8 @@ class UsageStatusAPIView(APIView):
     def get(self, request):
         return Response(helpers._get_user_usage_snapshot(request.user))
 
+from stripe.error import InvalidRequestError, StripeError
+
 class UserPlanStatusAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1067,110 +1069,6 @@ class UserPlanStatusAPIView(APIView):
         except UserPlan.DoesNotExist:
             return Response({"plan_name": "Free Plan"})
 
-
-# class RequestRefundAPIView(APIView):
-#     permission_classes = [IsAuthenticated]
-
-#     def post(self, request):
-#         user = request.user
-        
-#         try:
-#             user_plan = UserPlan.objects.get(user=user)
-#         except UserPlan.DoesNotExist:
-#             return Response({
-#                 "error": "You don't have an active subscription plan."
-#             }, status=status.HTTP_400_BAD_REQUEST)
-        
-#         # Check if the plan is eligible for refund
-#         if user_plan.plan.code == "FREE":
-#             return Response({
-#                 "error": "Free plan cannot be refunded."
-#             }, status=status.HTTP_400_BAD_REQUEST)
-        
-#         if user_plan.listings_used > 0:
-#             return Response({
-#                 "error": f"Refund not available. You have already used {user_plan.listings_used} listing(s) from your plan."
-#             }, status=status.HTTP_400_BAD_REQUEST)
-        
-#         # Check if there's a Stripe subscription
-#         if not user_plan.stripe_subscription_id:
-#             return Response({
-#                 "error": "No subscription found for refund."
-#             }, status=status.HTTP_400_BAD_REQUEST)
-        
-#         try:
-#             with transaction.atomic():
-#                 # Retrieve the subscription from Stripe
-#                 subscription = stripe.Subscription.retrieve(user_plan.stripe_subscription_id)
-                
-#                 if subscription.status == "canceled":
-#                     return Response({
-#                         "error": "This subscription has already been canceled."
-#                     }, status=status.HTTP_400_BAD_REQUEST)
-                
-#                 # Get the latest invoice to issue a refund
-#                 latest_invoice_id = subscription.latest_invoice
-#                 if latest_invoice_id:
-#                     invoice = stripe.Invoice.retrieve(latest_invoice_id)
-                    
-#                     # Check if there's a payment to refund
-#                     if invoice.payment_intent:
-#                         payment_intent = stripe.PaymentIntent.retrieve(invoice.payment_intent)
-                        
-#                         # Create a refund for the payment
-#                         if payment_intent.status == "succeeded" and payment_intent.amount > 0:
-#                             refund = stripe.Refund.create(
-#                                 payment_intent=payment_intent.id,
-#                                 reason="requested_by_customer"
-#                             )
-#                             logging.info(f"Refund created for user {user.email}: {refund.id}")
-                
-#                 # Cancel the subscription
-#                 canceled_subscription = stripe.Subscription.cancel(user_plan.stripe_subscription_id)
-#                 logging.info(f"Subscription canceled for user {user.email}: {canceled_subscription.id}")
-                
-#                 # Downgrade user to FREE plan
-#                 free_plan, _ = Plan.objects.get_or_create(
-#                     code="FREE",
-#                     defaults={
-#                         "name": "Free",
-#                         "monthly_quota": 2,
-#                         "price_amount_gbp": 0,
-#                     }
-#                 )
-                
-#                 # Update the user's plan to FREE
-#                 period_start = now()
-#                 period_end = period_start + timedelta(days=30)
-#                 user_plan.plan = free_plan
-#                 user_plan.current_period_start = period_start
-#                 user_plan.current_period_end = period_end
-#                 user_plan.listings_used = 0
-#                 user_plan.stripe_subscription_id = None
-#                 user_plan.save()
-                
-#                 return Response({
-#                     "status": "success",
-#                     "message": "Your subscription has been canceled and refund has been initiated. You have been downgraded to the Free plan. The refund will be processed within 5-10 business days."
-#                 }, status=status.HTTP_200_OK)
-                
-#         except stripe.error.InvalidRequestError as e:
-#             logging.error(f"Stripe InvalidRequestError for user {user.email}: {str(e)}")
-#             return Response({
-#                 "error": "Failed to process refund. The subscription may have already been canceled or refunded."
-#             }, status=status.HTTP_400_BAD_REQUEST)
-        
-#         except stripe.error.StripeError as e:
-#             logging.error(f"Stripe error during refund for user {user.email}: {str(e)}")
-#             return Response({
-#                 "error": "Failed to process refund. Please contact support at rahul@listfast.ai"
-#             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-#         except Exception as e:
-#             logging.error(f"Unexpected error during refund for user {user.email}: {str(e)}")
-#             return Response({
-#                 "error": "An unexpected error occurred. Please contact support."
-#             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class RequestRefundAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -1232,13 +1130,13 @@ class RequestRefundAPIView(APIView):
                 "message": "Refund and cancellation simulated. No changes have been made."
             }, status=status.HTTP_200_OK)
 
-        except stripe.error.InvalidRequestError as e:
+        except InvalidRequestError as e:
             print(f"Stripe InvalidRequestError: {str(e)}")
             return Response({
                 "error": "Failed to process refund simulation."
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        except stripe.error.StripeError as e:
+        except StripeError as e:
             print(f"Stripe error during simulation: {str(e)}")
             return Response({
                 "error": "Stripe error during refund simulation."
