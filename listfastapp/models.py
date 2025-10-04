@@ -126,6 +126,7 @@ class UserPlan(models.Model):
     current_period_end = models.DateTimeField()
     listings_used = models.IntegerField(default=0)
     stripe_subscription_id = models.CharField(max_length=100, blank=True, null=True)
+    stripe_payment_intent_id_initial = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
         return f"{self.user.email} -> {self.plan.code}"

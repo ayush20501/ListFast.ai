@@ -1085,23 +1085,28 @@ class RequestRefundAPIView(APIView):
                 return Response({"error": "Subscription ID not found."}, status=400)
 
             try:
-                subscription = stripe.Subscription.retrieve(user_plan.stripe_subscription_id)
-                latest_invoice_id = subscription.get('latest_invoice')
-                if not latest_invoice_id:
-                    return Response({"error": "No invoice found for this subscription."}, status=400)
-
-                invoice = stripe.Invoice.retrieve(latest_invoice_id)
-                charge_id = invoice.get('charge')
-
-                if not charge_id:
-                    payment_intent_id = invoice.get('payment_intent')
-                    if not payment_intent_id:
-                        return Response({"error": "No payment information found for this invoice."}, status=400)
-                    payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id)
-                    charge_id = payment_intent.get('latest_charge')
+                charge_id = None
+                if user_plan.stripe_payment_intent_id_initial:
+                    try:
+                        payment_intent = stripe.PaymentIntent.retrieve(user_plan.stripe_payment_intent_id_initial)
+                        charge_id = payment_intent.get('latest_charge')
+                    except stripe.error.StripeError as e:
+                        logging.error(f"Stripe error retrieving payment intent: {e}")
 
                 if not charge_id:
-                    return Response({"error": "No charge found for this invoice."}, status=400)
+                    subscription = stripe.Subscription.retrieve(user_plan.stripe_subscription_id)
+                    latest_invoice_id = subscription.get('latest_invoice')
+                    if latest_invoice_id:
+                        invoice = stripe.Invoice.retrieve(latest_invoice_id)
+                        charge_id = invoice.get('charge')
+                        if not charge_id:
+                            payment_intent_id = invoice.get('payment_intent')
+                            if payment_intent_id:
+                                payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+                                charge_id = payment_intent.get('latest_charge')
+
+                if not charge_id:
+                    return Response({"error": "No payment information could be found for this subscription's initial invoice."}, status=400)
 
                 stripe.Refund.create(charge=charge_id)
                 stripe.Subscription.cancel(user_plan.stripe_subscription_id)
@@ -1243,6 +1248,7 @@ class StripeWebhookAPIView(APIView):
 
                 elif session.get("mode") == "subscription":
                     subscription_id = session.get("subscription")
+                    payment_intent_id = session.get("payment_intent")
                     if subscription_id:
                         subscription = stripe.Subscription.retrieve(subscription_id)
                         item = subscription["items"]["data"][0]
@@ -1260,6 +1266,7 @@ class StripeWebhookAPIView(APIView):
                                     "current_period_end": period_end,
                                     "listings_used": 0,
                                     "stripe_subscription_id": subscription_id,
+                                    "stripe_payment_intent_id_initial": payment_intent_id,
                                 }
                             )
                         except Plan.DoesNotExist:
